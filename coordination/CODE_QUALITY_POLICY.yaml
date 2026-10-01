@@ -1,0 +1,44 @@
+schema_version: 1
+
+human_readability:
+  required: true
+  codebase_map_required: true
+  developer_onboarding_required: true
+  chat_history_required_to_understand_code: false
+
+source_file_lines:
+  ideal_max: 300
+  review_threshold: 500
+  split_threshold: 800
+  hard_limit: 1500
+  generated_and_vendor_exempt: true
+
+architecture:
+  ui_contains_domain_logic: forbidden
+  domain_imports_ui: forbidden
+  domain_imports_host_api: forbidden
+  circular_dependencies: forbidden
+  entrypoints_should_be_thin: true
+  external_systems_behind_adapters: true
+
+code:
+  duplicate_implementations: forbidden
+  silent_fallbacks: forbidden
+  anonymous_todos: forbidden
+  magic_domain_constants: forbidden
+  public_boundary_contracts_required: true
+  hidden_side_effects: forbidden
+
+documentation:
+  architecture_required: true
+  codebase_map_required: true
+  important_decisions_use_adr: true
+  complex_subsystem_readme_recommended: true
+
+testing:
+  regression_test_for_reproducible_bug: required_where_practical
+  evidence_strength_must_be_explicit: true
+  not_run_is_not_pass: true
+
+review:
+  code_quality_audit_template: coordination/CODE_QUALITY_AUDIT_TEMPLATE.md

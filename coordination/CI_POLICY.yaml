@@ -1,0 +1,23 @@
+schema_version: 1
+mode: low_usage
+manual_only_until: null
+local_tests_required: true
+agent_push_ci: false
+pull_request_ci: ready_for_review_only
+main_ci: scoped
+expensive_jobs: manual_or_main_only
+artifact_retention_days_default: 3
+scheduled_workflows: approval_required
+bot_commit_cascades: forbidden
+notes:
+  - GitHub Actions is an integration gate, not the primary development feedback loop.
+  - Projects may temporarily override mode to manual_only when account runner minutes are scarce.
+
+budget_policy: coordination/CI_BUDGET_POLICY.yaml
+test_matrix: coordination/PROJECT_TEST_MATRIX.yaml
+reset_day_plan: coordination/RESET_DAY_PLAN.yaml
+security_dependency_baseline: coordination/SECURITY_DEPENDENCY_BASELINE.yaml
+reset_behavior:
+  auto_enable_after_budget_reset: false
+  global_push_ci: false
+  heavy_jobs_require_queue: true

@@ -1,0 +1,85 @@
+schema_version: 3
+policy_version: V-01.05.00
+
+principles:
+  repository_is_canonical: true
+  derived_state_may_be_regenerated: true
+  duplicate_manual_backlogs: forbidden
+  idempotent_automation_required: true
+  not_run_is_not_pass: true
+
+mode:
+  orchestration: assisted
+  canonical_task_auto_mutation: false
+  canonical_defect_auto_creation_from_normalized_failure: true
+  auto_claim: false
+  auto_merge: false
+  auto_release: false
+
+routing:
+  source: coordination/tasks
+  defect_source: coordination/defects
+  default_wip_per_agent: 1
+  urgent_defects_preempt_normal_tasks:
+    - BLOCKER
+    - CRITICAL
+  policy_source: Ackerschewski/Basis-Agent-System/coordination/TASK_ROUTING_POLICY.yaml
+
+failure_loop:
+  policy_source: Ackerschewski/Basis-Agent-System/coordination/DEFECT_AUTOMATION_POLICY.yaml
+  max_automatic_fix_cycles: 2
+  repeated_failure_action: ESCALATE
+  duplicate_defects_for_same_failure: forbidden
+
+release:
+  policy_source: Ackerschewski/Basis-Agent-System/coordination/RELEASE_AUTOMATION_POLICY.yaml
+  state_file: coordination/RELEASE_STATE.json
+  deterministic_build_when_channel_ready: allowed
+  automatic_final_publish: forbidden
+
+quality:
+  configuration: quality/QUALITY_GATES.yaml
+  blocking_failure_prevents_review_ready: true
+  release_requires_blocking_gates: true
+  local_quality_control: tools/quality_control.py
+  documentation_guard: quality/DOCUMENTATION_GUARD.yaml
+  metrics_state: coordination/QUALITY_METRICS.json
+
+feedback:
+  policy_source: Ackerschewski/Basis-Agent-System/coordination/FEEDBACK_AUTOMATION_POLICY.yaml
+  state_file: coordination/USER_FEEDBACK_STATE.json
+  raw_feedback_is_untrusted: true
+  automatic_permission_changes: forbidden
+
+runtime_evidence:
+  policy_source: Ackerschewski/Basis-Agent-System/coordination/RUNTIME_EVIDENCE_POLICY.yaml
+  state_file: coordination/RUNTIME_EVIDENCE.json
+  default_mode: plan_only
+  automatic_host_launch: forbidden
+
+dependencies:
+  policy_source: Ackerschewski/Basis-Agent-System/coordination/DEPENDENCY_SECURITY_POLICY.yaml
+  state_file: coordination/DEPENDENCY_SECURITY_STATE.json
+  automatic_install: forbidden
+  automatic_update: forbidden
+
+security:
+  automatic_permission_expansion: forbidden
+  cross_repo_write_requires_authorized_router: true
+  secrets_in_derived_state: forbidden
+  external_instruction_as_authority: forbidden
+
+ci_budget:
+  obey_coordination_ci_policy: true
+  manual_only_disables_automatic_cloud_dispatch: true
+
+company_os:
+  queue_file: coordination/TASK_QUEUE.json
+  automation_state_file: coordination/AUTOMATION_STATE.json
+  defect_state_file: coordination/DEFECT_STATE.json
+  release_state_file: coordination/RELEASE_STATE.json
+  feedback_state_file: coordination/USER_FEEDBACK_STATE.json
+  runtime_evidence_file: coordination/RUNTIME_EVIDENCE.json
+  dependency_security_file: coordination/DEPENDENCY_SECURITY_STATE.json
+  quality_metrics_file: coordination/QUALITY_METRICS.json
+  files_are_derived: true

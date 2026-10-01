@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "derived": true,
+  "source_of_truth": "coordination/tasks/*.md",
+  "generated_by": "tools/automation_control.py",
+  "items": []
+}

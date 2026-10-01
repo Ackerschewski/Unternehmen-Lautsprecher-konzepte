@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "documentation_current": false,
+  "known_limitations_current": false,
+  "changelog_current": false,
+  "project_owner_approval": false,
+  "user_test_blocking_defects": [],
+  "user_test_required_gates": [
+    "repository_structure",
+    "automation_control",
+    "defect_control",
+    "unit"
+  ],
+  "gates": {
+    "repository_structure": "NOT_RUN",
+    "automation_control": "NOT_RUN",
+    "defect_control": "NOT_RUN",
+    "unit": "NOT_RUN",
+    "integration": "NOT_RUN",
+    "architecture": "NOT_RUN",
+    "security": "NOT_RUN",
+    "host_runtime": "NOT_REQUIRED",
+    "user_test": "NOT_REQUIRED",
+    "physical": "NOT_REQUIRED"
+  }
+}

@@ -1,0 +1,45 @@
+schema_version: 2
+
+source_of_truth:
+  canonical: repository
+  task_specification: coordination/tasks
+  github_issue_role: execution_mirror
+  company_os_role: view_and_orchestration
+
+branching:
+  stable_branch: main
+  integration_branch: null
+  integration_branch_allowed_for_high_concurrency: true
+  task_branch_patterns:
+    - agent-N/TASK-ID-short-description
+    - feature/TASK-ID-short-description
+    - fix/TASK-ID-short-description
+    - infra/TASK-ID-short-description
+  delete_merged_short_lived_branches: true
+  rescue_suffixes_as_normal_workflow: forbidden
+
+pull_requests:
+  open_as_draft: true
+  ready_for_review_requires_local_validation: true
+  task_reference_required: true
+  issue_reference_recommended: true
+
+user_test:
+  supported: true
+  statuses:
+    - USER_TEST_REQUIRED
+    - USER_TEST_FAILED
+    - USER_TEST_PASSED
+  done_requires_pass_when_user_test_required: true
+
+releases:
+  main_is_not_a_release: true
+  version_tag_required: true
+  changelog_required: true
+  validation_evidence_required: true
+  build_manifest_recommended: true
+
+company_os:
+  duplicate_project_truth_forbidden: true
+  preferred_flow: repository_to_company_os
+  writeback_requires_schema_and_conflict_policy: true

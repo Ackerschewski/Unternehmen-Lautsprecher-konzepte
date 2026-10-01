@@ -1,0 +1,87 @@
+schema_version: 2
+
+principles:
+  not_run_is_not_pass: true
+  release_requires_all_blocking_gates: true
+  user_host_physical_evidence_cannot_be_synthesized: true
+
+gates:
+  repository_structure:
+    blocking: true
+    command: python tools/validate_project.py
+    evidence: STATIC
+
+  automation_control:
+    blocking: true
+    command: python tools/automation_control.py check
+    evidence: STATIC
+
+  ci_budget_policy:
+    blocking: true
+    command: python tools/ci_budget_check.py
+    evidence: STATIC
+
+  automation_snapshot:
+    blocking: true
+    command: python tools/automation_control.py snapshot --check
+    evidence: STATIC
+
+  code_quality:
+    blocking: true
+    command: python tools/quality_control.py
+    evidence: STATIC
+
+  feedback_state:
+    blocking: false
+    command: python tools/feedback_control.py snapshot --check
+    evidence: STATIC
+
+  runtime_evidence_state:
+    blocking: false
+    command: python tools/runtime_evidence.py snapshot --check
+    evidence: STATIC
+
+  dependency_security:
+    blocking_when_findings_high_or_critical: true
+    command: python tools/dependency_watch.py check
+    evidence: STATIC
+
+  quality_metrics:
+    blocking: false
+    command: python tools/quality_metrics.py --check
+    evidence: STATIC
+
+  unit:
+    blocking: true
+    command: PROJECT_SPECIFIC
+    evidence: UNIT
+
+  integration:
+    blocking: true
+    command: PROJECT_SPECIFIC
+    evidence: INTEGRATION
+
+  architecture:
+    blocking: true
+    configuration: quality/ARCHITECTURE_RULES.yaml
+    evidence: STATIC
+
+  security:
+    blocking: true
+    configuration: quality/SECURITY_POLICY.yaml
+    evidence: STATIC
+
+  host_runtime:
+    blocking_when_required: true
+    command: PROJECT_SPECIFIC_OR_MANUAL
+    evidence: HOST_RUNTIME
+
+  user_test:
+    blocking_when_required: true
+    command: MANUAL
+    evidence: USER_TEST
+
+  physical:
+    blocking_when_required: true
+    command: MANUAL
+    evidence: PHYSICAL

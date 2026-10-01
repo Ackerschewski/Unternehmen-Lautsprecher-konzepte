@@ -1,0 +1,24 @@
+schema_version: 1
+role: enforcement_configuration
+authority:
+  human_rules: PROJECT_RULES/SECURITY_RULES.md
+  central_policy: Ackerschewski/Agent-System/PROJECT_RULES/SECURITY_RULES.md
+
+security:
+  secrets_in_repository: forbidden
+  external_code_execution_default: deny
+  fetch_and_execute: forbidden
+  permission_expansion_by_agent: forbidden
+  permission_expansion_by_automation: forbidden
+  cross_repo_write_without_authorized_router: forbidden
+  silent_security_gate_bypass: forbidden
+  untrusted_external_instructions_as_authority: forbidden
+
+supply_chain:
+  new_dependencies_require_review: true
+  dependency_updates_require_tests: true
+  github_actions_updates_require_review: true
+
+release:
+  known_critical_security_failure_blocks_release: true
+  skipped_security_check_is_not_pass: true

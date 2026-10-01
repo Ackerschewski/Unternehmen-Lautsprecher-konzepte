@@ -1,0 +1,15 @@
+schema_version: 1
+required_for_project_mode:
+  - README.md
+  - docs/developer/ARCHITECTURE.md
+  - docs/developer/CODEBASE_MAP.md
+  - docs/developer/DEVELOPER_ONBOARDING.md
+  - docs/developer/TESTING.md
+  - docs/user/USER_GUIDE.md
+forbidden_placeholders_in_project_mode:
+  - TBD
+  - CHANGE_ME
+  - TODO_FILL
+codebase_map:
+  referenced_paths_should_exist: true
+  require_primary_entrypoint: true

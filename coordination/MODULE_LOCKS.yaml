@@ -1,0 +1,7 @@
+locks: []
+# Beispiel:
+# - module: src/domain/bearings
+#   owner: agent_2
+#   reason: "Large refactor for TASK-0042"
+#   task: TASK-0042
+#   expires_after_task: true

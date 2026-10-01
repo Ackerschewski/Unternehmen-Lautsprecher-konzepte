@@ -1,0 +1,47 @@
+schema_version: 1
+profile: LOW_USAGE
+
+profiles:
+  NO_CLOUD:
+    automatic_cloud_runs: false
+    manual_cloud_runs: false
+  LOW_USAGE:
+    automatic_cloud_runs: limited
+    heavy_jobs: manual
+    ready_for_review_only: true
+  HOST_RUNTIME_EXPENSIVE:
+    automatic_cloud_runs: false
+    heavy_jobs: manual
+    require_local_gates_before_host: true
+  RELEASE_ONLY:
+    automatic_cloud_runs: false
+    heavy_jobs: release_candidate_only
+
+default:
+  local_static: required
+  local_unit: required_when_available
+  local_integration: required_when_available
+  docs_only_triggers_product_ci: false
+  push_ci: false
+  draft_pr_ci: false
+  ready_for_review_ci: scoped
+  main_ci: scoped
+  scheduled_workflows: approval_required
+  cancel_obsolete_runs: true
+  artifact_retention_days: 3
+  upload_reproducible_artifacts: false
+
+heavy_job_examples:
+  - blender_runtime
+  - inventor_runtime
+  - windows_desktop_build
+  - android_build
+  - packaging
+  - matrix_tests
+  - release_evidence
+
+guards:
+  cloud_ci_not_run_is_not_pass: true
+  budget_exhausted_switch_to_manual_only: true
+  no_auto_enable_after_reset: true
+  explicit_reset_queue_required: true

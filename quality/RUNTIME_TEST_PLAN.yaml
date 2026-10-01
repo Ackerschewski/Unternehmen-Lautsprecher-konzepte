@@ -1,0 +1,8 @@
+schema_version: 1
+mode: plan_only
+automatic_host_launch: false
+automatic_shell_execution: false
+automatic_network_access: false
+automatic_package_install: false
+default_evidence_result: NOT_RUN
+cases: []

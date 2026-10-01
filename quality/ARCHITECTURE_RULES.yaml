@@ -1,0 +1,28 @@
+schema_version: 1
+role: enforcement_configuration
+authority:
+  human_rules: PROJECT_RULES/CODE_STRUCTURE_RULES.md
+  machine_policy: coordination/CODE_QUALITY_POLICY.yaml
+
+architecture:
+  dependency_direction:
+    - ui_or_entrypoint_to_application
+    - application_to_domain
+    - integrations_implement_domain_or_application_contracts
+  domain_imports_ui: forbidden
+  domain_imports_host_api: forbidden
+  ui_contains_domain_logic: forbidden
+  circular_dependencies: forbidden
+  external_systems_behind_adapters: required
+  thin_entrypoints: required
+
+source_files:
+  preferred_max_lines: 300
+  review_threshold_lines: 500
+  split_threshold_lines: 800
+  hard_limit_lines: 1500
+  generated_and_vendor_exempt: true
+
+change_rules:
+  codebase_map_update_when_boundaries_change: required
+  architecture_decision_for_new_long_lived_layer: required

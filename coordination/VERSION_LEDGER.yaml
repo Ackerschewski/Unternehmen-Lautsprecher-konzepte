@@ -1,0 +1,47 @@
+version:
+  major: 1
+  features_since_major: 7
+  fixes_since_feature: 0
+  release_candidate: null
+
+rules:
+  feature_resets_fixes: true
+  major_resets_features_and_fixes: true
+  managed_by: agent_5
+
+history:
+  - version: V-01.01.00
+    type: FEATURE
+    task: INFRA-AGENT-SYSTEM-CODE-QUALITY
+    description: "Pin Agent-System V-01.01.00 and add human-readable code structure/quality baseline."
+    date: "2026-09-30"
+  - version: V-01.02.00
+    type: FEATURE
+    task: AUTO-0001
+    description: "Add deterministic automation control, derived queue/state and machine-readable quality gates."
+    date: "2026-09-30"
+  - version: V-01.03.00
+    type: FEATURE
+    task: AUTO-0003
+    description: "Add canonical defect repair loop and derived release/build readiness control."
+    date: "2026-09-30"
+  - version: V-01.04.00
+    type: FEATURE
+    task: AUTO-0004
+    description: "Add local quality, feedback, runtime evidence, dependency monitoring, metrics and artifact-manifest automation."
+    date: "2026-09-30"
+  - version: V-01.05.00
+    type: FEATURE
+    task: CI-RESET-READINESS
+    description: "Add project test matrix, CI budget profiles, security/dependency inventory, backlog hygiene and reset-day runbook."
+    date: "2026-09-30"
+  - version: V-01.06.00
+    type: FEATURE
+    task: REPO-CATEGORY-STANDARD
+    description: "Adopt Privat/Work/Unternehmen/Basis repository categories and Basis-Agent-System V-01.05.00."
+    date: "2026-09-30"
+  - version: V-01.07.00
+    type: FEATURE
+    task: RESTRUCTURE-FINALIZATION
+    description: "Finalize development standard, repository governance and October low-usage integration baseline."
+    date: "2026-10-01"

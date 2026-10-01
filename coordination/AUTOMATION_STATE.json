@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "derived": true,
+  "source_of_truth": "repository",
+  "generated_by": "tools/automation_control.py",
+  "health": "READY",
+  "task_counts": {
+    "total": 0,
+    "runnable": 0,
+    "blocked_by_dependency": 0
+  },
+  "blocked_by_dependency": [],
+  "active_by_agent": {
+    "agent_1": [],
+    "agent_2": [],
+    "agent_3": [],
+    "agent_4": [],
+    "agent_5": []
+  },
+  "wip_limit_default": 1,
+  "defects": {
+    "counts": {
+      "total": 0,
+      "active": 0,
+      "release_blocking": 0,
+      "escalated": 0
+    },
+    "release_blocking": []
+  },
+  "notes": [
+    "This file is derived. Do not use it as the canonical task specification.",
+    "No task claim, GitHub write, network call, or permission change is performed by this tool."
+  ]
+}

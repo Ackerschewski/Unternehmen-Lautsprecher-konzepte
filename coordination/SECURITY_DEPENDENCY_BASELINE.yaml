@@ -1,0 +1,42 @@
+schema_version: 1
+purpose: explicit_security_and_dependency_inventory
+
+dependencies:
+  manifests: []
+  lockfiles: []
+  external_runtimes: []
+  package_managers: []
+  auto_update: false
+  auto_install: false
+
+github_actions:
+  workflows: []
+  third_party_actions: []
+  scheduled_workflows: []
+  automatic_write_workflows: []
+
+secrets:
+  required_secret_names: []
+  secret_values_in_repo: forbidden
+  least_privilege_required: true
+
+external_integrations:
+  apis: []
+  connectors: []
+  service_accounts: []
+
+permissions:
+  repository_write_from_automation: []
+  cross_repo_write: []
+  deploy_targets: []
+
+review:
+  new_dependency_requires:
+    - purpose
+    - license
+    - maintenance_status
+    - security_review
+    - test_plan
+  new_secret_requires_owner_review: true
+  new_external_runtime_requires_security_review: true
+  new_cross_repo_write_requires_explicit_authorization: true

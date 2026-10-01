@@ -1,0 +1,64 @@
+{
+  "automatic_final_publish": false,
+  "channels": {
+    "development": {
+      "blockers": [],
+      "ready": true
+    },
+    "final": {
+      "blockers": [
+        "incomplete_required_gates",
+        "documentation_current",
+        "known_limitations_current",
+        "changelog_current",
+        "project_owner_approval_required"
+      ],
+      "explicit_owner_approval_required": true,
+      "ready": false
+    },
+    "release_candidate": {
+      "blockers": [
+        "incomplete_required_gates",
+        "documentation_current",
+        "known_limitations_current",
+        "changelog_current"
+      ],
+      "ready": false
+    },
+    "user_test": {
+      "blockers": [
+        "incomplete_user_test_gates"
+      ],
+      "ready": false
+    }
+  },
+  "derived": true,
+  "generated_by": "tools/release_control.py",
+  "incomplete_gates": [
+    "architecture",
+    "automation_control",
+    "defect_control",
+    "integration",
+    "repository_structure",
+    "security",
+    "unit"
+  ],
+  "incomplete_user_test_gates": [
+    "automation_control",
+    "defect_control",
+    "repository_structure",
+    "unit"
+  ],
+  "release_blocking_defects": [],
+  "schema_version": 1,
+  "source_of_truth": [
+    "VERSION",
+    "coordination/VERSION_LEDGER.yaml",
+    "coordination/RELEASE_EVIDENCE.json",
+    "coordination/DEFECT_STATE.json",
+    "coordination/AUTOMATION_STATE.json"
+  ],
+  "version": "V-01.03.00",
+  "version_consistent": true,
+  "version_problem": null
+}

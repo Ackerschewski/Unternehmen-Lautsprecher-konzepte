@@ -1,0 +1,19 @@
+schema_version: 1
+network_access: false
+automatic_install: false
+automatic_update: false
+automatic_merge: false
+manifests:
+  - requirements.txt
+  - pyproject.toml
+  - package.json
+  - package-lock.json
+  - pnpm-lock.yaml
+  - yarn.lock
+  - "*.csproj"
+advisory_input: coordination/advisories
+new_dependency_requires:
+  - purpose
+  - license_review
+  - maintenance_review
+  - security_review

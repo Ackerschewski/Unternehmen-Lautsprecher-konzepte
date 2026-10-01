@@ -1,0 +1,42 @@
+# Canonical Status Values
+
+## Project
+- PLANNING
+- ACTIVE
+- BLOCKED
+- RELEASE_CANDIDATE
+- RELEASED
+- MAINTENANCE
+- ARCHIVED
+
+## Agent
+- READY
+- CLAIMED
+- IN_PROGRESS
+- BLOCKED
+- REVIEW_READY
+- IN_REVIEW
+- DONE
+- OFFLINE
+
+## Task
+- PLANNED
+- READY
+- CLAIMED
+- IN_PROGRESS
+- BLOCKED
+- REVIEW_READY
+- IN_REVIEW
+- USER_TEST_REQUIRED
+- USER_TEST_FAILED
+- USER_TEST_PASSED
+- DONE
+- DEPRECATED
+
+## Open Question
+- OPEN
+- INVESTIGATING
+- RESOLVED
+- CANCELLED
+
+Neue Statuswerte dürfen nur bewusst und zusammen mit Validator und Dokumentation ergänzt werden.

@@ -1,0 +1,4 @@
+# Projektspezifisch nach dem Intake ergänzen.
+# Beispiel:
+# /src/domain/ @OWNER
+# /src/ui/ @OWNER

@@ -1,0 +1,44 @@
+schema_version: 1
+purpose: project_specific_test_and_evidence_contract
+
+principles:
+  not_run_is_not_pass: true
+  cheapest_reliable_gate_first: true
+  cloud_ci_is_not_primary_feedback_loop: true
+  host_runtime_only_when_host_specific_behavior_is_in_scope: true
+  user_test_only_for_real_user_visible_acceptance: true
+  physical_only_for_real_hardware_or_manufacturing_evidence: true
+
+stages:
+  - id: STATIC
+    default_runner: local
+    required_before_cloud: true
+  - id: UNIT
+    default_runner: local
+    required_before_cloud: true
+  - id: INTEGRATION
+    default_runner: local
+    required_before_host_runtime: true
+  - id: HOST_RUNTIME
+    default_runner: manual_or_approved_cloud
+    required_when: project_specific
+  - id: USER_TEST
+    default_runner: manual
+    required_when: user_visible_acceptance
+  - id: PHYSICAL
+    default_runner: manual
+    required_when: hardware_or_manufacturing
+
+project_overrides:
+  static_command: PROJECT_SPECIFIC
+  unit_command: PROJECT_SPECIFIC
+  integration_command: PROJECT_SPECIFIC
+  host_runtime_command: PROJECT_SPECIFIC_OR_MANUAL
+  user_test_runbook: PROJECT_SPECIFIC
+  physical_test_runbook: PROJECT_SPECIFIC
+
+evidence:
+  source_revision_required: true
+  runtime_version_required_for_host: true
+  performer_required_for_user_or_physical: true
+  stale_evidence_cannot_verify_newer_revision: true

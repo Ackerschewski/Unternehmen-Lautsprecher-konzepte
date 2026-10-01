@@ -1,0 +1,28 @@
+template_mode: true
+
+project:
+  name: CHANGE_ME
+  version: V-01.07.00
+  milestone: M0
+  status: PLANNING
+  platform: TBD
+  host: TBD
+  host_version: TBD
+
+repository:
+  category: BASIS
+  repository_name: Basis-Project-Template
+  target_owner: Ackerschewski
+
+agents:
+  agent_1: {role: Architecture & Core, status: READY, task: null}
+  agent_2: {role: Features & Algorithms, status: READY, task: null}
+  agent_3: {role: UI & UX, status: READY, task: null}
+  agent_4: {role: Platform & Integration, status: READY, task: null}
+  agent_5: {role: QA, Security & Integration, status: READY, task: null}
+
+tasks: {}
+blockers: []
+interface_requests: []
+decision_requests: []
+integration_queue: []

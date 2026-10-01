@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "BUG-AUTO-XXXXXXXXXX",
+  "fingerprint": "sha256",
+  "title": "Short failure summary",
+  "severity": "HIGH",
+  "status": "OPEN",
+  "owner_agent": "agent_2",
+  "review_agent": "agent_5",
+  "source": {
+    "repository": "owner/repository",
+    "task_id": "TASK-0001",
+    "gate": "unit",
+    "check": "tests/test_example.py::test_example",
+    "evidence_class": "UNIT"
+  },
+  "failure_evidence": [],
+  "occurrences": 1,
+  "fix_attempts": 0,
+  "max_fix_attempts": 2,
+  "regression_test": null,
+  "retest": {"status": "NOT_RUN", "evidence": []},
+  "integration": {"pr": null, "merge_ref": null},
+  "automation": {
+    "auto_created": true,
+    "actionable": true,
+    "escalation_required": false
+  },
+  "created_at": "ISO-8601",
+  "last_seen_at": "ISO-8601"
+}

@@ -1,0 +1,20 @@
+{
+  "by_agent": {
+    "agent_1": [],
+    "agent_2": [],
+    "agent_3": [],
+    "agent_4": [],
+    "agent_5": []
+  },
+  "counts": {
+    "active": 0,
+    "escalated": 0,
+    "release_blocking": 0,
+    "total": 0
+  },
+  "derived": true,
+  "generated_by": "tools/defect_control.py",
+  "release_blocking": [],
+  "schema_version": 1,
+  "source_of_truth": "coordination/defects/*.json"
+}

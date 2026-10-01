@@ -1,0 +1,47 @@
+name: Template Quality Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: template-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validator dependency
+        run: python -m pip install --disable-pip-version-check pyyaml pytest
+      - name: Validate repository structure and coordination state
+        run: python tools/validate_project.py
+      - name: Validate automation control policy
+        run: python tools/automation_control.py check
+      - name: Verify derived automation snapshot
+        run: python tools/automation_control.py snapshot --check
+      - name: Validate defect control
+        run: python tools/defect_control.py check
+      - name: Verify derived defect snapshot
+        run: python tools/defect_control.py snapshot --check
+      - name: Validate release control
+        run: python tools/release_control.py check
+      - name: Verify derived release state
+        run: python tools/release_control.py snapshot --check
+      - name: Test automation control
+        run: python tools/test_automation_control.py
+      - name: Test defect control
+        run: python -m pytest -q tools/test_defect_control.py
+      - name: Test release control
+        run: python -m pytest -q tools/test_release_control.py
+      - name: Smoke-test all repository classifications
+        run: python tools/test_bootstrap.py

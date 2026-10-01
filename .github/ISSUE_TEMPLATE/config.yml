@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project Blackboard
+    url: https://github.com/Ackerschewski/Project-Template/blob/main/coordination/BLACKBOARD.md
+    about: Prüfe vor neuen Issues den aktuellen Projektstatus und bekannte Blocker.

@@ -1,0 +1,37 @@
+schema_version: 1
+
+agent_system:
+  repository: Ackerschewski/Basis-Agent-System
+  version: V-01.05.00
+
+project:
+  repository: CHANGE_ME
+  enabled_agents: [agent_1, agent_2, agent_3, agent_4, agent_5]
+  disabled_skills: []
+  required_reads:
+    - AGENTS.md
+    - docs/specifications/REQUIREMENTS.md
+    - docs/developer/ARCHITECTURE.md
+    - docs/developer/CODEBASE_MAP.md
+    - coordination/PROJECT_STATE.yaml
+    - coordination/CODE_QUALITY_POLICY.yaml
+    - coordination/AUTOMATION_POLICY.yaml
+    - coordination/DEFECT_STATE.json
+    - coordination/USER_FEEDBACK_STATE.json
+    - coordination/RUNTIME_EVIDENCE.json
+    - coordination/DEPENDENCY_SECURITY_STATE.json
+    - coordination/QUALITY_METRICS.json
+    - coordination/RELEASE_STATE.json
+    - quality/QUALITY_GATES.yaml
+  agent_focus:
+    agent_1: [project architecture and public contracts]
+    agent_2: [domain features and algorithms]
+    agent_3: [user workflows and UI]
+    agent_4: [platform integration and packaging]
+    agent_5: [QA security integration defect triage and release readiness]
+
+routing:
+  authority: project-local-or-portfolio-router
+
+security:
+  may_relax_agent_system_policy: false

@@ -1,0 +1,34 @@
+schema_version: 1
+status: TEMPLATE
+purpose: controlled_reenable_after_cloud_ci_budget_reset
+
+preconditions:
+  - local_static_pass
+  - local_unit_pass_when_available
+  - local_integration_pass_when_available
+  - no_unreviewed_security_or_dependency_change
+  - no_stale_release_blocking_defect
+  - current_source_revision_recorded
+
+queue:
+  - order: 10
+    class: cheap_cloud_validation
+    enabled_by_default: false
+  - order: 20
+    class: host_runtime_validation
+    enabled_by_default: false
+  - order: 30
+    class: packaging
+    enabled_by_default: false
+  - order: 40
+    class: release_candidate
+    enabled_by_default: false
+
+rules:
+  one_heavy_job_class_at_a_time: true
+  stop_on_failed_blocking_gate: true
+  no_global_push_ci_enable: true
+  no_schedule_enable_without_separate_approval: true
+  do_not_enable_all_repositories_at_once: true
+  cancel_obsolete_runs: true
+  record_run_id_and_source_revision: true

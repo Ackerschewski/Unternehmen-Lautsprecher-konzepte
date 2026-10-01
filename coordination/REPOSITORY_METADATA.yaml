@@ -1,0 +1,20 @@
+repository:
+  category: BASIS
+  prefix: "Basis-"
+  project_slug: project-template
+  repository_name: Basis-Project-Template
+  target_owner: Ackerschewski
+  expected_full_name: Ackerschewski/Basis-Project-Template
+  classification_topic: basis
+
+naming:
+  repository_contains_version: false
+  artifact_pattern: "<repository-name>_V-XX.XX.XX"
+  slug_style: kebab-case-after-category-prefix
+
+topics:
+  required:
+    - basis
+    - template
+  technical:
+    - agent-development

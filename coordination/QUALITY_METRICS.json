@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "derived": true,
+  "generated_by": "tools/quality_metrics.py",
+  "derived_quality_index": null,
+  "blocking_gate_failure": false,
+  "structure": {
+    "handwritten_source_files": 0,
+    "over_500_lines": 0,
+    "over_800_lines": 0
+  },
+  "tests": {
+    "discovered_test_files": 0
+  },
+  "defects": {
+    "active": 0,
+    "release_blocking": 0,
+    "escalated": 0,
+    "regression_protected": 0
+  },
+  "documentation": {
+    "required_docs_present": 0,
+    "required_docs_total": 0,
+    "unresolved_placeholders": null
+  },
+  "gates": {
+    "pass": 0,
+    "fail": 0,
+    "not_run": 0,
+    "not_required": 0
+  }
+}

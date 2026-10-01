@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "derived": true,
+  "generated_by": "tools/dependency_watch.py",
+  "inventory": {
+    "manifests": [],
+    "packages": []
+  },
+  "findings": [],
+  "counts": {
+    "packages": 0,
+    "findings": 0,
+    "high_or_critical": 0
+  }
+}
