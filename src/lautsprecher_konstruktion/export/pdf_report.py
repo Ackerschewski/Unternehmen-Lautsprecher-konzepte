@@ -229,6 +229,8 @@ def _panel_drawing(c: Canvas, bundle: DesignBundle, surface: str) -> None:
         if element.bolt_count and element.hole_diameter_m and element.bolt_circle_diameter_m:
             note = (f'{element.bolt_count} x D {element.hole_diameter_m*1000:.1f} '
                     f'auf Lochkreis D {element.bolt_circle_diameter_m*1000:.1f} mm')
+        elif element.bolt_count and element.bolt_circle_diameter_m:
+            note = f'Lochkreis D {element.bolt_circle_diameter_m*1000:.1f} mm; Bohr-Durchmesser fehlt'
         else:
             note = 'Kein Hersteller-Bohrbild hinterlegt'
         c.drawString(sx, sy-32, note)
@@ -288,6 +290,8 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
     for element, row in zip(bundle.front_elements, dimension_rows(bundle), strict=True):
         flange = f'Ø {element.outer_diameter_m*1000:.1f}' if element.outer_diameter_m else '-'
         holes = (f'{element.bolt_count} x Ø {element.hole_diameter_m*1000:.1f} auf LK Ø {element.bolt_circle_diameter_m*1000:.1f}'
+                 if element.bolt_count and element.bolt_circle_diameter_m and element.hole_diameter_m else
+                 f'LK Ø {element.bolt_circle_diameter_m*1000:.1f}; Bohr-Ø fehlt'
                  if element.bolt_count and element.bolt_circle_diameter_m else 'keine Bohrdaten')
         cut_rows.append((row[0], row[1], f'{row[2]:.1f}', f'{row[3]:.1f}', row[4], flange,
                          f'{row[5]:.1f}', holes))
