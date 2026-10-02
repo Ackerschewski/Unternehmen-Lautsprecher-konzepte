@@ -73,7 +73,8 @@ def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
                      if e.outer_diameter_m else f'{_mm(e.width):.1f} × {_mm(e.height):.1f}')
         holes = (f'{e.bolt_count} × Ø {_mm(e.hole_diameter_m):.1f} / LK Ø {_mm(e.bolt_circle_diameter_m):.1f}'
                  if e.bolt_count and e.hole_diameter_m and e.bolt_circle_diameter_m else
-                 'Bohrbild nicht angegeben')
+                 f'LK Ø {_mm(e.bolt_circle_diameter_m):.1f}; Bohr-Ø fehlt'
+                 if e.bolt_count and e.bolt_circle_diameter_m else 'Bohrbild nicht angegeben')
         yy = 184+idx*104
         for offset, line in enumerate((f'{e.id} · {e.type}', f'Mitte X {x:.1f} / Y {y:.1f}',
                                        f'Ausschnitt {cut_label} · Tiefe {_mm(e.mounting_depth_m):.1f}', holes)):
