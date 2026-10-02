@@ -96,7 +96,7 @@ def test_crossover_nominal_and_measured_load() -> None:
 
 def test_front_layout_collision_and_bolts() -> None:
     a=FrontElement(id='W1',type='woofer',x_m=.15,y_m=.15,outer_diameter_m=.10,
-                   bolt_circle_diameter_m=.08,bolt_count=4,clearance_m=0)
+                   bolt_circle_diameter_m=.08,bolt_count=4,hole_diameter_m=.004,clearance_m=0)
     b=FrontElement(id='T1',type='tweeter',x_m=.23,y_m=.15,outer_diameter_m=.08,clearance_m=0)
     warnings=check_layout((a,b),.4,.4,.3)
     collision=next(w for w in warnings if w.code=='FRONT_COLLISION')
