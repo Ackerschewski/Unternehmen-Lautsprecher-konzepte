@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
     projectCalculated = Signal(object)
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.02.00 · Expertenmodus")
+        self.setWindowTitle("Lautsprecher Konstruktion V-02.03.00 · Expertenmodus")
         self.resize(1450, 900)
         self._bundle: DesignBundle | None = None
         self._catalog = DriverCatalog()
@@ -365,7 +365,7 @@ class MainWindow(QMainWindow):
         self.layout_depth = self._spin(0, 1000, 115, " mm")
         self.layout_bolt_circle = self._spin(0, 1000, 0, " mm")
         self.layout_bolt_count = QSpinBox(); self.layout_bolt_count.setRange(0, 32)
-        self.layout_hole = self._spin(1, 50, 4, " mm")
+        self.layout_hole = self._spin(0, 50, 0, " mm")
         self.layout_clearance = self._spin(0, 100, 5, " mm")
         for label, control in (("X von links",self.layout_x),("Y von unten",self.layout_y),
             ("Außendurchmesser",self.layout_outer),("Ausschnitt",self.layout_cutout),
@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
             (self.layout_width,(e.width_m or 0)*1000),(self.layout_height,(e.height_m or 0)*1000),
             (self.layout_depth,e.mounting_depth_m*1000),
             (self.layout_bolt_circle,(e.bolt_circle_diameter_m or 0)*1000),
-            (self.layout_bolt_count,e.bolt_count),(self.layout_hole,e.hole_diameter_m*1000),
+            (self.layout_bolt_count,e.bolt_count),(self.layout_hole,(e.hole_diameter_m or 0)*1000),
             (self.layout_clearance,e.clearance_m*1000))
         for control,value in pairs:
             control.blockSignals(True);control.setValue(value);control.blockSignals(False)
@@ -424,7 +424,8 @@ class MainWindow(QMainWindow):
             height_m=self.layout_height.value()/1000 or None,
             mounting_depth_m=self.layout_depth.value()/1000,
             bolt_circle_diameter_m=self.layout_bolt_circle.value()/1000 or None,
-            bolt_count=self.layout_bolt_count.value(),hole_diameter_m=self.layout_hole.value()/1000,
+            bolt_count=self.layout_bolt_count.value(),
+            hole_diameter_m=self.layout_hole.value()/1000 or None,
             clearance_m=self.layout_clearance.value()/1000)
         try:
             self._front_elements[index]=FrontElement.model_validate(data)
@@ -642,7 +643,7 @@ class MainWindow(QMainWindow):
     def _project_from_form(self) -> SpeakerProject:
         return SpeakerProject(
             name=self.project_name.text().strip() or "Lautsprecherprojekt",
-            revision="V-02.02.00",
+            revision="V-02.03.00",
             material=self.material.text().strip() or "Plattenmaterial",
             driver=self._driver_from_form(),
             additional_drivers=self._additional_drivers,
