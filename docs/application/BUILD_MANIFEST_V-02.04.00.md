@@ -2,7 +2,7 @@
 
 | Datei | Größe | SHA-256 |
 |---|---:|---|
-| Lautsprecher-Konstruktion_V-02.04.00_Windows.zip | 102606433 Byte | A64906AE6E4A2DA703B99990891E1413747C7E33E4AFE8C85325F0626B54A56E |
-| Lautsprecher-Konstruktion_V-02.04.00_Quellcode.zip | 259893 Byte | 7723DB43C00FA2FBB5AA294F438920A2A15D9AEC866A9C4684CAE95678F42480 |
+| Lautsprecher-Konstruktion_V-02.04.00_Windows.zip | 102606130 Byte | 62C9096F5A5F5F5965F4649665B0781E70AC7C9CC2F81DCDE0B3899657F5DA87 |
+| Lautsprecher-Konstruktion_V-02.04.00_Quellcode.zip | 259840 Byte | 0B51D1BF291D0B744FAA0BCFCF0103BBC5E0BFF2979D52858C71370BF0362DD7 |
 
 Windows-Build: PyInstaller, Pytest 60/60, Ruff und Offscreen-Start bestanden. Bandpass-Beispiel, SVG-Vorschau und PDF/DXF-Export geprüft. Testpaket bleibt Draft und unveröffentlicht.
