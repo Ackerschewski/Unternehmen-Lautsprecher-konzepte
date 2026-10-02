@@ -207,6 +207,8 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
         flange = (f"Ø {e.outer_diameter_m*1000:.1f}" if e.outer_diameter_m else "rechteckig")
         drilling = (f"{e.bolt_count} × Ø {e.hole_diameter_m*1000:.1f} / LK Ø "
                     f"{e.bolt_circle_diameter_m*1000:.1f}"
+                    if e.bolt_count and e.bolt_circle_diameter_m and e.hole_diameter_m else
+                    f"{e.bolt_count} × / LK Ø {e.bolt_circle_diameter_m*1000:.1f}; Bohr-Ø fehlt"
                     if e.bolt_count and e.bolt_circle_diameter_m else "nicht veröffentlicht")
         parts += [_text(60,y,f"{e.id} · {e.type}"), _text(310,y,e.surface),
                   _text(460,y,f"{e.x_m*1000:.1f} / {e.y_m*1000:.1f}"),
