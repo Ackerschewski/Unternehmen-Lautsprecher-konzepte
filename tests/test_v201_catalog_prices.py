@@ -4,7 +4,7 @@ import csv
 
 from lautsprecher_konstruktion.export.bom import BomItem, priced_subtotal, write_bom_csv
 from lautsprecher_konstruktion.export.pricing import budget_cost
-from lautsprecher_konstruktion.library.store import ComponentLibrary
+from lautsprecher_konstruktion.library.store import ComponentLibrary, LibraryEntry
 from lautsprecher_konstruktion.services.automatic import AutomaticDesignRequest, automatic_design
 
 
@@ -77,3 +77,19 @@ def test_budget_checks_whole_cabinet_not_only_chassis(tmp_path):
     affordable = automatic_design(AutomaticDesignRequest(**base, budget=500), library)
     assert affordable.status == "ok"
     assert all(design.total_price_eur <= 500 for design in affordable.designs)
+
+
+def test_budget_search_checks_cheaper_compatible_tweeter(tmp_path):
+    library = ComponentLibrary(user_root=tmp_path / "user")
+    cheap = next(driver for driver in library.drivers("tweeter") if driver.model == "DC28F-8")
+    expensive = cheap.model_copy(update={"manufacturer": "Vergleich", "model": "Hochtöner teuer",
+        "fs_hz": 600, "min_frequency_hz": 1500})
+    library.upsert(LibraryEntry(id="test:expensive-tweeter", category="drivers",
+        manufacturer=expensive.manufacturer, model=expensive.model, driver=expensive,
+        price_eur=1000, price_checked_on="2026-10-02",
+        product_url="https://example.com/tweeter", is_test_data=True))
+    result = automatic_design(AutomaticDesignRequest(budget=500), library)
+    assert result.status == "ok", result.rejection_reasons
+    assert all(design.tweeter is not None and design.tweeter.model == "DC28F-8"
+               for design in result.designs)
+    assert all(design.total_price_eur <= 500 for design in result.designs)
