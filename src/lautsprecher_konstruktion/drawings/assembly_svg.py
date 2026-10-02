@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from html import escape
+from textwrap import wrap
 
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
@@ -227,14 +228,9 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="{note_x}" y="{note_y+52}" class="note">Passivmembran: '
                      f'{bundle.radiator.added_mass_kg*1000:.1f} g Zusatzmasse</text>')
     if bundle.warnings:
-        warning = bundle.warnings[0]
-        first_line = warning[:68]
-        second_line = warning[68:136]
         y = note_y+(105 if bundle.rear_port else 78)
-        parts.append(f'<text x="{note_x}" y="{y}" class="warning">'
-                     f'{escape(first_line)}</text>')
-        if second_line:
-            parts.append(f'<text x="{note_x}" y="{y+19}" class="warning">'
-                         f'{escape(second_line)}</text>')
+        for index, line in enumerate(wrap(bundle.warnings[0], width=64)[:2]):
+            parts.append(f'<text x="{note_x}" y="{y+index*19}" class="warning">'
+                         f'{escape(line)}</text>')
     parts.append('</svg>')
     return ''.join(parts)

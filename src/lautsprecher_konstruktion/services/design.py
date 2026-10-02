@@ -188,7 +188,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     rear_port = prepared.rear_port
     if rear_port is not None:
         issues.append(DesignWarning(code="BANDPASS6_MODEL_LIMIT", severity="info",
-            message="Bandpass 6 parallel: ideale lineare Simulation mit punktförmig zusammengefassten Portauslässen; reale Portabstände, Leckagen und Kanalresonanzen messen."))
+            message="Bandpass 6: ideales Modell; Portabstand, Leckage und Kanalmoden am Prototyp messen."))
     radiator = prepared.radiator
     resonator = prepared.resonator
     front_volume = prepared.front_volume_m3
