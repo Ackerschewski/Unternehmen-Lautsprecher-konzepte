@@ -13,7 +13,7 @@
 - `ruff check src tests`: bestanden.
 - PyInstaller Windows-Build mit Offscreen-Start: bestanden.
 - Paketexport und SVG-Sichtprüfung: bestanden; Gesamtzeichnung, Innenaufbau und Einzelteilblatt als PNG gerendert.
-- Windows ZIP: 102.599.959 Byte; Quellcode ZIP: 244.109 Byte.
+- Windows ZIP: etwa 102,6 MB; Quellcode ZIP: etwa 244 kB.
 
 ## Grenzen
 
