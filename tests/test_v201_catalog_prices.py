@@ -21,6 +21,18 @@ def test_thomann_catalog_separates_price_from_design_data(tmp_path):
     assert complete.driver.price == 39 and complete.driver.currency == "EUR"
 
 
+def test_verified_real_drivers_have_price_sources(tmp_path):
+    library = ComponentLibrary(user_root=tmp_path / "user")
+    real_drivers = [entry for entry in library.entries("drivers")
+                    if entry.driver is not None and not entry.is_test_data]
+    assert real_drivers
+    assert all(entry.price_eur is not None and entry.price_eur > 0
+               and entry.price_checked_on and entry.product_url
+               for entry in real_drivers)
+    dayton = next(entry for entry in real_drivers if entry.id == "dayton:dc28f-8")
+    assert dayton.driver.price == 31.45
+
+
 def test_exact_chassis_filter_and_priced_bom(tmp_path):
     library = ComponentLibrary(user_root=tmp_path / "user")
     result = automatic_design(AutomaticDesignRequest(
