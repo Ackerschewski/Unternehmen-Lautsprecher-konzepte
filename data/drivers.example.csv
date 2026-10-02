@@ -1,0 +1,2 @@
+manufacturer;model;fs_hz;qts;vas_l;qes;qms;re_ohm;le_mh;sd_cm2;xmax_mm;power_rms_w;displacement_l;nominal_impedance_ohm;cutout_diameter_mm;mounting_depth_mm;source_name;source_document
+Example;Demo Woofer;32;0.36;58;;;5.8;1.1;350;6;150;1.8;8;230;115;Example;Replace with manufacturer/Thomann verified data

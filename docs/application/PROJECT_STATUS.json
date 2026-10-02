@@ -1,0 +1,9 @@
+{
+  "version": "V-02.02.00",
+  "task_id": "LK-021",
+  "status": "completed",
+  "owner": "local integration",
+  "acceptance": ["84 sourced Thomann catalog products", "eight designable FaitalPRO drivers", "budget for whole material BOM plus reserve", "multi-view master manufacturing sheet with bolt coordinates", "local Windows package"],
+  "tests": "55 pytest cases, Ruff, PyInstaller Windows offscreen smoke and export-package previews passed",
+  "remaining": ["measurement validation", "further T/S completion of catalog records", "transmission line and sixth-order bandpass solvers", "full 3D collision control"]
+}

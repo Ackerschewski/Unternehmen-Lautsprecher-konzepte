@@ -1,0 +1,8 @@
+{
+  "components": [
+    {
+      "id": "scanspeak:18w-8531g00", "category": "drivers", "manufacturer": "Scan-Speak", "model": "18W/8531G00", "source": "Scan-Speak Revelator Herstellerdatenblatt, abgerufen 2026-09-29", "is_test_data": false,
+      "driver": {"manufacturer": "Scan-Speak", "model": "18W/8531G00", "driver_type": "midwoofer", "nominal_size_m": 0.18, "fs_hz": 28, "qms": 5.10, "qes": 0.39, "qts": 0.36, "vas_m3": 0.0582, "re_ohm": 5.8, "le_h": 0.00035, "sd_m2": 0.0157, "xmax_m": 0.0065, "xmech_m": 0.011, "power_rms_w": 60, "displacement_m3": 0.00047, "nominal_impedance_ohm": 8, "outer_diameter_m": 0.1822, "cutout_diameter_m": 0.156, "mounting_depth_m": 0.0774, "moving_mass_kg": 0.0175, "compliance_m_n": 0.00185, "mechanical_resistance_n_s_m": 0.6, "force_factor_tm": 6.8, "bolt_circle_diameter_m": 0.1698, "bolt_count": 5, "bolt_hole_diameter_m": 0.0053, "recommended_enclosure": "bass_reflex", "recommended_volume_m3": 0.047, "recommended_tuning_hz": 30, "source_name": "Scan-Speak Herstellerdatenblatt", "source_url": "https://www.scan-speak.dk/datasheet/pdf/18w-8531g00.pdf", "datasheet_url": "https://www.scan-speak.dk/datasheet/pdf/18w-8531g00.pdf", "data_source_date": "2026-09-29", "source_document": "Herstellerdatenblatt, Stand 2021. Empfohlene Ventilierung 47 l / 30 Hz. Sensitivität 87 dB bei 2,83 V/1 m wurde nicht als dB/1 W übernommen."}
+    }
+  ]
+}

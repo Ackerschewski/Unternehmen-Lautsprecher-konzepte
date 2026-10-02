@@ -1,0 +1,60 @@
+{
+  "status": "ok",
+  "candidates_tested": 174,
+  "rejection_reasons": [],
+  "suggested_constraint_changes": [],
+  "designs": [
+    {
+      "label": "A · Favorit",
+      "score": 66.22971345510808,
+      "woofer": "Demo 165 mm Midwoofer",
+      "tweeter": "Demo 25 mm Kalotte",
+      "enclosure": "sealed",
+      "dimensions_mm": [
+        220.0,
+        400.0,
+        155.2083743536528
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 74.12278083057974,
+          "weight": 3,
+          "evidence": "F3 71.8 Hz; Ziel 53.2 Hz"
+        },
+        {
+          "name": "size",
+          "value": 54.390112391900594,
+          "weight": 2,
+          "evidence": "Außenvolumen 13.7 von 29.9 l"
+        }
+      ]
+    },
+    {
+      "label": "B · Alternative",
+      "score": 53.85888326150946,
+      "woofer": "Demo 200 mm Woofer",
+      "tweeter": "Demo 25 mm Kalotte",
+      "enclosure": "sealed",
+      "dimensions_mm": [
+        230.0,
+        420.0,
+        219.12401027696086
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 70.2215818394966,
+          "weight": 3,
+          "evidence": "F3 61.8 Hz; Ziel 43.4 Hz"
+        },
+        {
+          "name": "size",
+          "value": 29.31483539452876,
+          "weight": 2,
+          "evidence": "Außenvolumen 21.2 von 29.9 l"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "status": "ok",
+  "candidates_tested": 405,
+  "rejection_reasons": [],
+  "suggested_constraint_changes": [],
+  "designs": [
+    {
+      "label": "A · Favorit",
+      "score": 77.55842991811053,
+      "woofer": "Demo 200 mm Woofer",
+      "tweeter": "Demo 25 mm Kalotte",
+      "enclosure": "passive_radiator",
+      "dimensions_mm": [
+        300.0,
+        440.0,
+        326.686693669367
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 98.4961194984058,
+          "weight": 3,
+          "evidence": "F3 44.1 Hz; Ziel 43.4 Hz"
+        },
+        {
+          "name": "size",
+          "value": 70.33185857285417,
+          "weight": 2,
+          "evidence": "Außenvolumen 43.1 von 145.3 l"
+        },
+        {
+          "name": "headroom",
+          "value": 75.23078887620225,
+          "weight": 2,
+          "evidence": "Auslenkung 1.5/6.0 mm bei 5 W"
+        },
+        {
+          "name": "delay",
+          "value": 66.36453750828677,
+          "weight": 1,
+          "evidence": "Gruppenlaufzeit max. 16.8 ms (30–120 Hz)"
+        },
+        {
+          "name": "flatness",
+          "value": 61.303054139744106,
+          "weight": 2,
+          "evidence": "Pegelspanne 4.6 dB (30–120 Hz)"
+        }
+      ]
+    },
+    {
+      "label": "B · Alternative",
+      "score": 77.01664772278059,
+      "woofer": "Demo 200 mm Woofer",
+      "tweeter": "Demo 25 mm Kalotte",
+      "enclosure": "bass_reflex",
+      "dimensions_mm": [
+        340.0,
+        490.0,
+        340.44554706318434
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 100.0,
+          "weight": 3,
+          "evidence": "F3 37.8 Hz; Ziel 43.4 Hz"
+        },
+        {
+          "name": "size",
+          "value": 60.97817121381045,
+          "weight": 2,
+          "evidence": "Außenvolumen 56.7 von 145.3 l"
+        },
+        {
+          "name": "headroom",
+          "value": 71.39894313206898,
+          "weight": 2,
+          "evidence": "Auslenkung 1.7/6.0 mm bei 5 W"
+        },
+        {
+          "name": "port",
+          "value": 68.95837774803505,
+          "weight": 2,
+          "evidence": "Portgeschwindigkeit 5.3/17 m/s"
+        },
+        {
+          "name": "delay",
+          "value": 67.89185986235604,
+          "weight": 1,
+          "evidence": "Gruppenlaufzeit max. 16.1 ms (30–120 Hz)"
+        },
+        {
+          "name": "flatness",
+          "value": 76.81846431159106,
+          "weight": 2,
+          "evidence": "Pegelspanne 2.8 dB (30–120 Hz)"
+        }
+      ]
+    }
+  ]
+}

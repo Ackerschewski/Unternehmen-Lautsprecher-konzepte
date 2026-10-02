@@ -1,0 +1,1 @@
+[{"id":"demo:birch","category":"materials","manufacturer":"TESTDATEN","model":"Birke Multiplex","is_test_data":true,"specs":{"default_thickness_m":0.018}},{"id":"demo:mdf","category":"materials","manufacturer":"TESTDATEN","model":"MDF","is_test_data":true,"specs":{"default_thickness_m":0.019}}]

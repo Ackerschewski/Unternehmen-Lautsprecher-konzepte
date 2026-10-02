@@ -1,3 +1,11 @@
+# Lautsprecher Konstruktion – Anwendung V-02.02.00
+
+Die ausführbare Windows-Testversion und der Quellcode der Lautsprecher-Konstruktion sind in diesem Repository integriert. [Anwendungsanleitung](APP_README.md) · [Buildbericht](docs/application/BUILD_REPORT_V-02.02.00.md) · [Aufgabe LK-021](coordination/tasks/LK-021.md).
+
+Der Code liegt in `src/lautsprecher_konstruktion`; starten mit `python -m lautsprecher_konstruktion.app`, testen mit `python -m pytest`. Ein lokales Windows-Testpaket wurde gebaut. 23 weitere Gehäusekonzepte bleiben in Entwicklung und sind nicht als fertige Solver freigegeben.
+
+---
+
 # Project Template — Human + Agent Development
 
 Standard template for software, add-ons, plugins and automation projects that must remain understandable to humans and AI contributors.

@@ -1,0 +1,34 @@
+{
+  "status": "ok",
+  "candidates_tested": 54,
+  "rejection_reasons": [],
+  "suggested_constraint_changes": [],
+  "designs": [
+    {
+      "label": "A · Favorit",
+      "score": 75.29470442903842,
+      "woofer": "Demo 260 mm Subwoofer",
+      "tweeter": null,
+      "enclosure": "sealed",
+      "dimensions_mm": [
+        300.0,
+        320.0,
+        256.43417529973226
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 70.22158183949658,
+          "weight": 3,
+          "evidence": "F3 55.8 Hz; Ziel 39.2 Hz"
+        },
+        {
+          "name": "size",
+          "value": 82.90438831335119,
+          "weight": 2,
+          "evidence": "Außenvolumen 24.6 von 144.0 l"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "status": "impossible",
+  "candidates_tested": 0,
+  "rejection_reasons": [
+    "Maximales Brutto-Innenvolumen 11.4 l.",
+    "Zielpegel 120 dB über der vereinfachten thermischen Obergrenze 109.4 dB der Bibliothek."
+  ],
+  "suggested_constraint_changes": [
+    "Zielpegel reduzieren oder einen belastbar dokumentierten Treiber importieren.",
+    "Für mehr Tiefbass Bauraum vergrößern oder das Ziel-F3 erhöhen."
+  ],
+  "designs": []
+}
