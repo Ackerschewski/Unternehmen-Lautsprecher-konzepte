@@ -19,7 +19,7 @@ def demo_driver() -> Driver:
         re_ohm=5.8, le_h=0.0011, sd_m2=0.035, xmax_m=0.006,
         power_rms_w=100, displacement_m3=0.0018, nominal_impedance_ohm=8,
         outer_diameter_m=0.26, cutout_diameter_m=0.23, mounting_depth_m=0.115,
-        source_name="Synthetische Testdaten",source_document="Nur Funktionspr�fung; nicht f�r Fertigung freigegeben")
+        source_name="Synthetische Testdaten",source_document="Nur Funktionsprüfung; nicht für Fertigung freigegeben")
 
 
 def demo_project() -> SpeakerProject:
@@ -59,4 +59,4 @@ def demo_project() -> SpeakerProject:
                 bolt_circle_diameter_m=.088,bolt_count=4,hole_diameter_m=.004),
             FrontElement(id="BR1",type="port",x_m=.17,y_m=.10,outer_diameter_m=.08,
                 cutout_diameter_m=.08,mounting_depth_m=.20),
-        ),notes="Alle Treiber-, FRD- und ZMA-Werte sind ausschlie�lich synthetische Testdaten.")
+        ),notes="Alle Treiber-, FRD- und ZMA-Werte sind ausschließlich synthetische Testdaten.")
