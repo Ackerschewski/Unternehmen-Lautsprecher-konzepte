@@ -154,6 +154,8 @@ def render_dimension_svg(bundle: DesignBundle) -> str:
         cut = f'Ø {_mm(e.cutout_diameter_m):.1f}' if e.cutout_diameter_m else f'{_mm(e.width):.1f} × {_mm(e.height):.1f}'
         flange = f'Ø {_mm(e.outer_diameter_m):.1f}' if e.outer_diameter_m else '–'
         holes = (f'{e.bolt_count} × Ø {_mm(e.hole_diameter_m):.1f} auf Lochkreis Ø {_mm(e.bolt_circle_diameter_m):.1f}'
+                 if e.bolt_count and e.bolt_circle_diameter_m and e.hole_diameter_m else
+                 f'Lochkreis Ø {_mm(e.bolt_circle_diameter_m):.1f}; Bohr-Ø fehlt'
                  if e.bolt_count and e.bolt_circle_diameter_m else 'nicht angegeben')
         line = (f'{e.id} · {e.surface} · X {_mm(e.x_m):.1f} · Y {_mm(e.y_m):.1f} · '
                 f'{cut} · T {_mm(e.mounting_depth_m):.1f} · {flange} · {holes}')
