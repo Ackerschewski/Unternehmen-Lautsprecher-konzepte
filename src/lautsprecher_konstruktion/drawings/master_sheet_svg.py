@@ -247,8 +247,13 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
                     f"Streben-Tiefen: {', '.join(f'{v*1000:.1f}' for v in bundle.brace_depths_m) or 'keine'} mm")]
     if bundle.port:
         parts.append(_text(60,internals_y+64,
-            f"Port {bundle.port.shape}: Querschnitt {bundle.port.area_m2*10000:.1f} cm², "
+            f"BR1 {bundle.port.shape}: Querschnitt {bundle.port.area_m2*10000:.1f} cm², "
             f"physische Länge {bundle.port.physical_length_m*1000:.1f} mm"))
+    if bundle.rear_port:
+        parts.append(_text(850,internals_y+64,
+            f"BR2 Rückwand: Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm, "
+            f"Länge {bundle.rear_port.physical_length_m*1000:.1f} mm, "
+            f"Fb2 {bundle.rear_port.tuning_hz:.1f} Hz"))
     if bundle.coupler:
         k=bundle.coupler
         parts.append(_text(60,internals_y+94,f"Isobarik: Rohr Ø innen {k.inner_diameter_m*1000:.1f}, "

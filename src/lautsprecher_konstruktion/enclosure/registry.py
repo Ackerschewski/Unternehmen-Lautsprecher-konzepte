@@ -56,6 +56,7 @@ for key, label, category, parameters in (
     ("bass_reflex", "Bassreflex", "Standard", ("target_volume_l", "tuning_hz", "port_type")),
     ("passive_radiator", "Passivmembran", "Standard", ("target_volume_l", "tuning_hz", "radiator_sd_cm2", "radiator_mms_g")),
     ("bandpass_4", "Bandpass 4. Ordnung", "Bandpass", ("target_volume_l", "rear_volume_l", "tuning_hz")),
+    ("bandpass_6_parallel", "Bandpass 6. Ordnung parallel", "Bandpass", ("target_volume_l", "rear_volume_l", "tuning_hz", "rear_tuning_hz", "rear_port_diameter_mm")),
     ("isobaric_sealed", "Isobarisch geschlossen", "Isobarik", ("target_qtc", "isobaric_wiring", "isobaric_gap_mm")),
     ("isobaric_vented", "Isobarisch Bassreflex", "Isobarik", ("target_volume_l", "tuning_hz", "isobaric_wiring", "isobaric_gap_mm")),
 ):
@@ -67,7 +68,6 @@ for key, label, category in (
     ("infinite_baffle", "Infinite Baffle", "Standard"),
     ("open_baffle", "Open Baffle", "Standard"),
     ("bandpass_6_series", "Bandpass 6. Ordnung seriell", "Bandpass"),
-    ("bandpass_6_parallel", "Bandpass 6. Ordnung parallel", "Bandpass"),
     ("transmission_line_closed", "Transmission Line geschlossen", "Transmission Line"),
     ("transmission_line_open", "Transmission Line offen", "Transmission Line"),
     ("transmission_line_tapered", "Transmission Line verjüngt", "Transmission Line"),

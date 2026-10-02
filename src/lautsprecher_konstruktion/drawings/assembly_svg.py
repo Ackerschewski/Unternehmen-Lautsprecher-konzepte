@@ -112,7 +112,8 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         parts.append(_dim(inner_x,partition_x,top_y+fh+67,
                           f"Frontkammer {_mm(bundle.partition_front_depth_m):.1f}"))
         parts.append(_dim(partition_x+_mm(cab.panel_thickness_m)*scale,rear_x,
-                          top_y+fh+67,"Rückkammer"))
+                          top_y+fh+67,
+                          f"Rückkammer {_mm(cab.internal_depth_m-bundle.partition_front_depth_m-cab.panel_thickness_m):.1f}"))
         if driver:
             dh = _mm(driver.cutout_diameter_m or driver.height)*scale
             depth = _mm(driver.mounting_depth_m)*scale
@@ -146,10 +147,14 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
                 parts.append(f'<text x="{inner_x+depth+8:.1f}" y="{cy+4:.1f}" '
                              f'class="id">{escape(element.id)} · Tiefe {element.mounting_depth_m*1000:.0f}</text>')
         elif element.surface == "back":
-            parts.append(f'<path d="M{rear_x:.1f} {cy-eh/2:.1f} '
-                         f'L{rear_x-depth:.1f} {cy-eh*.25:.1f} '
-                         f'L{rear_x-depth:.1f} {cy+eh*.25:.1f} '
-                         f'L{rear_x:.1f} {cy+eh/2:.1f} Z" class="component"/>')
+            if element.type == "port":
+                parts.append(f'<rect x="{rear_x-depth:.1f}" y="{cy-eh/2:.1f}" '
+                             f'width="{depth:.1f}" height="{eh:.1f}" class="component"/>')
+            else:
+                parts.append(f'<path d="M{rear_x:.1f} {cy-eh/2:.1f} '
+                             f'L{rear_x-depth:.1f} {cy-eh*.25:.1f} '
+                             f'L{rear_x-depth:.1f} {cy+eh*.25:.1f} '
+                             f'L{rear_x:.1f} {cy+eh/2:.1f} Z" class="component"/>')
             parts.append(f'<text x="{rear_x-depth-5:.1f}" y="{cy-eh/2-9:.1f}" '
                          f'class="id">{escape(element.id)} Rückwand</text>')
     if bundle.coupler:
@@ -213,11 +218,23 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="{note_x}" y="{note_y+52}" class="note">Port: '
                      f'{bundle.port.shape}, {_mm(bundle.port.physical_length_m):.1f} mm lang, '
                      f'{bundle.port.area_m2*10000:.1f} cm²</text>')
+    if bundle.rear_port:
+        parts.append(f'<text x="{note_x}" y="{note_y+77}" class="note">BR2 Rückkammer: '
+                     f'Ø {_mm(bundle.rear_port.diameter_m or 0):.1f}, '
+                     f'L {_mm(bundle.rear_port.physical_length_m):.1f}, '
+                     f'Fb {bundle.rear_port.tuning_hz:.1f} Hz</text>')
     if bundle.radiator:
         parts.append(f'<text x="{note_x}" y="{note_y+52}" class="note">Passivmembran: '
                      f'{bundle.radiator.added_mass_kg*1000:.1f} g Zusatzmasse</text>')
     if bundle.warnings:
-        parts.append(f'<text x="{note_x}" y="{note_y+78}" class="warning">'
-                     f'{escape(bundle.warnings[0][:105])}</text>')
+        warning = bundle.warnings[0]
+        first_line = warning[:68]
+        second_line = warning[68:136]
+        y = note_y+(105 if bundle.rear_port else 78)
+        parts.append(f'<text x="{note_x}" y="{y}" class="warning">'
+                     f'{escape(first_line)}</text>')
+        if second_line:
+            parts.append(f'<text x="{note_x}" y="{y+19}" class="warning">'
+                         f'{escape(second_line)}</text>')
     parts.append('</svg>')
     return ''.join(parts)

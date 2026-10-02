@@ -123,6 +123,11 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
                      f'Öffnungsfläche {p.area_m2*10000:.1f} cm²'))
         if p.shape == 'slot':
             info.append(f'Kanalwände: Plattenstärke {_mm(c.panel_thickness_m):.1f}')
+    if bundle.rear_port:
+        p = bundle.rear_port
+        info.extend((f'Port BR2 Rückkammer: Ø {_mm(p.diameter_m or 0):.1f}',
+                     f'Kanal physisch {_mm(p.physical_length_m):.1f} lang',
+                     f'Fb2 {p.tuning_hz:.1f} Hz · Fläche {p.area_m2*10000:.1f} cm²'))
     if bundle.brace:
         b = bundle.brace
         info.extend((f'{b.quantity} Fensterstrebe(n) B1…B{b.quantity}',

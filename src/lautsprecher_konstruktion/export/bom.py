@@ -108,6 +108,10 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
                 f"{p.physical_length_m*1000:.1f} mm"
             )
         items.append(BomItem("Ports", "BR1", f"{p.shape} port", 1, spec))
+    if bundle.rear_port:
+        p = bundle.rear_port
+        items.append(BomItem("Ports", "BR2", "Rückkammer Rundport", 1,
+            f"Ø {p.diameter_m*1000:.1f} x {p.physical_length_m*1000:.1f} mm"))
     if bundle.radiator:
         r=bundle.radiator
         items.append(BomItem("Passivmembran", "PM1", "Passivmembran mit Zusatzmasse", 1,

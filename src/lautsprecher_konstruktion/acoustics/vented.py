@@ -29,6 +29,8 @@ class VentedResponse:
     power_w: float
     absolute_available: bool
     upper_f3_hz: float | None = None
+    front_port_velocity_m_s: NDArray[np.float64] | None = None
+    rear_port_velocity_m_s: NDArray[np.float64] | None = None
 
 
 def simulate_vented(

@@ -1,7 +1,8 @@
-"""Linear two-chamber, single-tuned fourth-order bandpass model.
+"""Linear two-chamber bandpass model with one or two external vents.
 
 The driver sees the acoustic impedances of both chambers; only the front
-chamber vent radiates. Losses and higher cavity/duct modes are omitted.
+chamber vent radiates for fourth order; both vents radiate for parallel sixth
+order. Losses and higher cavity/duct modes are omitted.
 """
 from __future__ import annotations
 
@@ -17,11 +18,14 @@ from lautsprecher_konstruktion.enclosure.ports import PortDesign
 def simulate_bandpass(
     driver: Driver, rear_volume_m3: float, front_volume_m3: float,
     port: PortDesign, power_w: float = 1.0,
-    *, rho_kg_m3: float = 1.204, sound_speed_m_s: float = 343.0,
+    *, rear_port: PortDesign | None = None,
+    rho_kg_m3: float = 1.204, sound_speed_m_s: float = 343.0,
 ) -> VentedResponse:
     if min(rear_volume_m3, front_volume_m3, power_w, port.area_m2,
            port.effective_length_m) <= 0:
         raise ValueError("Bandpass-Volumen, Port und Leistung müssen positiv sein")
+    if rear_port is not None and min(rear_port.area_m2, rear_port.effective_length_m) <= 0:
+        raise ValueError("Der zweite Port muss eine positive Fläche und Länge haben")
     f = np.geomspace(10.0, 500.0, 400)
     w = 2*pi*f
     s = 1j*w
@@ -29,7 +33,9 @@ def simulate_bandpass(
     cr = rear_volume_m3/(rho_kg_m3*sound_speed_m_s**2)
     zp = s*rho_kg_m3*port.effective_length_m/port.area_m2
     zfront = 1/(s*cf + 1/zp)
-    zrear = 1/(s*cr)
+    zrp = (s*rho_kg_m3*rear_port.effective_length_m/rear_port.area_m2
+           if rear_port is not None else None)
+    zrear = 1/(s*cr + (1/zrp if zrp is not None else 0))
 
     complete = all(v is not None for v in (driver.sd_m2, driver.re_ohm, driver.qes))
     sd = driver.sd_m2 if driver.sd_m2 is not None else 1.0
@@ -50,6 +56,8 @@ def simulate_bandpass(
     impedance = None
     excursion = None
     speed = None
+    front_speed = None
+    rear_speed = None
     mach = None
     spl = None
     if complete:
@@ -64,7 +72,10 @@ def simulate_bandpass(
         cone_speed = 1/ztotal
 
     u_port = -sd*cone_speed*zfront/zp
-    pressure = s*rho_kg_m3*u_port/(2*pi)
+    # Rear-chamber volume velocity has the opposite sign at the diaphragm.
+    # Coherent summation assumes colocated port outlets in the far field.
+    u_rear = sd*cone_speed*zrear/zrp if zrp is not None else None
+    pressure = s*rho_kg_m3*(u_port + (u_rear if u_rear is not None else 0))/(2*pi)
     magnitude = np.maximum(np.abs(pressure), np.finfo(float).tiny)
     # A bandpass is normalized to its peak, not to a high-frequency shelf.
     reference = float(np.max(magnitude))
@@ -72,7 +83,11 @@ def simulate_bandpass(
     phase = np.unwrap(np.angle(pressure))
     delay = -1000*np.gradient(phase,w)
     if complete:
-        speed = np.abs(u_port)/port.area_m2
+        front_speed = np.abs(u_port)/port.area_m2
+        speed = front_speed
+        if rear_port is not None and u_rear is not None:
+            rear_speed = np.abs(u_rear)/rear_port.area_m2
+            speed = np.maximum(speed, rear_speed)
         mach = speed/sound_speed_m_s
         spl = 20*np.log10(magnitude/20e-6)
     crossings = np.flatnonzero((response_db[:-1] < -3) & (response_db[1:] >= -3))
@@ -88,4 +103,5 @@ def simulate_bandpass(
         alpha = (-3-response_db[i])/(response_db[i+1]-response_db[i])
         upper_f3 = float(np.exp(np.log(f[i])+alpha*(np.log(f[i+1])-np.log(f[i]))))
     return VentedResponse(f, response_db, excursion, speed, mach, delay,
-                          impedance, spl, f3, power_w, complete, upper_f3)
+                          impedance, spl, f3, power_w, complete, upper_f3,
+                          front_speed, rear_speed)

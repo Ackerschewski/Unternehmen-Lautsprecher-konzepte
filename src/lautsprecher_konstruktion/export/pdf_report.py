@@ -257,6 +257,10 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
     if bundle.port:
         data.extend((f'Abstimmung Fb: {bundle.port.tuning_hz:.1f} Hz',
                      f'Port: {bundle.port.shape}, Fläche {bundle.port.area_m2*10000:.1f} cm², Länge {bundle.port.physical_length_m*1000:.1f} mm'))
+    if bundle.rear_port:
+        data.append(f'BR2 Rueckkammer: Fb2 {bundle.rear_port.tuning_hz:.1f} Hz, '
+                    f'Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm, '
+                    f'Laenge {bundle.rear_port.physical_length_m*1000:.1f} mm')
     if bundle.radiator:
         data.append(f'Passivmembran: Zusatzmasse {bundle.radiator.added_mass_kg*1000:.1f} g')
     if bundle.front_chamber_volume_m3 is not None:
@@ -300,6 +304,9 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
     extra = []
     if bundle.port:
         extra.append(f'Port: Laenge {bundle.port.physical_length_m*1000:.1f}; Flaeche {bundle.port.area_m2*10000:.1f} cm2.')
+    if bundle.rear_port:
+        extra.append(f'BR2: Laenge {bundle.rear_port.physical_length_m*1000:.1f}; '
+                     f'Flaeche {bundle.rear_port.area_m2*10000:.1f} cm2.')
     if bundle.partition_front_depth_m is not None:
         rear_depth = cab.internal_depth_m-bundle.partition_front_depth_m-cab.panel_thickness_m
         extra.append(f'Kammern: Fronttiefe {bundle.partition_front_depth_m*1000:.1f}; Ruecktiefe {rear_depth*1000:.1f}; Trennwand {cab.panel_thickness_m*1000:.1f}.')
@@ -321,6 +328,10 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
         opening = (f'Ø {p.diameter_m*1000:.1f} mm' if p.diameter_m else
                    f'{p.width_m*1000:.1f} x {p.height_m*1000:.1f} mm')
         inside.append(f'BR1 Portöffnung: {opening}; Länge {p.physical_length_m*1000:.1f} mm; Fläche {p.area_m2*10000:.1f} cm2')
+    if bundle.rear_port:
+        p = bundle.rear_port
+        inside.append(f'BR2 Portöffnung Rueckwand: Ø {(p.diameter_m or 0)*1000:.1f} mm; '
+                      f'Länge {p.physical_length_m*1000:.1f} mm; Fläche {p.area_m2*10000:.1f} cm2')
     if bundle.partition_front_depth_m is not None:
         inside.append(f'Frontkammer-Tiefe ab Front innen: {bundle.partition_front_depth_m*1000:.1f} mm')
         inside.append(f'Trennwand: {cab.internal_width_m*1000:.1f} x {cab.internal_height_m*1000:.1f} x {cab.panel_thickness_m*1000:.1f} mm')

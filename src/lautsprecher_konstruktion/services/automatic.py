@@ -117,7 +117,7 @@ def _enclosures(request: AutomaticDesignRequest) -> tuple[str, ...]:
         entry = registry.get(request.enclosure_preference)
         return (entry.id,) if entry.status == "SUPPORTED" else ()
     if "subwoofer" in request.speaker_type.casefold():
-        return ("sealed", "bass_reflex", "passive_radiator", "bandpass_4")
+        return ("sealed", "bass_reflex", "passive_radiator", "bandpass_4", "bandpass_6_parallel")
     return ("sealed", "bass_reflex", "passive_radiator")
 
 
@@ -158,7 +158,7 @@ def _layout(woofer: Driver, tweeter: Driver | None, width: float, height: float,
             enclosure: str, port_diameter: float) -> tuple[FrontElement, ...]:
     diameter = woofer.outer_diameter_m or woofer.cutout_diameter_m or 0
     effective_diameter = diameter + (0.046 if enclosure.startswith("isobaric_") else 0)
-    if enclosure == "bandpass_4":
+    if enclosure.startswith("bandpass_"):
         woofer_y = height * 0.55
     elif enclosure in {"bass_reflex", "isobaric_vented"}:
         port_y = max(port_diameter/2 + 0.018 + 0.035 + 0.005, height*0.12)
@@ -167,7 +167,7 @@ def _layout(woofer: Driver, tweeter: Driver | None, width: float, height: float,
         woofer_y = max(effective_diameter/2 + 0.02, height*0.42)
     result = [FrontElement(id="W1", type="subwoofer" if woofer.driver_type == "subwoofer" else
         "fullrange" if woofer.driver_type == "fullrange" else "woofer",
-        surface="partition" if enclosure == "bandpass_4" else "front",
+        surface="partition" if enclosure.startswith("bandpass_") else "front",
         x_m=width/2, y_m=woofer_y, outer_diameter_m=diameter,
         cutout_diameter_m=woofer.cutout_diameter_m,
         mounting_depth_m=woofer.mounting_depth_m or 0,
@@ -194,7 +194,7 @@ def _dimensions(request: AutomaticDesignRequest, woofer: Driver, tweeter: Driver
     td = tweeter.outer_diameter_m if tweeter else 0
     min_width = max(d+(0.055 if enclosure.startswith("isobaric_") else 0.04), 0.16)
     min_height = d+(td or 0)+0.06
-    if enclosure in {"bass_reflex", "bandpass_4", "isobaric_vented"}:
+    if enclosure in {"bass_reflex", "bandpass_4", "bandpass_6_parallel", "isobaric_vented"}:
         min_height += port_diameter+0.05
     min_height = max(min_height, d+0.055)
     widths = sorted({round(min_width, 3), round(min(min_width+0.04, request.max_width_m), 3),
@@ -327,7 +327,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
             continue
         tweeter, crossover_hz = tweeter_choice if tweeter_choice else (None, 2500.0)
         for enclosure in _enclosures(request):
-            if enclosure == "bandpass_4" and two_way:
+            if enclosure.startswith("bandpass_") and two_way:
                 continue
             radiators = tuple(item for item in library.entries("passive_radiators")
                 if float(item.specs.get("sd_m2", 0)) >= (woofer.sd_m2 or 0))
@@ -345,7 +345,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                 volumes_tested.append(solve_sealed(
                     equivalent_driver(woofer,"series") if enclosure == "isobaric_sealed" else woofer,
                     volume).box_volume_l if enclosure in {"sealed", "isobaric_sealed"} else volume)
-                port_diameters = (0.05, 0.06, 0.08) if enclosure in {"bass_reflex", "bandpass_4", "isobaric_vented"} else (0.0,)
+                port_diameters = (0.05, 0.06, 0.08) if enclosure in {"bass_reflex", "bandpass_4", "bandpass_6_parallel", "isobaric_vented"} else (0.0,)
                 for port_diameter in port_diameters:
                     for width, height in _dimensions(request, woofer, tweeter, enclosure, port_diameter):
                         tested += 1
@@ -362,7 +362,11 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                             cfg = EnclosureConfig(enclosure_type=enclosure,
                                 target_qtc=volume if enclosure in {"sealed", "isobaric_sealed"} else 0.707,
                                 target_volume_l=volume if enclosure not in {"sealed", "isobaric_sealed"} else None,
-                                rear_volume_l=max(8.0, volume*0.5), tuning_hz=tuning,
+                                rear_volume_l=(max(volume, woofer.vas_m3*1000)
+                                    if enclosure == "bandpass_6_parallel" else max(8.0, volume*0.5)),
+                                tuning_hz=tuning,
+                                rear_tuning_hz=(tuning*0.85 if enclosure == "bandpass_6_parallel" else None),
+                                rear_port_diameter_mm=(port_diameter*1000 if port_diameter else 60),
                                 port_diameter_mm=port_diameter*1000 if port_diameter else 60,
                                 radiator_sd_cm2=float(pr.get("sd_m2", 0.035))*10000,
                                 radiator_mms_g=float(pr.get("mms_kg", 0.08))*1000,
@@ -408,7 +412,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                                 if item.id in {"demo:terminal", "thomann:visaton-damping"})
                             project = SpeakerProject(name=request.project_name +
                                 (" · TESTDATEN" if test_data and "TESTDATEN" not in request.project_name else ""),
-                                revision="V-02.03.00", driver=woofer, material=request.material,
+                                revision="V-02.04.00", driver=woofer, material=request.material,
                                 additional_drivers=(tweeter,) if tweeter else (),
                                 tweeter_name=f"{tweeter.manufacturer} {tweeter.model}" if tweeter else "",
                                 enclosure=cfg, crossover=crossover,

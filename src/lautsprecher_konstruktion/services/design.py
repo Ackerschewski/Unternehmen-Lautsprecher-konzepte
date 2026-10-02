@@ -57,6 +57,7 @@ class DesignBundle:
     partition_front_depth_m: float | None = None
     coupler: Coupler | None = None
     brace_depths_m: tuple[float, ...] = ()
+    rear_port: PortDesign | None = None
 
     @property
     def acoustic_driver(self):
@@ -66,7 +67,8 @@ class DesignBundle:
 
 def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
                     port: PortDesign | None,
-                    radiator: PassiveRadiatorDesign | None = None) -> tuple[FrontElement, ...]:
+                    radiator: PassiveRadiatorDesign | None = None,
+                    rear_port: PortDesign | None = None) -> tuple[FrontElement, ...]:
     w, h = cabinet.width_m, cabinet.height_m
     result: list[FrontElement] = []
     driver = project.driver
@@ -74,7 +76,7 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
         layout_type = ("woofer" if driver.driver_type in {"midwoofer", "coaxial_driver"} else
                        "tweeter" if driver.driver_type == "compression_driver" else driver.driver_type)
         result.append(FrontElement(id="W1", type=layout_type,
-            surface="partition" if project.enclosure.enclosure_type == "bandpass_4" else "front",
+            surface="partition" if project.enclosure.enclosure_type.startswith("bandpass_") else "front",
             x_m=w/2, y_m=h*(0.50 if project.enclosure.enclosure_type.startswith("isobaric_") else 0.62),
             outer_diameter_m=driver.outer_diameter_m or driver.cutout_diameter_m,
             cutout_diameter_m=driver.cutout_diameter_m,
@@ -94,10 +96,18 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
             outer_diameter_m=radiator.cutout_diameter_m*1.1,
             cutout_diameter_m=radiator.cutout_diameter_m,
             mounting_depth_m=radiator.mounting_depth_m))
+    if rear_port is not None:
+        assert rear_port.diameter_m is not None
+        result.append(FrontElement(id="BR2", type="port", surface="back", x_m=w/2,
+            y_m=max(rear_port.diameter_m/2+0.025, h*0.18),
+            outer_diameter_m=rear_port.diameter_m,
+            cutout_diameter_m=rear_port.diameter_m,
+            mounting_depth_m=rear_port.physical_length_m))
     return tuple(result)
 
 
-def _resolve_layout(elements: tuple[FrontElement, ...], port: PortDesign | None) -> tuple[FrontElement, ...]:
+def _resolve_layout(elements: tuple[FrontElement, ...], port: PortDesign | None,
+                    rear_port: PortDesign | None = None) -> tuple[FrontElement, ...]:
     if port is None:
         return elements
     result: list[FrontElement] = []
@@ -105,14 +115,17 @@ def _resolve_layout(elements: tuple[FrontElement, ...], port: PortDesign | None)
         if element.type != "port":
             result.append(element)
             continue
+        selected = rear_port if element.id == "BR2" else port
+        if selected is None:
+            continue
         data=element.model_dump()
-        data["mounting_depth_m"]=port.physical_length_m
-        if port.shape == "round":
-            data.update(outer_diameter_m=port.diameter_m,cutout_diameter_m=port.diameter_m,
+        data["mounting_depth_m"]=selected.physical_length_m
+        if selected.shape == "round":
+            data.update(outer_diameter_m=selected.diameter_m,cutout_diameter_m=selected.diameter_m,
                         width_m=None,height_m=None)
         else:
             data.update(outer_diameter_m=None,cutout_diameter_m=None,
-                        width_m=port.width_m,height_m=port.height_m)
+                        width_m=selected.width_m,height_m=selected.height_m)
         result.append(FrontElement.model_validate(data))
     return tuple(result)
 
@@ -172,6 +185,10 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     prepared = prepare_enclosure(cfg, project.driver)
     sealed_result = prepared.sealed
     port = prepared.port
+    rear_port = prepared.rear_port
+    if rear_port is not None:
+        issues.append(DesignWarning(code="BANDPASS6_MODEL_LIMIT", severity="info",
+            message="Bandpass 6 parallel: ideale lineare Simulation mit punktförmig zusammengefassten Portauslässen; reale Portabstände, Leckagen und Kanalresonanzen messen."))
     radiator = prepared.radiator
     resonator = prepared.resonator
     front_volume = prepared.front_volume_m3
@@ -230,6 +247,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         project.driver.displacement_m3
         + cfg.additional_displacement_l / 1000.0
         + (port.displacement_m3 if port else 0.0)
+        + (rear_port.displacement_m3 if rear_port else 0.0)
         + (brace.total_displacement_m3 if brace else 0.0)
         + (radiator.displacement_m3 if radiator else 0.0)
         + partition_displacement
@@ -265,13 +283,26 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         front_chamber_depth = front_gross/(cabinet.internal_width_m*cabinet.internal_height_m)
         if front_chamber_depth + t >= cabinet.internal_depth_m:
             raise ValueError("Bandpass: kein Platz für die hintere Kammer")
+        if rear_port is not None:
+            rear_gross = (rear_volume + rear_port.displacement_m3 +
+                          project.driver.displacement_m3 + cfg.additional_displacement_l/1000)
+            if brace is not None:
+                rear_gross += brace.total_displacement_m3
+            available_rear = cabinet.internal_depth_m-front_chamber_depth-t
+            if rear_gross/(cabinet.internal_width_m*cabinet.internal_height_m) > available_rear+0.0001:
+                raise ValueError("Rückkammer mit Port und Verdrängung passt nicht in das Gehäuse")
     available_port_depth = front_chamber_depth or cabinet.internal_depth_m
     if port and port.physical_length_m > available_port_depth:
         warnings.append("Port ist länger als seine Kammer; Faltung oder anderes Gehäuse nötig.")
         issues.append(DesignWarning(code="PORT_BACK_WALL",severity="error",
             message=f"Port passt nicht in seine Kammer; Überstand {(port.physical_length_m-available_port_depth)*1000:.1f} mm."))
+    if rear_port is not None and front_chamber_depth is not None:
+        rear_depth = cabinet.internal_depth_m-front_chamber_depth-t
+        if rear_port.physical_length_m > rear_depth:
+            issues.append(DesignWarning(code="REAR_PORT_BACK_WALL", severity="error",
+                message=f"BR2 passt nicht in die Rückkammer; Überstand {(rear_port.physical_length_m-rear_depth)*1000:.1f} mm."))
     source_layout = project.front_elements
-    if cfg.enclosure_type == "bandpass_4":
+    if cfg.enclosure_type.startswith("bandpass_"):
         source_layout = tuple(e.model_copy(update={"surface": "partition"}) if e.type in
                               {"woofer", "midrange", "fullrange", "subwoofer"} else e
                               for e in source_layout)
@@ -284,10 +315,15 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         source_layout = tuple(e for e in source_layout if e.type != "passive_radiator")
     if port is None:
         source_layout = tuple(e for e in source_layout if e.type != "port")
-    layout = _resolve_layout(source_layout or _default_layout(project, cabinet, port, radiator), port)
-    if port is not None and not any(e.type == "port" for e in layout):
+    if rear_port is None:
+        source_layout = tuple(e for e in source_layout if e.id != "BR2")
+    layout = _resolve_layout(source_layout or _default_layout(project, cabinet, port, radiator, rear_port), port, rear_port)
+    if port is not None and not any(e.id == "BR1" for e in layout):
         layout += tuple(e for e in _default_layout(project, cabinet, port)
-                        if e.type == "port")
+                        if e.id == "BR1")
+    if rear_port is not None and not any(e.id == "BR2" for e in layout):
+        layout += tuple(e for e in _default_layout(project, cabinet, port, rear_port=rear_port)
+                        if e.id == "BR2")
     if radiator is not None and not any(e.type == "passive_radiator" for e in layout):
         layout += tuple(e for e in _default_layout(project, cabinet, None, radiator)
                         if e.type == "passive_radiator")
@@ -355,7 +391,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         if rear_volume is not None:
             assert front_volume is not None and port is not None
             response = simulate_bandpass(project.driver, rear_volume, front_volume,
-                                         port, power_w=cfg.input_power_w)
+                                         port, power_w=cfg.input_power_w, rear_port=rear_port)
         else:
             response = simulate_vented(pair_driver, target_net_volume_m3,
                 resonator, power_w=cfg.input_power_w, ql=cfg.ql, qa=cfg.qa, qp=cfg.qp,
@@ -368,11 +404,15 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
             if response.port_velocity_m_s is not None and port is not None:
                 i = int(np.argmax(response.port_velocity_m_s))
                 speed = float(response.port_velocity_m_s[i])
+                port_name = ("BR2" if response.rear_port_velocity_m_s is not None and
+                             response.front_port_velocity_m_s is not None and
+                             response.rear_port_velocity_m_s[i] > response.front_port_velocity_m_s[i]
+                             else "BR1") if rear_port is not None else "Port"
                 limits=DEFAULT_PORT_VELOCITY_LIMITS
                 if speed > limits.caution_m_s:
                     issues.append(DesignWarning(code="PORT_VELOCITY_HIGH",
                         severity="error" if speed > limits.high_m_s else "warning",
-                        message=f"Portgeschwindigkeit {speed:.1f} m/s bei {response.frequencies_hz[i]:.1f} Hz; Strömungsgeräusche möglich.",
+                        message=f"{port_name}: Portgeschwindigkeit {speed:.1f} m/s bei {response.frequencies_hz[i]:.1f} Hz; Strömungsgeräusche möglich.",
                         frequency_hz=float(response.frequencies_hz[i]), value=speed, limit=limits.caution_m_s))
             if radiator is not None and response.port_velocity_m_s is not None:
                 radiator_excursion = response.port_velocity_m_s/(2*np.pi*response.frequencies_hz)
@@ -424,6 +464,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
             coupler.outer_diameter_m, coupler.outer_diameter_m, t),) if coupler else ()) + ((CutPanel("Partition mit Treiberausschnitt", 1,
             cabinet.internal_width_m, cabinet.internal_height_m, t),) if rear_volume is not None else ()),
         port=port,
+        rear_port=rear_port,
         brace=brace,
         crossover=crossover,
         sealed=sealed_result,

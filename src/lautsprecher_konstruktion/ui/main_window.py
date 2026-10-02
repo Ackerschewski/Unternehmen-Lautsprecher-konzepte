@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
     projectCalculated = Signal(object)
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.03.00 · Expertenmodus")
+        self.setWindowTitle("Lautsprecher Konstruktion V-02.04.00 · Expertenmodus")
         self.resize(1450, 900)
         self._bundle: DesignBundle | None = None
         self._catalog = DriverCatalog()
@@ -196,13 +196,16 @@ class MainWindow(QMainWindow):
         self.enclosure_type.addItem("Bassreflex", "bass_reflex")
         self.enclosure_type.addItem("Passivmembran", "passive_radiator")
         self.enclosure_type.addItem("Bandpass 4. Ordnung", "bandpass_4")
+        self.enclosure_type.addItem("Bandpass 6. Ordnung parallel", "bandpass_6_parallel")
         self.enclosure_type.addItem("Isobarisch geschlossen", "isobaric_sealed")
         self.enclosure_type.addItem("Isobarisch Bassreflex", "isobaric_vented")
         self.enclosure_type.currentIndexChanged.connect(self._refresh_mode_controls)
 
         self.target_qtc = self._spin(0.1, 2.0, 0.707, "", 3)
         self.target_volume = self._spin(0.1, 2000.0, 45.0, " l")
-        self.rear_volume = self._spin(0.1, 2000.0, 25.0, " l")
+        self.rear_volume = self._spin(0.1, 2000.0, 50.0, " l")
+        self.rear_tuning = self._spin(5.0, 300.0, 30.0, " Hz")
+        self.rear_port_diameter = self._spin(10.0, 500.0, 75.0, " mm")
         self.isobaric_wiring = QComboBox()
         self.isobaric_wiring.addItem("Reihe", "series")
         self.isobaric_wiring.addItem("Parallel", "parallel")
@@ -252,6 +255,8 @@ class MainWindow(QMainWindow):
             ("Ziel-Qtc", self.target_qtc),
             ("Netto-Volumen / Frontkammer", self.target_volume),
             ("Bandpass Rückkammer netto", self.rear_volume),
+            ("Rückkammer Abstimmung Fb2", self.rear_tuning),
+            ("Rückkammer Port BR2 Ø", self.rear_port_diameter),
             ("Isobarik Verschaltung", self.isobaric_wiring),
             ("Isobarik Freiraum", self.isobaric_gap),
             ("Abstimmfrequenz Fb", self.tuning),
@@ -441,7 +446,7 @@ class MainWindow(QMainWindow):
         diameter={"woofer":0.26,"tweeter":0.105,"port":0.08,"passive_radiator":0.25}[kind]
         element=FrontElement(id=f"{prefix}{number}",type=kind,
             surface="back" if kind=="passive_radiator" else
-                    "partition" if kind=="woofer" and self.enclosure_type.currentData()=="bandpass_4" else "front",
+                    "partition" if kind=="woofer" and str(self.enclosure_type.currentData()).startswith("bandpass_") else "front",
             x_m=self.cabinet_width.value()/2000,
             y_m=self.cabinet_height.value()/1000*(0.7 if kind=="tweeter" else 0.32 if kind=="woofer" else 0.12),
             outer_diameter_m=diameter,cutout_diameter_m=diameter*0.88,
@@ -592,13 +597,15 @@ class MainWindow(QMainWindow):
             return
         enclosure = self.enclosure_type.currentData()
         tuned = enclosure not in {"sealed", "isobaric_sealed"}
-        duct = enclosure in {"bass_reflex","bandpass_4","isobaric_vented"}
+        duct = enclosure in {"bass_reflex","bandpass_4","bandpass_6_parallel","isobaric_vented"}
         radiator = enclosure == "passive_radiator"
         self.target_qtc.setEnabled(enclosure in {"sealed", "isobaric_sealed"})
         self.isobaric_wiring.setEnabled(enclosure.startswith("isobaric_"))
         self.isobaric_gap.setEnabled(enclosure.startswith("isobaric_"))
         self.target_volume.setEnabled(tuned)
-        self.rear_volume.setEnabled(enclosure == "bandpass_4")
+        self.rear_volume.setEnabled(enclosure in {"bandpass_4", "bandpass_6_parallel"})
+        self.rear_tuning.setEnabled(enclosure == "bandpass_6_parallel")
+        self.rear_port_diameter.setEnabled(enclosure == "bandpass_6_parallel")
         self.tuning.setEnabled(tuned)
         self.alignment_button.setEnabled(enclosure == "bass_reflex")
         self.port_type.setEnabled(duct)
@@ -643,7 +650,7 @@ class MainWindow(QMainWindow):
     def _project_from_form(self) -> SpeakerProject:
         return SpeakerProject(
             name=self.project_name.text().strip() or "Lautsprecherprojekt",
-            revision="V-02.03.00",
+            revision="V-02.04.00",
             material=self.material.text().strip() or "Plattenmaterial",
             driver=self._driver_from_form(),
             additional_drivers=self._additional_drivers,
@@ -653,6 +660,8 @@ class MainWindow(QMainWindow):
                 target_qtc=self.target_qtc.value(),
                 target_volume_l=self.target_volume.value(),
                 rear_volume_l=self.rear_volume.value(),
+                rear_tuning_hz=self.rear_tuning.value(),
+                rear_port_diameter_mm=self.rear_port_diameter.value(),
                 isobaric_wiring=self.isobaric_wiring.currentData(),
                 isobaric_gap_mm=self.isobaric_gap.value(),
                 tuning_hz=self.tuning.value(),
@@ -788,13 +797,17 @@ class MainWindow(QMainWindow):
             lines.extend(
                 [
                     "",
-                    "BASSREFLEX",
-                    f"Port: {bundle.port.shape}",
+                    "BANDPASS / BASSREFLEX" if bundle.rear_chamber_volume_m3 else "BASSREFLEX",
+                    f"BR1: {bundle.port.shape}",
                     f"Fb: {bundle.port.tuning_hz:.2f} Hz",
                     f"Portfläche: {bundle.port.area_m2*1e4:.2f} cm²",
                     f"Portlänge: {bundle.port.physical_length_m*1000:.1f} mm",
                 ]
             )
+        if bundle.rear_port:
+            lines.extend([f"BR2 Rückkammer: Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm",
+                          f"Fb2: {bundle.rear_port.tuning_hz:.2f} Hz",
+                          f"BR2 Länge: {bundle.rear_port.physical_length_m*1000:.1f} mm"])
         if bundle.radiator:
             lines.extend(["", "PASSIVMEMBRAN",
                           f"Fb: {bundle.radiator.tuning_hz:.2f} Hz",
@@ -804,7 +817,7 @@ class MainWindow(QMainWindow):
         if bundle.front_chamber_volume_m3 is not None:
             lines.extend(["", "BANDPASS-KAMMERN",
                           f"Front ventiliert: {bundle.front_chamber_volume_m3*1000:.2f} l",
-                          f"Rückkammer geschlossen: {bundle.rear_chamber_volume_m3*1000:.2f} l",
+                          f"Rückkammer {'ventiliert' if bundle.rear_port else 'geschlossen'}: {bundle.rear_chamber_volume_m3*1000:.2f} l",
                           f"Trennwand ab Front innen: {bundle.partition_front_depth_m*1000:.1f} mm"])
             if bundle.vented_response and bundle.vented_response.upper_f3_hz:
                 lines.append(f"Oberer -3-dB-Punkt: {bundle.vented_response.upper_f3_hz:.1f} Hz")
@@ -866,7 +879,8 @@ class MainWindow(QMainWindow):
                 axis.semilogx(response.frequencies_hz,response.response_db)
                 axis.axhline(-3.0,linewidth=0.8)
                 axis.set_title({"bass_reflex":"Bassreflex", "passive_radiator":"Passivmembran",
-                                "bandpass_4":"Bandpass 4. Ordnung"}.get(bundle.project.enclosure.enclosure_type,
+                                "bandpass_4":"Bandpass 4. Ordnung",
+                                "bandpass_6_parallel":"Bandpass 6. Ordnung parallel"}.get(bundle.project.enclosure.enclosure_type,
                                 "Gehäuse")+" – Frequenzgang (relativ)")
                 axis.set_xlabel("Hz");axis.set_ylabel("dB")
                 axis.grid(True,which="both",alpha=0.25)
@@ -1024,6 +1038,8 @@ class MainWindow(QMainWindow):
         if project.enclosure.target_volume_l:
             self.target_volume.setValue(project.enclosure.target_volume_l)
         self.rear_volume.setValue(project.enclosure.rear_volume_l)
+        self.rear_tuning.setValue(project.enclosure.rear_tuning_hz or 30.0)
+        self.rear_port_diameter.setValue(project.enclosure.rear_port_diameter_mm)
         self.isobaric_wiring.setCurrentIndex(max(self.isobaric_wiring.findData(project.enclosure.isobaric_wiring), 0))
         self.isobaric_gap.setValue(project.enclosure.isobaric_gap_mm)
         if project.enclosure.tuning_hz:

@@ -100,7 +100,7 @@ def _spin(default: float, minimum: float, maximum: float, suffix: str,
 class AssistantWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.03.00")
+        self.setWindowTitle("Lautsprecher Konstruktion V-02.04.00")
         self.resize(1500, 920)
         self.library = ComponentLibrary()
         self.designs: tuple[SpeakerDesign, ...] = ()

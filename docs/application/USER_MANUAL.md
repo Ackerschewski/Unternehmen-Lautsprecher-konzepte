@@ -1,4 +1,4 @@
-# Nutzerhandbuch — V-02.03.00
+# Nutzerhandbuch — V-02.04.00
 
 ## Neue Budget- und Bohrdatenprüfung
 
@@ -14,7 +14,7 @@ Die aktuelle Bibliothek umfasst 84 datierte Thomann-Einträge sowie weitere Chas
 
 Die Registerkarte „Gesamtzeichnung“ enthält Vorderansicht, Rückansicht und Seitenschnitt sowie Tabellen mit Ausschnitten, Einbaukoordinaten, veröffentlichtem Lochkreis und allen daraus berechneten Bohrkoordinaten. Die Koordinaten beziehen sich je Außenfläche auf die linke untere Ecke. Für die innere Trennwand gilt das separate Einzelteilblatt als Bearbeitungsreferenz. Ohne veröffentlichten Lochkreis bleibt die Bohrung offen; am Originalteil messen. Die SVG ist frei skalierbar, Maßzahlen gelten vor grafischer Skalierung.
 
-Berechenbar sind geschlossen, Bassreflex, Passivmembran, Bandpass 4. Ordnung und zwei isobarische Bauarten. 23 weitere Typen sind sichtbar, aber für eine Fertigungsfreigabe noch nicht ausreichend modelliert.
+Berechenbar sind geschlossen, Bassreflex, Passivmembran, Bandpass 4. Ordnung, Bandpass 6. Ordnung parallel und zwei isobarische Bauarten. Die übrigen 22 Typen sind sichtbar, aber für eine Fertigungsfreigabe noch nicht ausreichend modelliert.
 
 ## Bibliothek und Preise in V-02.01.00
 
@@ -46,7 +46,7 @@ Fs, Qts und Vas sind für Gehäusewerte nötig. Für absolute Bassreflex-Auslenk
 
 ## Gehäuse und Simulation
 
-Geschlossen: Ziel-Qtc bestimmt Vb, Fc und F3. Bassreflex: Netto-Vb, Fb und Rund-/Slot-Port festlegen; die Software berechnet Portlänge und eine relative Übertragungsfunktion. Passivmembran: Netto-Vb und Fb sowie gemessene Membranfläche, Grundmasse, Freiluft-Fs, Qms, Xmax und Einbaumaße eintragen. Aus der Zielabstimmung wird die Zusatzmasse berechnet; ist die Grundmasse bereits zu hoch, erscheint ein Fehler. Die Passivmembran sitzt in der Demo-Konstruktion auf der Rückwand. Bandpass 4. Ordnung: Front- und Rückkammervolumen wählen, die Frontkammer über einen Port abstimmen; der Tieftöner sitzt in der Trennwand. Isobarisch geschlossen/Bassreflex: zwei identische Chassis und Reihen- oder Parallelschaltung wählen; die Koppelkammer wird mit ihrer tatsächlichen Hüllgeometrie in der Volumenbilanz berücksichtigt. Das akustische Modell setzt ideale Kopplung voraus. Die Leistungswahl bietet 1, 10, 50, 100 W und freie Eingabe. Angezeigt werden Frequenzgang, Membranauslenkung, Resonatorgeschwindigkeit und Gruppenlaufzeit. Für Bandpass erscheinen unterer und oberer -3-dB-Punkt. 17/25 m/s sind Port-Richtwerte im Code, keine Naturgrenzen. **Drei Abstimmungen vergleichen** bietet Vorschläge für Bassreflex.
+Geschlossen: Ziel-Qtc bestimmt Vb, Fc und F3. Bassreflex: Netto-Vb, Fb und Rund-/Slot-Port festlegen; die Software berechnet Portlänge und eine relative Übertragungsfunktion. Passivmembran: Netto-Vb und Fb sowie gemessene Membranfläche, Grundmasse, Freiluft-Fs, Qms, Xmax und Einbaumaße eintragen. Aus der Zielabstimmung wird die Zusatzmasse berechnet; ist die Grundmasse bereits zu hoch, erscheint ein Fehler. Die Passivmembran sitzt in der Demo-Konstruktion auf der Rückwand. Bandpass 4. Ordnung: Front- und Rückkammervolumen wählen, die Frontkammer über einen Port abstimmen; der Tieftöner sitzt in der Trennwand. Bandpass 6. Ordnung parallel: zusätzlich Fb2 und BR2-Ø der Rückkammer angeben. BR2 ist ein gerader Rundport an der Rückwand. Aus beiden Portströmen entsteht der modellierte Gesamtfrequenzgang; die CSV nennt die Geschwindigkeiten einzeln. Zu lange Kanäle blockieren den Fertigungsexport. Isobarisch geschlossen/Bassreflex: zwei identische Chassis und Reihen- oder Parallelschaltung wählen; die Koppelkammer wird mit ihrer tatsächlichen Hüllgeometrie in der Volumenbilanz berücksichtigt. Das akustische Modell setzt ideale Kopplung voraus. Die Leistungswahl bietet 1, 10, 50, 100 W und freie Eingabe. Angezeigt werden Frequenzgang, Membranauslenkung, Resonatorgeschwindigkeit und Gruppenlaufzeit. Für Bandpass erscheinen unterer und oberer -3-dB-Punkt. 17/25 m/s sind Port-Richtwerte im Code, keine Naturgrenzen. **Drei Abstimmungen vergleichen** bietet Vorschläge für Bassreflex.
 
 Plattenstärken: Basisstärke gilt für Seiten und optional alle anderen Platten. Eine Eingabe von 0 bei Front/Rückwand/Deckel/Boden bedeutet Basisstärke. Front-Lagen 2 erzeugt eine doppelte Front. Die Tiefe und Zuschnittliste folgen den effektiven Stärken. Verdrängungen von Treiber, Port, Fensterstreben und Zusatzvolumen gehen in die Nettovolumenrechnung ein.
 

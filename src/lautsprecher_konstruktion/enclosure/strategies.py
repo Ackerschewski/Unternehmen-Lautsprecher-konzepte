@@ -29,6 +29,7 @@ class EnclosurePreparation:
     resonator: PortDesign | None = None
     front_volume_m3: float | None = None
     rear_volume_m3: float | None = None
+    rear_port: PortDesign | None = None
 
 
 class EnclosureStrategy(Protocol):
@@ -91,6 +92,20 @@ class Bandpass4Strategy:
                                     front_volume_m3=front, rear_volume_m3=rear)
 
 
+class Bandpass6ParallelStrategy:
+    def prepare(self, cfg: EnclosureConfig, driver: Driver) -> EnclosurePreparation:
+        front = _front_volume(cfg)
+        rear = cfg.rear_volume_l/1000
+        if cfg.rear_tuning_hz is None:
+            raise ValueError("Bandpass 6 parallel benötigt eine zweite Abstimmfrequenz für die Rückkammer")
+        front_port = _port(cfg, front)
+        rear_port = round_port(box_volume_m3=rear, tuning_hz=cfg.rear_tuning_hz,
+                               diameter_m=cfg.rear_port_diameter_mm/1000)
+        return EnclosurePreparation(front+rear, port=front_port, rear_port=rear_port,
+                                    resonator=front_port, front_volume_m3=front,
+                                    rear_volume_m3=rear)
+
+
 class IsobaricSealedStrategy:
     def prepare(self, cfg: EnclosureConfig, driver: Driver) -> EnclosurePreparation:
         pair = equivalent_driver(driver, cfg.isobaric_wiring)
@@ -111,6 +126,7 @@ STRATEGIES: dict[str, EnclosureStrategy] = {
     "bass_reflex": BassReflexStrategy(),
     "passive_radiator": PassiveRadiatorStrategy(),
     "bandpass_4": Bandpass4Strategy(),
+    "bandpass_6_parallel": Bandpass6ParallelStrategy(),
     "isobaric_sealed": IsobaricSealedStrategy(),
     "isobaric_vented": IsobaricVentedStrategy(),
 }

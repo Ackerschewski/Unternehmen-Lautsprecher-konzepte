@@ -50,10 +50,18 @@ def _simulation_files(folder: Path, bundle: DesignBundle) -> None:
         _csv(folder/'membranauslenkung.csv', ('Frequenz_Hz','Auslenkung_mm','Xmax_mm'),
              [(float(hz), float(r.excursion_mm[i]) if r.excursion_mm is not None else '',
                bundle.project.driver.xmax_mm or '') for i,hz in enumerate(f)])
-        velocity_name = 'Passivmembran_Geschwindigkeit_m_s' if bundle.radiator else 'Port_Geschwindigkeit_m_s'
-        _csv(folder/'portgeschwindigkeit.csv', ('Frequenz_Hz',velocity_name,'Mach'),
-             [(float(hz), float(r.port_velocity_m_s[i]) if r.port_velocity_m_s is not None else '',
-               float(r.port_mach[i]) if r.port_mach is not None else '') for i,hz in enumerate(f)])
+        if bundle.rear_port:
+            _csv(folder/'portgeschwindigkeit.csv',
+                 ('Frequenz_Hz','BR1_m_s','BR2_m_s','Maximum_m_s','Mach_Maximum'),
+                 [(float(hz),float(r.front_port_velocity_m_s[i]) if r.front_port_velocity_m_s is not None else '',
+                   float(r.rear_port_velocity_m_s[i]) if r.rear_port_velocity_m_s is not None else '',
+                   float(r.port_velocity_m_s[i]) if r.port_velocity_m_s is not None else '',
+                   float(r.port_mach[i]) if r.port_mach is not None else '') for i,hz in enumerate(f)])
+        else:
+            velocity_name = 'Passivmembran_Geschwindigkeit_m_s' if bundle.radiator else 'Port_Geschwindigkeit_m_s'
+            _csv(folder/'portgeschwindigkeit.csv', ('Frequenz_Hz',velocity_name,'Mach'),
+                 [(float(hz), float(r.port_velocity_m_s[i]) if r.port_velocity_m_s is not None else '',
+                   float(r.port_mach[i]) if r.port_mach is not None else '') for i,hz in enumerate(f)])
         if bundle.radiator and r.port_velocity_m_s is not None:
             _csv(folder/'passivmembran.csv',('Frequenz_Hz','Auslenkung_mm','Xmax_mm'),
                  [(float(hz),float(r.port_velocity_m_s[i]/(2*np.pi*hz)*1000),
@@ -73,7 +81,7 @@ def _simulation_files(folder: Path, bundle: DesignBundle) -> None:
 
 def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
     geometry_errors=[issue.message for issue in bundle.issues if issue.severity == 'error'
-                     and issue.code in {'FRONT_EDGE','FRONT_COLLISION','BACK_WALL','PORT_BACK_WALL','BRACE_COLLISION','BRACE_SPACE','DRILL_CUTOUT','DUPLICATE_ID','CHAMBER_DEPTH','ISOBARIC_DEPTH','ISOBARIC_WALL','ISOBARIC_COLLISION','ISOBARIC_DRIVER'}]
+                     and issue.code in {'FRONT_EDGE','FRONT_COLLISION','BACK_WALL','PORT_BACK_WALL','REAR_PORT_BACK_WALL','BRACE_COLLISION','BRACE_SPACE','DRILL_CUTOUT','DUPLICATE_ID','CHAMBER_DEPTH','ISOBARIC_DEPTH','ISOBARIC_WALL','ISOBARIC_COLLISION','ISOBARIC_DRIVER'}]
     if geometry_errors:
         raise ValueError('Geometrie nicht fertigungstauglich: '+'; '.join(geometry_errors))
     out = Path(directory)

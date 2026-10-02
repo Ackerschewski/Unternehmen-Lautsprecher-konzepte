@@ -1,13 +1,19 @@
-# Lautsprecher Konstruktion V-02.03.00
+# Lautsprecher Konstruktion V-02.04.00
 
 Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm fragt nach Typ, maximalen Außenmaßen und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Gehäuseparameter.
 
 ## Start
 
-1. `Lautsprecher-Konstruktion_V-02.03.00_Windows.zip` vollständig entpacken.
-2. `Lautsprecher-Konstruktion_V-02.03.00.exe` starten; `_internal` muss daneben bleiben.
+1. `Lautsprecher-Konstruktion_V-02.04.00_Windows.zip` vollständig entpacken.
+2. `Lautsprecher-Konstruktion_V-02.04.00.exe` starten; `_internal` muss daneben bleiben.
 3. Entwurf erstellen und Variantenvergleich, Zeichnungen, Simulation und Stückliste prüfen.
 4. Fertigungsunterlagen als PDF, SVG, DXF und CSV exportieren.
+
+## V-02.04.00
+
+Bandpass 6. Ordnung parallel ist als siebter berechenbarer Gehäusetyp ergänzt. Die Front- und Rückkammer besitzen getrennte Netto-Volumina, Abstimmfrequenzen und Ports BR1/BR2. Der Expertenmodus bietet die zweite Abstimmung und den Rückportdurchmesser; der Assistent kann diesen Typ für Subwoofer prüfen. Die zwei Portöffnungen erscheinen in Vorder-/Rückwand-DXF, Gesamtzeichnung, Innenschnitt, PDF, Zuschnitt und Stückliste. Die Simulation liefert beide Portgeschwindigkeiten getrennt und erkennt zu lange Ports in ihrer jeweiligen Kammer.
+
+Das Modell ist eine lineare Näherung mit konzentrierten akustischen Elementen und kohärent zusammengefassten Portauslässen. Tatsächlicher Abstand der beiden Auslässe, Leckagen, Strömungsverluste, Kanal- und Kammermoden bleiben offen. Frequenzgang und Abstimmungen am gebauten Gehäuse messen. Die Herleitung und Grenzen stehen in `docs/BANDPASS6_MODEL.md`.
 
 ## V-02.03.00
 
@@ -53,4 +59,4 @@ Tests: `.venv\Scripts\python -m pytest --basetemp .test_run -p no:cacheprovider`
 
 Die Gehäusemodelle sind lineare Kleinsignal-Näherungen ohne umfassenden Abgleich mit realen Messungen. Portkompression, thermische Effekte, Baffle Step, Raum, gefaltete Ports, vollständige 3D-Kollisionen und Bauteiltoleranzen fehlen. Ein E12-Weichenvorschlag ist ein elektrischer Startwert. Alle Herstellerangaben, Maße und Bohrbilder vor dem Zuschnitt am echten Chassis prüfen.
 
-Weitere Details: `docs/USER_MANUAL.md`, `docs/ARCHITECTURE.md`, `docs/MAINTENANCE.md` und `BUILD_REPORT_V-02.03.00.md`.
+Weitere Details: `docs/USER_MANUAL.md`, `docs/ARCHITECTURE.md`, `docs/MAINTENANCE.md` und `BUILD_REPORT_V-02.04.00.md`.
