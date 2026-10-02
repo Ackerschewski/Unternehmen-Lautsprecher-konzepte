@@ -12,7 +12,8 @@
 - Pytest: 58 Fälle bestanden.
 - Ruff: bestanden.
 - Windows-PyInstaller-Build und Offscreen-Startprüfung: bestanden.
-- Paketexport und SVG-Vorschau: nach Durchführung ergänzen.
+- Paketexport und SVG-Vorschau: bestanden.
+- Windows-ZIP: rund 102,6 MB; Quellcode-ZIP: rund 250 kB.
 
 ## Grenzen
 
