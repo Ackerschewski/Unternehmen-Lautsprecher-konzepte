@@ -1,6 +1,6 @@
 # Lautsprecher Konstruktion V-02.02.00
 
-Lokaler Windows-Konstruktionsassistent f�r Lautsprecherentw�rfe ohne GitHub. Der Startbildschirm fragt nach Typ, maximalen Au�enma�en und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Geh�useparameter.
+Lokaler Windows-Konstruktionsassistent f�r Lautsprecherentw�rfe mit GitHub-Quellcode und lokalem Windows-Testpaket. Der Startbildschirm fragt nach Typ, maximalen Au�enma�en und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Geh�useparameter.
 
 ## Start
 
