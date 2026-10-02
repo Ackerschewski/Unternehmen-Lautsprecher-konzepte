@@ -100,7 +100,7 @@ def _spin(default: float, minimum: float, maximum: float, suffix: str,
 class AssistantWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.02.00")
+        self.setWindowTitle("Lautsprecher Konstruktion V-02.03.00")
         self.resize(1500, 920)
         self.library = ComponentLibrary()
         self.designs: tuple[SpeakerDesign, ...] = ()
@@ -315,9 +315,10 @@ class AssistantWindow(QMainWindow):
         self.tabs.addTab(overview, "Entwürfe")
 
         self.comparison = QTableWidget()
-        self.comparison.setColumnCount(9)
+        self.comparison.setColumnCount(11)
         self.comparison.setHorizontalHeaderLabels(("Variante", "Gehäuse", "B × H × T [mm]",
-            "Netto [l]", "F3 [Hz]", "Bewertung", "Chassis [€]", "Gesamt inkl. Reserve [€]", "Hinweise"))
+            "Netto [l]", "F3 [Hz]", "Bewertung", "Chassiswahl", "Chassis [€]",
+            "Gesamt inkl. Reserve [€]", "Budget frei [€]", "Hinweise"))
         self.comparison.setAlternatingRowColors(True)
         self.comparison.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.comparison.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -420,7 +421,7 @@ class AssistantWindow(QMainWindow):
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
                 self.variant_list.addItem(f"{design.label}  ·  {registry.get(design.project.enclosure.enclosure_type).label}  ·  "
-                    f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm")
+                    f"{design.woofer.model}" + (f" + {design.tweeter.model}" if design.tweeter else ""))
                 f3 = design.bundle.sealed.f3_hz if design.bundle.sealed else (
                     design.bundle.vented_response.f3_hz if design.bundle.vented_response else None)
                 values = (design.label,
@@ -428,8 +429,11 @@ class AssistantWindow(QMainWindow):
                     f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f}",
                     f"{design.bundle.target_net_volume_m3*1000:.1f}",
                     f"{f3:.1f}" if f3 else "–", f"{design.score:.0f}/100",
+                    design.woofer.model + (f" + {design.tweeter.model}" if design.tweeter else ""),
                     f"{design.price:.2f}" if design.price is not None else "–",
                     f"{design.total_price_eur:.2f}" if design.total_price_eur is not None else "–",
+                    f"{self.budget.value()-design.total_price_eur:.2f}"
+                    if self.budget.value() and design.total_price_eur is not None else "–",
                     str(len(design.bundle.warnings)))
                 for column, value in enumerate(values):
                     self.comparison.setItem(row, column, QTableWidgetItem(value))
@@ -482,6 +486,9 @@ class AssistantWindow(QMainWindow):
         lines.append("<p><b>Gesamtkalkulation inkl. 15 % Reserve:</b> "+
             (f"{design.total_price_eur:.2f} €" if design.total_price_eur is not None else
              "nicht vollständig bepreist")+"</p>")
+        if self.budget.value() and design.total_price_eur is not None:
+            lines.append(f"<p><b>Budget noch frei:</b> "
+                         f"{self.budget.value()-design.total_price_eur:.2f} €</p>")
         if design.breakdown:
             lines.append(f"<h3>Technische Bewertung · {design.score:.0f}/100</h3>")
             names = {"bass": "Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
