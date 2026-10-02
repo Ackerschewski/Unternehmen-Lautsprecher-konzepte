@@ -125,7 +125,7 @@ def test_automatic_design_can_be_cancelled(library):
     assert result.status == "cancelled" and not result.designs
 
 
-def test_missing_tweeter_and_unpriced_budget_are_not_fabricated(tmp_path, library):
+def test_missing_tweeter_and_priced_budget_selection(tmp_path, library):
     empty = ComponentLibrary(bundled_root=tmp_path / "empty", user_root=tmp_path / "user2")
     woofer = library.drivers("midwoofer")[0]
     from lautsprecher_konstruktion.library.store import LibraryEntry
@@ -133,7 +133,9 @@ def test_missing_tweeter_and_unpriced_budget_are_not_fabricated(tmp_path, librar
         model=woofer.model, driver=woofer, is_test_data=True))
     result = automatic_design(AutomaticDesignRequest(way_count=2), empty)
     assert result.status == "impossible"
-    assert any("Hochtöner" in reason for reason in result.rejection_reasons)
+    assert any("Hocht�ner" in reason for reason in result.rejection_reasons)
     budget_result = automatic_design(AutomaticDesignRequest(budget=500), library)
-    assert budget_result.status == "impossible"
-    assert any("Budget" in reason for reason in budget_result.rejection_reasons)
+    assert budget_result.status == "ok"
+    assert budget_result.designs
+    assert all(design.total_price_eur is not None and design.total_price_eur <= 500
+               for design in budget_result.designs)
