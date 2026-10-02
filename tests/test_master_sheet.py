@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QByteArray
 from PySide6.QtSvg import QSvgRenderer
 
+from lautsprecher_konstruktion.drawings.front_dxf import render_front_panel_dxf
 from lautsprecher_konstruktion.drawings.master_sheet_svg import render_master_sheet_svg
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
 from lautsprecher_konstruktion.library.store import ComponentLibrary
@@ -11,6 +12,7 @@ from lautsprecher_konstruktion.project.models import (
     EnclosureConfig,
     SpeakerProject,
 )
+from lautsprecher_konstruktion.services.automatic import _layout
 from lautsprecher_konstruktion.services.design import calculate_project
 
 
@@ -42,3 +44,19 @@ def test_master_sheet_marks_missing_hole_data(tmp_path):
     svg = render_master_sheet_svg(bundle)
     assert "nicht veröffentlicht" in svg
     assert "Kein vollständiges Hersteller-Lochbild" in svg
+
+
+def test_unknown_hole_diameter_is_never_exported_as_drill(tmp_path):
+    library = ComponentLibrary(user_root=tmp_path / "user")
+    driver = library.entries("drivers", "18W/8531G00")[0].driver
+    without_hole_size = driver.model_copy(update={"bolt_hole_diameter_m": None})
+    element = _layout(without_hole_size, None, .35, .6, "sealed", 0)[0]
+    assert element.bolt_count == 5
+    assert element.hole_diameter_m is None
+    bundle = calculate_project(SpeakerProject(driver=without_hole_size,
+        crossover=CrossoverConfig(enabled=False), front_elements=(element,)))
+    svg = render_master_sheet_svg(bundle)
+    dxf = render_front_panel_dxf(bundle.cabinet, front_elements=bundle.front_elements)
+    assert "LK Ø 169.8; Bohr-Ø fehlt" in svg
+    assert "W1-1" not in svg
+    assert "DRILL" not in dxf
