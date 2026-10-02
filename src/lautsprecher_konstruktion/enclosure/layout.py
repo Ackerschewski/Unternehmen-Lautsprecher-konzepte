@@ -22,7 +22,7 @@ class FrontElement(BaseModel):
     rotation_deg: float = 0.0
     bolt_circle_diameter_m: float | None = Field(default=None, gt=0)
     bolt_count: int = Field(default=0, ge=0)
-    hole_diameter_m: float = Field(default=0.004, gt=0)
+    hole_diameter_m: float | None = Field(default=None, gt=0)
     angular_offset_deg: float = 0.0
     clearance_m: float = Field(default=0.005, ge=0)
     width_m: float | None = Field(default=None, gt=0)
@@ -47,7 +47,8 @@ class FrontElement(BaseModel):
 
 
 def bolt_holes(element: FrontElement) -> tuple[tuple[float, float, float], ...]:
-    if not element.bolt_count or element.bolt_circle_diameter_m is None:
+    if (not element.bolt_count or element.bolt_circle_diameter_m is None
+            or element.hole_diameter_m is None):
         return ()
     radius = element.bolt_circle_diameter_m / 2
     offset = (element.angular_offset_deg + element.rotation_deg) * pi / 180
