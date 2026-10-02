@@ -1,6 +1,6 @@
 # Lautsprecher Konstruktion V-02.02.00
 
-Lokaler Windows-Konstruktionsassistent f�r Lautsprecherentw�rfe mit GitHub-Quellcode und lokalem Windows-Testpaket. Der Startbildschirm fragt nach Typ, maximalen Au�enma�en und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Geh�useparameter.
+Windows-Konstruktionsassistent f�r Lautsprecherentw�rfe. Der Startbildschirm fragt nach Typ, maximalen Au�enma�en und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Geh�useparameter.
 
 ## Start
 
@@ -14,6 +14,8 @@ Lokaler Windows-Konstruktionsassistent f�r Lautsprecherentw�rfe mit GitHub-Q
 Der Assistent fragt das Gesamtbudget direkt bei der Konfiguration ab. Die Budgetpr�fung rechnet f�r **ein Geh�use** Chassis, Holzplatten, Streben, Port beziehungsweise Passivmembran, Weichenbauteile, D�mpfung, Anschlussterminal, Kabel, Leim und Befestigung zusammen und addiert 15 % Materialreserve. Varianten mit fehlendem Chassispreis werden bei aktivem Budget verworfen. Die St�ckliste zeigt jeden kalkulierten Einzelpreis, dessen Art (H�ndlerpreis, Materialreferenz oder Planpreis), die Materialsumme und den Budgetbedarf mit Reserve. Planpreise sind ausdr�cklich Richtwerte, keine H�ndlerangebote; Versand, Werkzeuge, Arbeitszeit und Steuern �ber den ausgewiesenen Produktpreisen hinaus sind nicht modelliert.
 
 Die Bibliothek enth�lt jetzt 84 datierte Thomann-Katalogeintr�ge. Acht FaitalPRO-Chassis haben zus�tzlich vollst�ndige, getrennt belegte Herstellerdaten f�r die Berechnung. Weitere Eintr�ge ohne T/S oder Montageangaben bleiben als Preis- und Recherchekatalog sichtbar; fehlende Daten werden nicht gesch�tzt. Die Gesamtzeichnung zeigt Vorder- und R�ckansicht, einen Seitenschnitt mit Innenteilen, Einbaukoordinaten, Ausschnitte, dokumentierte Lochkreise und jede daraus berechnete Bohrkoordinate, Zuschnitt und Hinweise. F�r unbekannte Lochbilder steht ausdr�cklich �nicht ver�ffentlicht� im Blatt. Einzelteilzeichnungen und DXF bleiben Bestandteil des Exports.
+
+Zehn weitere Chassis von Dayton Audio, Scan-Speak und Visaton haben datierte Euro-Preise mit H�ndler- oder Herstellerlink erhalten. Damit k�nnen sie auch in einer Budgetberechnung ber�cksichtigt werden, sofern die erforderlichen Konstruktionsdaten vorliegen. Synthetische Testdatens�tze bleiben ausdr�cklich unbepreist.
 
 Die sechs vollst�ndig integrierten Geh�usearten bleiben nutzbar. Die weiteren 23 vorgesehenen Arten sind in der Auswahl als Entwicklungsstand sichtbar. F�r Transmission Lines, H�rner und weitere Bandpassformen fehlen noch belastbare akustische Modelle und herstellbare Innengeometrien; sie werden nicht als fertig ausgegeben.
 
