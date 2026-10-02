@@ -50,7 +50,7 @@ class EnclosureConfig(BaseModel):
     def check_enclosure_type(self) -> EnclosureConfig:
         from lautsprecher_konstruktion.enclosure.registry import registry
         if self.enclosure_type not in {entry.id for entry in registry.all()}:
-            raise ValueError(f"Unbekannter Geh�usetyp: {self.enclosure_type}")
+            raise ValueError(f"Unbekannter Gehäusetyp: {self.enclosure_type}")
         return self
 
 
