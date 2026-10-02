@@ -9,7 +9,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
 & $python -m ruff check src tests
 if ($LASTEXITCODE -ne 0) { throw 'Ruff failed' }
 & $python -m PyInstaller --noconfirm --clean --onedir --windowed `
-    --name 'Lautsprecher-Konstruktion_V-02.02.00' --paths 'src' `
+    --name 'Lautsprecher-Konstruktion_V-02.03.00' --paths 'src' `
     --add-data 'data/library;data/library' `
     --hidden-import 'matplotlib.backends.backend_qtagg' `
     'src/lautsprecher_konstruktion/app.py'
@@ -18,13 +18,13 @@ if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }
 # PyInstaller can collect a third-party ICU build as _internal/icuuc.dll.
 # Qt's Windows binaries use the unsuffixed ICU API exported by Windows itself;
 # the collected ICU build exports version-suffixed names and breaks QtCore.
-$bundledIcu = Join-Path $PSScriptRoot '..\dist\Lautsprecher-Konstruktion_V-02.02.00\_internal\icuuc.dll'
+$bundledIcu = Join-Path $PSScriptRoot '..\dist\Lautsprecher-Konstruktion_V-02.03.00\_internal\icuuc.dll'
 if (Test-Path -LiteralPath $bundledIcu) {
     & $python -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).unlink()' $bundledIcu
     if ($LASTEXITCODE -ne 0) { throw 'Could not remove incompatible ICU DLL' }
 }
 
-$appExe = Join-Path $PSScriptRoot '..\dist\Lautsprecher-Konstruktion_V-02.02.00\Lautsprecher-Konstruktion_V-02.02.00.exe'
+$appExe = Join-Path $PSScriptRoot '..\dist\Lautsprecher-Konstruktion_V-02.03.00\Lautsprecher-Konstruktion_V-02.03.00.exe'
 $previousQtPlatform = $env:QT_QPA_PLATFORM
 $env:QT_QPA_PLATFORM = 'offscreen'
 try {
