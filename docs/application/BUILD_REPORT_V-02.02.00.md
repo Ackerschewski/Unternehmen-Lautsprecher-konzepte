@@ -2,19 +2,20 @@
 
 ## Inhalt
 
-- 84 datierte Thomann-Katalogpositionen; acht FaitalPRO-Chassis mit Herstellerdaten für die Konstruktion.
-- Gesamtbudget im ersten Konfigurationsschritt für ein Gehäuse. Die Materialstückliste enthält Chassis, Platten, Streben, Port/Passivmembran, Weiche, Terminal, Dämpfung, Kabel, Leim und Schrauben. Der Budgetbedarf enthält 15 % Reserve.
-- Jeder Stücklistenposten hat einen Euro-Preis oder ist ausdrücklich als fehlend markiert. Händlerpreise, Materialreferenzen und Planpreise sind getrennt. Ein Entwurf mit fehlendem Chassispreis besteht eine gesetzte Budgetgrenze nicht.
-- Neues Gesamtblatt als SVG mit Vorder- und Rückansicht, Seitenschnitt, Einbaumaßen, dokumentierten Lochkreisen, einzelnen Bohrkoordinaten und Zuschnitt. Fehlende Hersteller-Lochbilder werden nicht ergänzt.
+- 84 datierte Thomann-Katalogpositionen; acht FaitalPRO-Chassis mit Herstellerdaten f�r die Konstruktion.
+- Zehn weitere Dayton-Audio-, Scan-Speak- und Visaton-Chassis mit datierten Euro-Preisen und Produktlinks.
+- Gesamtbudget im ersten Konfigurationsschritt f�r ein Geh�use. Die Materialst�ckliste enth�lt Chassis, Platten, Streben, Port/Passivmembran, Weiche, Terminal, D�mpfung, Kabel, Leim und Schrauben. Der Budgetbedarf enth�lt 15 % Reserve.
+- Jeder St�cklistenposten hat einen Euro-Preis oder ist ausdr�cklich als fehlend markiert. H�ndlerpreise, Materialreferenzen und Planpreise sind getrennt. Ein Entwurf mit fehlendem Chassispreis besteht eine gesetzte Budgetgrenze nicht.
+- Neues Gesamtblatt als SVG mit Vorder- und R�ckansicht, Seitenschnitt, Einbauma�en, dokumentierten Lochkreisen, einzelnen Bohrkoordinaten und Zuschnitt. Fehlende Hersteller-Lochbilder werden nicht erg�nzt.
 
-## Prüfung
+## Pr�fung
 
-- `pytest`: 55 Fälle bestanden.
+- `pytest`: 56 F�lle bestanden.
 - `ruff check src tests`: bestanden.
 - PyInstaller Windows-Build mit Offscreen-Start: bestanden.
-- Paketexport und SVG-Sichtprüfung: bestanden; Gesamtzeichnung, Innenaufbau und Einzelteilblatt als PNG gerendert.
+- Paketexport und SVG-Sichtpr�fung: bestanden; Gesamtzeichnung, Innenaufbau und Einzelteilblatt als PNG gerendert.
 - Windows ZIP: etwa 102,6 MB; Quellcode ZIP: etwa 244 kB.
 
 ## Grenzen
 
-Die sechs bisher unterstützten Gehäusearten sind weiterhin berechenbar. Die 23 weiteren registrierten Konzepte sind technisch nicht vollständig; eine Fertigungsfreigabe erfordert eigene Akustikmodelle und herstellbare Geometrie. Materialkosten sind Planwerte und enthalten keinen Versand oder Arbeitslohn. Nicht veröffentlichte Bohrmaße müssen am realen Bauteil gemessen werden. Der Windows-Build ist ein lokaler Teststand, keine abschließend freigegebene Produktversion.
+Die sechs bisher unterst�tzten Geh�usearten sind weiterhin berechenbar. Die 23 weiteren registrierten Konzepte sind technisch nicht vollst�ndig; eine Fertigungsfreigabe erfordert eigene Akustikmodelle und herstellbare Geometrie. Materialkosten sind Planwerte und enthalten keinen Versand oder Arbeitslohn. Nicht ver�ffentlichte Bohrma�e m�ssen am realen Bauteil gemessen werden. Der Windows-Build ist ein lokaler Teststand, keine abschlie�end freigegebene Produktversion.
