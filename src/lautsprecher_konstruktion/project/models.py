@@ -50,7 +50,7 @@ class EnclosureConfig(BaseModel):
     def check_enclosure_type(self) -> EnclosureConfig:
         from lautsprecher_konstruktion.enclosure.registry import registry
         if self.enclosure_type not in {entry.id for entry in registry.all()}:
-            raise ValueError(f"Unbekannter Gehäusetyp: {self.enclosure_type}")
+            raise ValueError(f"Unbekannter Geh�usetyp: {self.enclosure_type}")
         return self
 
 
@@ -83,7 +83,7 @@ class ProjectAccessory(BaseModel):
 class SpeakerProject(BaseModel):
     schema_version: int = 3
     name: str = "Neues Lautsprecherprojekt"
-    revision: str = "V-02.02.00"
+    revision: str = "V-02.03.00"
     material: str = "Birke Multiplex"
     driver: Driver
     additional_drivers: tuple[Driver, ...] = ()
