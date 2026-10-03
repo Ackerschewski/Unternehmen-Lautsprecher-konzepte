@@ -31,6 +31,8 @@ class VentedResponse:
     upper_f3_hz: float | None = None
     front_port_velocity_m_s: NDArray[np.float64] | None = None
     rear_port_velocity_m_s: NDArray[np.float64] | None = None
+    rear_response_db: NDArray[np.float64] | None = None
+    front_to_back_db: NDArray[np.float64] | None = None
 
 
 def simulate_vented(
@@ -47,6 +49,9 @@ def simulate_vented(
     qp: float | None = None,
     resonator_compliance_m5_n: float | None = None,
     resonator_resistance_pa_s_m3: float | None = None,
+    port_resistance_pa_s_m3: float | None = None,
+    rear_port_separation_m: float | None = None,
+    rear_port_delay_s: float = 0.0,
 ) -> VentedResponse:
     """Solve cone motion and vent flow for RMS electrical input power.
 
@@ -58,6 +63,8 @@ def simulate_vented(
         raise ValueError("box, port, power and air constants must be positive")
     if any(q is not None and q <= 0 for q in (ql, qa, qp)):
         raise ValueError("loss Q values must be positive")
+    if port_resistance_pa_s_m3 is not None and port_resistance_pa_s_m3 <= 0:
+        raise ValueError("port resistance must be positive")
     f = np.geomspace(10.0, 500.0, 400) if frequencies_hz is None else np.asarray(frequencies_hz, dtype=float)
     if f.ndim != 1 or f.size < 3 or np.any(f <= 0) or np.any(np.diff(f) <= 0):
         raise ValueError("frequencies must be a strictly increasing positive vector")
@@ -67,7 +74,8 @@ def simulate_vented(
     cb = box_volume_m3 / (rho_kg_m3 * sound_speed_m_s**2)
     mp = rho_kg_m3 * port.effective_length_m / port.area_m2
     wb = 2.0 * pi * port.tuning_hz
-    rp = 0.0 if qp is None else wb * mp / qp
+    rp = (port_resistance_pa_s_m3 if port_resistance_pa_s_m3 is not None else
+          0.0 if qp is None else wb * mp / qp)
     zp = rp + s * mp
     if resonator_compliance_m5_n is not None:
         if resonator_compliance_m5_n <= 0 or resonator_resistance_pa_s_m3 is None or resonator_resistance_pa_s_m3 < 0:
@@ -117,7 +125,18 @@ def simulate_vented(
 
     u_cone = sd * cone_speed
     u_port = -u_cone * zb / zp
-    u_total = u_cone + u_port
+    rear_pressure = None
+    if rear_port_separation_m is not None:
+        if rear_port_separation_m <= 0 or rear_port_delay_s < 0:
+            raise ValueError("rear port separation/delay must be valid")
+        # Two spatially separated monopoles: the rear source is delayed by
+        # the resistive path. The second axis has the opposite travel phase.
+        phase_front = np.exp(-1j*w*(rear_port_delay_s+rear_port_separation_m/sound_speed_m_s))
+        phase_back = np.exp(-1j*w*(rear_port_delay_s-rear_port_separation_m/sound_speed_m_s))
+        u_total = u_cone + u_port*phase_front
+        rear_pressure = s*rho_kg_m3*(u_cone+u_port*phase_back)/(2*pi)
+    else:
+        u_total = u_cone + u_port
     # 2 pi hemispherical radiation, on-axis at 1 m, no baffle diffraction.
     pressure = s * rho_kg_m3 * u_total / (2.0 * pi)
     magnitude = np.maximum(np.abs(pressure), np.finfo(float).tiny)
@@ -139,5 +158,11 @@ def simulate_vented(
         i = int(crossings[0])
         a = (-3.0 - response_db[i]) / (response_db[i + 1] - response_db[i])
         f3 = float(np.exp(np.log(f[i]) + a * (np.log(f[i + 1]) - np.log(f[i]))))
+    rear_db = front_back = None
+    if rear_pressure is not None:
+        rear_magnitude = np.maximum(abs(rear_pressure),np.finfo(float).tiny)
+        rear_db = 20*np.log10(rear_magnitude/reference)
+        front_back = response_db-rear_db
     return VentedResponse(f, response_db, excursion, velocity, mach, group_delay,
-                          impedance, spl, f3, power_w, complete)
+                          impedance, spl, f3, power_w, complete,
+                          rear_response_db=rear_db,front_to_back_db=front_back)

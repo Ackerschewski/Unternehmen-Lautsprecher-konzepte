@@ -79,7 +79,9 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
         k = bundle.coupler
         items.append(BomItem("Isobarik", "K1", "Luftdichtes Koppelrohr", 1,
             f"Innen Ø {k.inner_diameter_m*1000:.1f} × außen Ø {k.outer_diameter_m*1000:.1f} × Länge {k.length_m*1000:.1f} mm",
-            "Rohr/Verbindung luftdicht ausführen; beide Treiber phasenrichtig verschalten."))
+            ("W2 umgedreht montieren und elektrisch gegensinnig polen; Koppelvolumen luftdicht."
+             if project.enclosure.enclosure_type == "compound_push_pull" else
+             "Rohr/Verbindung luftdicht ausführen; beide Treiber phasenrichtig verschalten.")))
     if project.additional_drivers:
         for index, driver in enumerate(project.additional_drivers, start=1):
             items.append(BomItem("Treiber", f"T{index}" if driver.driver_type == "tweeter" else f"D{index}",
@@ -107,10 +109,23 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
                 f"{p.width_m*1000:.1f} x {p.height_m*1000:.1f} x "
                 f"{p.physical_length_m*1000:.1f} mm"
             )
-        items.append(BomItem("Ports", "BR1", f"{p.shape} port", 1, spec))
+        if bundle.port_resistance_pa_s_m3 is not None:
+            cardioid = bundle.project.enclosure.enclosure_type == "cardioid"
+            items.append(BomItem("Kardioid-Rückvent" if cardioid else "Aperiodischer Vent", "BR1",
+                "Rückwärtiger Dämpfungseinsatz / Vent" if cardioid else "Dämpfungseinsatz / Vent", 1,
+                spec, f"Zielwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³; am Prototyp messen"))
+        elif ((bundle.folded_line is not None and bundle.folded_line.family != "mltl")
+              or bundle.tapped_horn is not None):
+            items.append(BomItem("Fräsung", "BR1", "Linien-/Hornmündung in Frontplatte", 1,
+                f"{p.width_m*1000:.1f} x {p.height_m*1000:.1f} mm",
+                "Ausschnitt, kein separates Portrohr; Kanten verrunden"))
+        else:
+            items.append(BomItem("Ports", "BR1", f"{p.shape} port", 1, spec))
     if bundle.rear_port:
         p = bundle.rear_port
-        items.append(BomItem("Ports", "BR2", "Rückkammer Rundport", 1,
+        second_surface = next((e.surface for e in bundle.front_elements if e.id == "BR2"), "back")
+        items.append(BomItem("Ports", "BR2",
+            "Interner Verbindungskanal" if second_surface == "partition" else "Rückkammer Rundport", 1,
             f"Ø {p.diameter_m*1000:.1f} x {p.physical_length_m*1000:.1f} mm"))
     if bundle.radiator:
         r=bundle.radiator
@@ -132,18 +147,34 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
             )
 
     screw_count = sum(e.bolt_count for e in bundle.front_elements)
+    if bundle.tapped_horn:
+        screw_count += project.driver.bolt_count or 0
     if screw_count:
         items.append(BomItem("Schrauben", "MONTAGE", "Treiberbefestigung", screw_count,
+                             "Bohrungsdurchmesser gemäß F1-Platte" if bundle.tapped_horn else
                              "Bohrungsdurchmesser gemäß Frontlayout"))
     for accessory in project.accessories:
         items.append(BomItem(accessory.category, accessory.reference,
             accessory.description, accessory.quantity, accessory.specification, accessory.notes,
             accessory.unit_price_eur, accessory.price_source_url))
-    items.extend((
-        BomItem("Montage", "LEIM", "Holzleim und Dichtmasse", 1, "Material für ein Gehäuse"),
-        BomItem("Montage", "KABEL", "Interne Lautsprecherleitung", 3, "Meter, 2 × 1,5 mm²"),
-        BomItem("Montage", "HOLZSCHR", "Gehäuseschrauben", 32, "4 × 30 mm, Richtmenge"),
-    ))
+    if bundle.baffle_mode:
+        items.extend((
+            BomItem("Montage", "KABEL", "Lautsprecherleitung", 3, "Meter, 2 × 1,5 mm²"),
+            BomItem("Montage", "BEFEST", "Schallwandbefestigung", 1,
+                    "Wandanker oder standsicherer Fuß nach Einbauort dimensionieren"),
+        ))
+        if bundle.baffle_mode == "infinite_baffle":
+            items.append(BomItem("Montage", "DICHT", "Umlaufende Wanddichtung", 1,
+                                 "Rückraum luftdicht abtrennen"))
+        elif bundle.baffle_mode == "dipole":
+            items.append(BomItem("Montage", "LEIM", "Holzleim für Seitenflügel", 1,
+                                 "Stumpf verleimte U-Frame-Verbindung"))
+    else:
+        items.extend((
+            BomItem("Montage", "LEIM", "Holzleim und Dichtmasse", 1, "Material für ein Gehäuse"),
+            BomItem("Montage", "KABEL", "Interne Lautsprecherleitung", 3, "Meter, 2 × 1,5 mm²"),
+            BomItem("Montage", "HOLZSCHR", "Gehäuseschrauben", 32, "4 × 30 mm, Richtmenge"),
+        ))
     from lautsprecher_konstruktion.export.pricing import price_bom
     return price_bom(bundle, tuple(items))
 

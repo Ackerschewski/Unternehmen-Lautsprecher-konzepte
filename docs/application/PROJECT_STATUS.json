@@ -1,9 +1,9 @@
 {
-  "version": "V-02.04.00",
-  "task_id": "LK-022",
+  "version": "V-02.05.00",
+  "task_id": "LK-023",
   "status": "USER_TEST_REQUIRED",
   "owner": "local integration",
-  "acceptance": ["parallel sixth-order bandpass with two independently tuned ports", "both ports dimensioned in manufacturing exports", "rear-port chamber depth checks", "separate port-velocity CSV", "Windows test package and draft GitHub update"],
-  "tests": "60 pytest cases, Ruff, Windows PyInstaller build/offscreen smoke, package export and SVG previews passed",
-  "remaining": ["measurement validation", "further T/S completion of catalog records", "serial sixth-order bandpass and transmission-line solvers", "full 3D collision control"]
+  "acceptance": ["all 29 catalogued enclosures have a solver and geometry", "front and tapped horns have specific acoustic networks, construction sheets and DXF", "automatic horn selection works for feasible constraints", "Windows test package and draft GitHub update"],
+  "tests": "93 pytest cases, Ruff, Windows PyInstaller build and offscreen smoke passed; horn export and automatic selection tested",
+  "remaining": ["prototype measurement validation", "further T/S completion of catalog records", "full 3D collision and mitre control"]
 }

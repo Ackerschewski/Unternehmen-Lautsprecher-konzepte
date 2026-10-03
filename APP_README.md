@@ -1,13 +1,19 @@
-# Lautsprecher Konstruktion V-02.04.00
+# Lautsprecher Konstruktion V-02.05.00
 
 Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm fragt nach Typ, maximalen Außenmaßen und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Gehäuseparameter.
 
 ## Start
 
-1. `Lautsprecher-Konstruktion_V-02.04.00_Windows.zip` vollständig entpacken.
-2. `Lautsprecher-Konstruktion_V-02.04.00.exe` starten; `_internal` muss daneben bleiben.
+1. `Lautsprecher-Konstruktion_V-02.05.00_Windows.zip` vollständig entpacken.
+2. `Lautsprecher-Konstruktion_V-02.05.00.exe` starten; `_internal` muss daneben bleiben.
 3. Entwurf erstellen und Variantenvergleich, Zeichnungen, Simulation und Stückliste prüfen.
 4. Fertigungsunterlagen als PDF, SVG, DXF und CSV exportieren.
+
+## V-02.05.00
+
+Alle 29 im Typenkatalog aufgeführten Gehäusearten haben jetzt einen Berechnungspfad. Ergänzt wurden Bandpass 6 seriell, Compound Push-Pull, Aperiodisch, passiver Kardioid, sechs gefaltete Linienformen, sieben segmentierte rückwärtige Hörner, Infinite/Open Baffle und U-Frame sowie Front-Horn und Tapped-Horn. Der Expertenmodus zeigt die passenden Eingaben, Ergebnisse und Fertigungsansichten. Der automatische Assistent kann Front-Horn und Tapped-Horn als Einzel-Tieftöner mit ausreichendem Bauraum auswählen. Bei unpassenden Maßen oder fehlenden Chassisdaten wird der Entwurf abgelehnt.
+
+Front-Horn und Tapped-Horn besitzen eigene akustische Netzwerke. Für das Front-Horn werden Hals, Mund, axiale Länge und vier trapezförmige Platten berechnet und zwei Trapez-DXF-Dateien exportiert. Im Tapped-Horn sitzt W1 auf der innenliegenden Platte F1 zwischen zwei Kanalwegen. F1-Zuschnitt, Treiberausschnitt, dokumentierte Bohrungen, Umlenkspalt und Frontmündung erscheinen in Zeichnung, PDF, DXF und Stückliste. Beide Hörner haben eigene PDF-Fertigungsblätter. Die Innenformen und akustischen Näherungen sind in [Gehäusemodelle V-02.05.00](docs/ENCLOSURE_MODELS_V205.md) beschrieben. Vor dem Bau sind Prototypmessung, Montagefreiräume und Plattenstöße zu prüfen.
 
 ## V-02.04.00
 
@@ -59,4 +65,4 @@ Tests: `.venv\Scripts\python -m pytest --basetemp .test_run -p no:cacheprovider`
 
 Die Gehäusemodelle sind lineare Kleinsignal-Näherungen ohne umfassenden Abgleich mit realen Messungen. Portkompression, thermische Effekte, Baffle Step, Raum, gefaltete Ports, vollständige 3D-Kollisionen und Bauteiltoleranzen fehlen. Ein E12-Weichenvorschlag ist ein elektrischer Startwert. Alle Herstellerangaben, Maße und Bohrbilder vor dem Zuschnitt am echten Chassis prüfen.
 
-Weitere Details: `docs/USER_MANUAL.md`, `docs/ARCHITECTURE.md`, `docs/MAINTENANCE.md` und `BUILD_REPORT_V-02.04.00.md`.
+Weitere Details: `docs/USER_MANUAL.md`, `docs/ARCHITECTURE.md`, `docs/MAINTENANCE.md` und `BUILD_REPORT_V-02.05.00.md`.

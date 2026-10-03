@@ -77,23 +77,48 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
                            (x+fw,y+height-bottom,width-fw-bw,bottom)):
         parts.append(f'<rect x="{rx:.1f}" y="{ry:.1f}" width="{rw:.1f}" '
                      f'height="{rh:.1f}" class="material"/>')
+    if bundle.folded_line is not None:
+        line = bundle.folded_line
+        yy = y+top
+        gap = line.turn_gap_m*1000*scale
+        wall = cab.panel_thickness_m*1000*scale
+        for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+            yy += channel_h*1000*scale
+            xx = x+fw if index%2 == 0 else x+fw+gap
+            parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" '
+                         f'width="{width-fw-bw-gap:.1f}" height="{wall:.1f}" class="material"/>')
+            parts.append(_text(xx+4,yy-5,f"F{index+1}","callout"))
+            yy += wall
     if bundle.partition_front_depth_m is not None:
         px = x+fw+bundle.partition_front_depth_m*1000*scale
         driver = next((e for e in bundle.front_elements if e.surface == "partition" and e.type != "port"), None)
         center_y = y+(h_mm-driver.y_m*1000)*scale if driver else y+height/2
         opening = (driver.cutout_diameter_m or driver.height)*1000*scale if driver else 0
         wall = cab.panel_thickness_m*1000*scale
-        for segment_y, segment_h in ((y+top, center_y-opening/2-y-top),
-                                     (center_y+opening/2, y+height-bottom-center_y-opening/2)):
-            if segment_h > 0:
-                parts.append(f'<rect x="{px:.1f}" y="{segment_y:.1f}" '
-                             f'width="{wall:.1f}" height="{segment_h:.1f}" class="material"/>')
+        openings = sorted((y+(h_mm-e.y_m*1000)*scale-(e.cutout_diameter_m or e.height)*500*scale,
+                           y+(h_mm-e.y_m*1000)*scale+(e.cutout_diameter_m or e.height)*500*scale)
+                          for e in bundle.front_elements if e.surface == "partition")
+        cursor = y+top
+        for start,end in openings+[(y+height-bottom,y+height-bottom)]:
+            if start > cursor:
+                parts.append(f'<rect x="{px:.1f}" y="{cursor:.1f}" '
+                             f'width="{wall:.1f}" height="{start-cursor:.1f}" class="material"/>')
+            cursor = max(cursor,end)
         if driver:
             depth = driver.mounting_depth_m*1000*scale
             parts.append(f'<path d="M{px:.1f} {center_y-opening/2:.1f}L{px+depth:.1f} '
                          f'{center_y-opening/4:.1f}L{px+depth:.1f} {center_y+opening/4:.1f}'
                          f'L{px:.1f} {center_y+opening/2:.1f}Z" class="component"/>')
             parts.append(_text(px+5,center_y-opening/2-8,driver.id,"callout"))
+        for element in bundle.front_elements:
+            if element.surface == "partition" and element.type == "port":
+                cy = y+(h_mm-element.y_m*1000)*scale
+                radius = (element.cutout_diameter_m or element.height)*500*scale
+                depth = element.mounting_depth_m*1000*scale
+                start = px+wall
+                parts.append(f'<rect x="{start:.1f}" y="{cy-radius:.1f}" '
+                             f'width="{depth:.1f}" height="{2*radius:.1f}" class="component"/>')
+                parts.append(_text(start+5,cy-radius-8,element.id,"callout"))
         parts.append(_horizontal_dim(x+fw, y+height+70,
             bundle.partition_front_depth_m*1000*scale,
             f"Frontkammer-T {bundle.partition_front_depth_m*1000:.1f}"))
@@ -151,6 +176,15 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
 
 def render_master_sheet_svg(bundle: DesignBundle) -> str:
     """All manufacturing references on one scalable drawing; missing data stays explicit."""
+    if bundle.baffle_mode is not None:
+        from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
+        return render_baffle_svg(bundle)
+    if bundle.front_horn is not None:
+        from lautsprecher_konstruktion.drawings.front_horn_svg import render_front_horn_svg
+        return render_front_horn_svg(bundle)
+    if bundle.tapped_horn is not None:
+        from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
+        return render_tapped_horn_svg(bundle)
     cab = bundle.cabinet
     w, h, d = (value*1000 for value in (cab.width_m,cab.height_m,cab.depth_m))
     scale = min(390/w, 440/h, 470/d)
@@ -246,12 +280,26 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
                     f"Verdrängung {bundle.total_displacement_m3*1000:.1f} l · "
                     f"Streben-Tiefen: {', '.join(f'{v*1000:.1f}' for v in bundle.brace_depths_m) or 'keine'} mm")]
     if bundle.port:
-        parts.append(_text(60,internals_y+64,
-            f"BR1 {bundle.port.shape}: Querschnitt {bundle.port.area_m2*10000:.1f} cm², "
-            f"physische Länge {bundle.port.physical_length_m*1000:.1f} mm"))
-    if bundle.rear_port:
+        caption = (f"BR1 Mündung: {bundle.port.width_m*1000:.1f} × {bundle.port.height_m*1000:.1f} mm"
+                   if bundle.folded_line is not None and bundle.folded_line.family != "mltl" else
+                   f"BR1 {bundle.port.shape}: Querschnitt {bundle.port.area_m2*10000:.1f} cm², "
+                   f"physische Länge {bundle.port.physical_length_m*1000:.1f} mm")
+        parts.append(_text(60,internals_y+64,caption))
+    if bundle.port_resistance_pa_s_m3 is not None:
         parts.append(_text(850,internals_y+64,
-            f"BR2 Rückwand: Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm, "
+            f"Aperiodischer Vent: Sollwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³; "
+            "Dämpfungseinsatz per Impedanzmessung abstimmen"))
+    if bundle.folded_line is not None:
+        line = bundle.folded_line
+        parts.append(_text(60,internals_y+94,
+            f"Faltkanal: Weg {line.path_length_m*1000:.1f} mm · "
+            f"{line.fold_count} Trennplatten · Umlenkspalt {line.turn_gap_m*1000:.1f} mm · "
+            f"Viertelwelle {line.estimated_quarter_wave_hz:.1f} Hz"))
+    if bundle.rear_port:
+        second_surface = next((e.surface for e in bundle.front_elements if e.id == "BR2"), "back")
+        parts.append(_text(850,internals_y+64,
+            f"BR2 {'Trennwand' if second_surface == 'partition' else 'Rückwand'}: "
+            f"Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm, "
             f"Länge {bundle.rear_port.physical_length_m*1000:.1f} mm, "
             f"Fb2 {bundle.rear_port.tuning_hz:.1f} Hz"))
     if bundle.coupler:
@@ -259,6 +307,9 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
         parts.append(_text(60,internals_y+94,f"Isobarik: Rohr Ø innen {k.inner_diameter_m*1000:.1f}, "
             f"außen {k.outer_diameter_m*1000:.1f}, Länge {k.length_m*1000:.1f}; "
             f"Ringdicke {k.ring_thickness_m*1000:.1f} mm"))
+        if bundle.project.enclosure.enclosure_type == "compound_push_pull":
+            parts.append(_text(850,internals_y+94,
+                "Push-Pull: W2 invertiert montieren und gegensinnig polen"))
     if bundle.partition_front_depth_m is not None:
         parts.append(_text(60,internals_y+124,
             f"Trennwand: Abstand ab Front-Innenfläche {bundle.partition_front_depth_m*1000:.1f} mm · "

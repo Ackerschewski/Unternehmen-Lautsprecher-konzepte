@@ -8,6 +8,15 @@ from lautsprecher_konstruktion.services.design import DesignBundle
 
 
 def render_view_svg(bundle: DesignBundle, view: str) -> str:
+    if bundle.baffle_mode is not None:
+        from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
+        return render_baffle_svg(bundle)
+    if bundle.front_horn is not None:
+        from lautsprecher_konstruktion.drawings.front_horn_svg import render_front_horn_svg
+        return render_front_horn_svg(bundle)
+    if bundle.tapped_horn is not None:
+        from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
+        return render_tapped_horn_svg(bundle)
     cab = bundle.cabinet
     w,h,d,t = (v*1000 for v in (cab.width_m,cab.height_m,cab.depth_m,cab.panel_thickness_m))
     if view in ("front", "back", "partition"):

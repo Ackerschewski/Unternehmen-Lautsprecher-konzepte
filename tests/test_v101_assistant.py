@@ -38,10 +38,10 @@ def test_profiles_and_registry_have_explicit_limits(tmp_path):
     assert PROFILES["deep_bass"].weights["bass"] > PROFILES["compact"].weights["bass"]
     assert PROFILES["compact"].weights["size"] > PROFILES["neutral"].weights["size"]
     assert registry.get("bass_reflex").status == "SUPPORTED"
-    assert registry.get("horn_tapped").status == "PLANNED"
+    assert registry.get("horn_tapped").status == "SUPPORTED"
     result = automatic_design(AutomaticDesignRequest(enclosure_preference="horn_tapped"),
                               ComponentLibrary(user_root=tmp_path / "user"))
-    assert result.status == "impossible" and "PLANNED" in result.rejection_reasons[0]
+    assert result.status == "impossible" and "PLANNED" not in str(result.rejection_reasons)
 
 
 def test_bookshelf_design_fit_score_project_export(library, tmp_path):
@@ -133,7 +133,7 @@ def test_missing_tweeter_and_priced_budget_selection(tmp_path, library):
         model=woofer.model, driver=woofer, is_test_data=True))
     result = automatic_design(AutomaticDesignRequest(way_count=2), empty)
     assert result.status == "impossible"
-    assert any("Hocht�ner" in reason for reason in result.rejection_reasons)
+    assert any("Hochtöner" in reason for reason in result.rejection_reasons)
     budget_result = automatic_design(AutomaticDesignRequest(budget=500), library)
     assert budget_result.status == "ok"
     assert budget_result.designs

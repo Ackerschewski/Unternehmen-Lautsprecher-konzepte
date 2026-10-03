@@ -64,6 +64,15 @@ def dimension_rows(bundle: DesignBundle) -> tuple[tuple[str, str, float, float, 
 
 
 def render_dimension_svg(bundle: DesignBundle) -> str:
+    if bundle.baffle_mode is not None:
+        from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
+        return render_baffle_svg(bundle)
+    if bundle.front_horn is not None:
+        from lautsprecher_konstruktion.drawings.front_horn_svg import render_front_horn_svg
+        return render_front_horn_svg(bundle)
+    if bundle.tapped_horn is not None:
+        from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
+        return render_tapped_horn_svg(bundle)
     c = bundle.cabinet
     w, h, d = (_mm(v) for v in (c.width_m, c.height_m, c.depth_m))
     scale = min(360/w, 440/h, 320/d)

@@ -14,6 +14,7 @@ from lautsprecher_konstruktion.drawings.front_dxf import (
     render_coupler_ring_dxf,
     render_front_panel_dxf,
 )
+from lautsprecher_konstruktion.drawings.horn_panels_dxf import render_horn_trapezoid_dxf
 from lautsprecher_konstruktion.drawings.internal_dimensions_svg import (
     render_internal_dimensions_svg,
 )
@@ -22,6 +23,7 @@ from lautsprecher_konstruktion.drawings.panel_sheet_svg import (
     panel_sheet_surfaces,
     render_panel_sheet_svg,
 )
+from lautsprecher_konstruktion.drawings.tapped_horn_dxf import render_tapped_f1_dxf
 from lautsprecher_konstruktion.drawings.views import render_view_svg
 from lautsprecher_konstruktion.export.bom import (
     build_bom,
@@ -81,7 +83,7 @@ def _simulation_files(folder: Path, bundle: DesignBundle) -> None:
 
 def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
     geometry_errors=[issue.message for issue in bundle.issues if issue.severity == 'error'
-                     and issue.code in {'FRONT_EDGE','FRONT_COLLISION','BACK_WALL','PORT_BACK_WALL','REAR_PORT_BACK_WALL','BRACE_COLLISION','BRACE_SPACE','DRILL_CUTOUT','DUPLICATE_ID','CHAMBER_DEPTH','ISOBARIC_DEPTH','ISOBARIC_WALL','ISOBARIC_COLLISION','ISOBARIC_DRIVER'}]
+                     and issue.code in {'FRONT_EDGE','FRONT_COLLISION','BACK_WALL','PORT_BACK_WALL','REAR_PORT_BACK_WALL','BRACE_COLLISION','BRACE_SPACE','DRILL_CUTOUT','DUPLICATE_ID','CHAMBER_DEPTH','ISOBARIC_DEPTH','ISOBARIC_WALL','ISOBARIC_COLLISION','ISOBARIC_DRIVER','LINE_DRIVER_TURN','LINE_PORT_HEIGHT','FRONT_HORN_DRIVER','FRONT_HORN_OBSTRUCTION','TAPPED_EXTRA_DRIVER'}]
     if geometry_errors:
         raise ValueError('Geometrie nicht fertigungstauglich: '+'; '.join(geometry_errors))
     out = Path(directory)
@@ -117,6 +119,13 @@ def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
     if bundle.coupler:
         (drawings/'isobarik_montagering.dxf').write_text(
             render_coupler_ring_dxf(bundle.coupler),encoding='ascii')
+    if bundle.front_horn:
+        for kind in ('top_bottom','sides'):
+            (drawings/f'horn_trapez_{kind}.dxf').write_text(
+                render_horn_trapezoid_dxf(bundle.front_horn,kind),encoding='ascii')
+    if bundle.tapped_horn:
+        (drawings/'tapped_horn_f1.dxf').write_text(
+            render_tapped_f1_dxf(bundle.tapped_horn,project.driver),encoding='ascii')
     if any(e.surface == 'back' for e in bundle.front_elements):
         (drawings/'rueckwand.svg').write_text(render_view_svg(bundle,'back'),encoding='utf-8')
         (drawings/'rueckwand.dxf').write_text(render_front_panel_dxf(bundle.cabinet,
@@ -154,10 +163,20 @@ def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
         folder=package/'messdaten';folder.mkdir(exist_ok=True)
         (folder/'importierte_messdaten.json').write_text(json.dumps(measured,indent=2,ensure_ascii=False),encoding='utf-8')
 
-    summary=[project.name,f'Revision: {project.revision}',f'Gehäuse: {project.enclosure.enclosure_type}',
-             f'Netto: {bundle.target_net_volume_m3*1000:.2f} l',
-             f'Außen: {bundle.cabinet.width_m*1000:.1f} x {bundle.cabinet.height_m*1000:.1f} x {bundle.cabinet.depth_m*1000:.1f} mm',
-             '', 'Warnungen:', *(f'- {w}' for w in bundle.warnings)]
+    summary=[project.name,f'Revision: {project.revision}',f'Gehäuse: {project.enclosure.enclosure_type}']
+    if bundle.baffle_mode:
+        summary.extend(((f'Schallwand: {bundle.cabinet.width_m*1000:.1f} x '
+                        f'{bundle.cabinet.height_m*1000:.1f} x '
+                        f'{bundle.cabinet.panel_thickness_m*1000:.1f} mm'),
+                        f'Front/Rück-Schallweg: {(bundle.baffle_path_m or 0)*1000:.1f} mm'))
+        if bundle.baffle_mode == 'infinite_baffle':
+            summary.append(f'Rückraum mindestens: {bundle.target_net_volume_m3*1000:.1f} l')
+    else:
+        summary.extend((f'Netto: {bundle.target_net_volume_m3*1000:.2f} l',
+                        (f'Außen: {bundle.cabinet.width_m*1000:.1f} x '
+                        f'{bundle.cabinet.height_m*1000:.1f} x '
+                        f'{bundle.cabinet.depth_m*1000:.1f} mm')))
+    summary.extend(('', 'Warnungen:', *(f'- {w}' for w in bundle.warnings)))
     if bundle.radiator:
         summary.insert(4,f'Passivmembran-Zusatzmasse: {bundle.radiator.added_mass_kg*1000:.1f} g')
     if bundle.front_chamber_volume_m3 is not None:

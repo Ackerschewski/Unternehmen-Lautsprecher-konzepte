@@ -41,6 +41,15 @@ def _element_front(element: FrontElement, x: float, y: float,
 
 
 def render_assembly_svg(bundle: DesignBundle) -> str:
+    if bundle.tapped_horn is not None:
+        from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
+        return render_tapped_horn_svg(bundle)
+    if bundle.baffle_mode is not None:
+        from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
+        return render_baffle_svg(bundle)
+    if bundle.front_horn is not None:
+        from lautsprecher_konstruktion.drawings.front_horn_svg import render_front_horn_svg
+        return render_front_horn_svg(bundle)
     cab = bundle.cabinet
     w,h,d = (_mm(v) for v in (cab.width_m,cab.height_m,cab.depth_m))
     scale = min(390/w, 560/h, 570/d)
@@ -56,8 +65,9 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
     inner_y = top_y+tt
     inner_h = fh-tt-bot
     parts = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1020" '
-        'viewBox="0 0 1200 1020">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" '
+        f'height="{1100 if bundle.folded_line else 1020}" '
+        f'viewBox="0 0 1200 {1100 if bundle.folded_line else 1020}">',
         '<defs><pattern id="material" width="8" height="8" patternUnits="userSpaceOnUse" '
         'patternTransform="rotate(45)"><rect width="8" height="8" fill="#e1e9ed"/>'
         '<path d="M0 0V8" stroke="#a4b5bf" stroke-width="2"/></pattern></defs>',
@@ -70,7 +80,7 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         '.dimension-text{font:14px sans-serif;fill:#254253}.component{fill:#dceef7;stroke:#0875a6;stroke-width:2}'
         '.brace{fill:#d7e6dc;stroke:#3a7555;stroke-width:1.6}.warning{font:700 14px sans-serif;fill:#a12c20}'
         '</style>',
-        '<rect width="1200" height="1020" fill="#fff"/>',
+        f'<rect width="1200" height="{1100 if bundle.folded_line else 1020}" fill="#fff"/>',
         f'<text x="45" y="45" class="title">{escape(bundle.project.name)}</text>',
         f'<text x="45" y="72" class="subtitle">{escape(bundle.project.revision)} · '
         f'{escape(bundle.project.enclosure.enclosure_type)} · '
@@ -94,18 +104,33 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         f'height="{bot:.1f}" class="panel"/>',
     ]
     partition_x = None
+    if bundle.folded_line is not None:
+        line = bundle.folded_line
+        yy = inner_y
+        gap = _mm(line.turn_gap_m)*scale
+        wall = _mm(cab.panel_thickness_m)*scale
+        for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+            yy += _mm(channel_h)*scale
+            xx = inner_x if index%2 == 0 else inner_x+gap
+            parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" '
+                         f'width="{rear_x-inner_x-gap:.1f}" height="{wall:.1f}" class="panel"/>')
+            parts.append(f'<text x="{xx+7:.1f}" y="{yy-5:.1f}" class="id">'
+                         f'F{index+1} · Kanal {channel_h*1000:.1f} mm</text>')
+            yy += wall
     if bundle.partition_front_depth_m is not None:
         partition_x = inner_x+_mm(bundle.partition_front_depth_m)*scale
         driver = next((e for e in bundle.front_elements if e.surface == "partition" and e.type != "port"),None)
         opening_y = top_y+fh-_mm(driver.y_m)*scale if driver else top_y+fh/2
-        opening_h = _mm(driver.cutout_diameter_m or driver.height)*scale if driver else 0
-        upper = max(0,opening_y-opening_h/2-inner_y)
-        lower_y = opening_y+opening_h/2
-        parts.append(f'<rect x="{partition_x:.1f}" y="{inner_y:.1f}" '
-                     f'width="{_mm(cab.panel_thickness_m)*scale:.1f}" height="{upper:.1f}" class="panel"/>')
-        parts.append(f'<rect x="{partition_x:.1f}" y="{lower_y:.1f}" '
-                     f'width="{_mm(cab.panel_thickness_m)*scale:.1f}" '
-                     f'height="{max(0,inner_y+inner_h-lower_y):.1f}" class="panel"/>')
+        openings = sorted((top_y+fh-_mm(e.y_m)*scale-_mm(e.cutout_diameter_m or e.height)*scale/2,
+                           top_y+fh-_mm(e.y_m)*scale+_mm(e.cutout_diameter_m or e.height)*scale/2)
+                          for e in bundle.front_elements if e.surface == "partition")
+        cursor = inner_y
+        for start,end in openings+[(inner_y+inner_h,inner_y+inner_h)]:
+            if start > cursor:
+                parts.append(f'<rect x="{partition_x:.1f}" y="{cursor:.1f}" '
+                             f'width="{_mm(cab.panel_thickness_m)*scale:.1f}" '
+                             f'height="{start-cursor:.1f}" class="panel"/>')
+            cursor = max(cursor,end)
         parts.append(f'<text x="{(inner_x+partition_x)/2:.1f}" y="{top_y+fh/2:.1f}" '
                      f'text-anchor="middle" class="small">Frontkammer {_mm(bundle.front_chamber_volume_m3 or 0):.1f} l</text>')
         parts.append(f'<text x="{(partition_x+rear_x)/2:.1f}" y="{top_y+fh/2:.1f}" '
@@ -124,13 +149,24 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
                          f'L{partition_x:.1f} {opening_y+dh/2:.1f} Z" class="component"/>')
             parts.append(f'<text x="{partition_x+8:.1f}" y="{opening_y-10:.1f}" '
                          f'class="id">{escape(driver.id)} innen</text>')
+        for element in bundle.front_elements:
+            if element.surface == "partition" and element.type == "port":
+                cy = top_y+fh-_mm(element.y_m)*scale
+                eh = _mm(element.cutout_diameter_m or element.height)*scale
+                depth = _mm(element.mounting_depth_m)*scale
+                x_port = partition_x+_mm(cab.panel_thickness_m)*scale
+                parts.append(f'<rect x="{x_port:.1f}" y="{cy-eh/2:.1f}" '
+                             f'width="{depth:.1f}" height="{eh:.1f}" class="component"/>')
+                parts.append(f'<text x="{x_port+5:.1f}" y="{cy-eh/2-7:.1f}" '
+                             f'class="id">{escape(element.id)} intern · L {_mm(element.mounting_depth_m):.0f}</text>')
     for element in bundle.front_elements:
         cy = top_y+fh-_mm(element.y_m)*scale
         eh = _mm(element.cutout_diameter_m or element.height)*scale
         depth = _mm(element.mounting_depth_m)*scale
         if element.surface == "front":
             if element.type == "port":
-                if bundle.port is not None and bundle.port.shape == "slot":
+                if (bundle.port is not None and bundle.port.shape == "slot"
+                        and bundle.folded_line is None):
                     wall=_mm(cab.panel_thickness_m)*scale
                     parts.append(f'<rect x="{inner_x:.1f}" y="{cy-eh/2-wall:.1f}" '
                                  f'width="{depth:.1f}" height="{wall:.1f}" class="panel"/>')
@@ -176,7 +212,11 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         depth = _mm(w1.mounting_depth_m)*scale
         cut = _mm(k.driver_cutout_m)*scale
         parts.append(f'<path d="M{ring_x+ring_t:.1f} {cy-cut/2:.1f}L{ring_x+ring_t+depth:.1f} {cy-cut/4:.1f}L{ring_x+ring_t+depth:.1f} {cy+cut/4:.1f}L{ring_x+ring_t:.1f} {cy+cut/2:.1f}Z" class="component"/>')
-        parts.append(f'<text x="{ring_x+ring_t+8:.1f}" y="{cy-cut/2-9:.1f}" class="id">W2 · Isobarik</text>')
+        pair_label = ("W2 · invertiert / Polung umkehren" if
+                      bundle.project.enclosure.enclosure_type == "compound_push_pull" else
+                      "W2 · Isobarik")
+        parts.append(f'<text x="{ring_x+ring_t+8:.1f}" y="{cy-cut/2-9:.1f}" '
+                     f'class="id">{pair_label}</text>')
         parts.append(_dim(inner_x,ring_x,top_y+fh+67,f"Koppelrohr {_mm(k.length_m):.1f}"))
         parts.append(f'<text x="{section_x}" y="{top_y+fh+156:.1f}" class="small">'
                      f'Koppelkammer: innen Ø {_mm(k.inner_diameter_m):.1f}, außen Ø {_mm(k.outer_diameter_m):.1f}; '
@@ -219,6 +259,15 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="{note_x}" y="{note_y+52}" class="note">Port: '
                      f'{bundle.port.shape}, {_mm(bundle.port.physical_length_m):.1f} mm lang, '
                      f'{bundle.port.area_m2*10000:.1f} cm²</text>')
+    if bundle.port_resistance_pa_s_m3 is not None:
+        parts.append(f'<text x="{note_x}" y="{note_y+77}" class="note">'
+                     f'BR1 Vent: Dämmwiderstand Soll '
+                     f'{bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³; am Prototyp messen</text>')
+    if bundle.folded_line is not None:
+        line = bundle.folded_line
+        parts.append(f'<text x="{note_x}" y="{note_y+105}" class="note">'
+                     f'Linienweg {line.path_length_m*1000:.1f} mm · '
+                     f'{line.fold_count} Faltungen · Umlenkspalt {line.turn_gap_m*1000:.1f} mm</text>')
     if bundle.rear_port:
         parts.append(f'<text x="{note_x}" y="{note_y+77}" class="note">BR2 Rückkammer: '
                      f'Ø {_mm(bundle.rear_port.diameter_m or 0):.1f}, '
@@ -228,7 +277,8 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="{note_x}" y="{note_y+52}" class="note">Passivmembran: '
                      f'{bundle.radiator.added_mass_kg*1000:.1f} g Zusatzmasse</text>')
     if bundle.warnings:
-        y = note_y+(105 if bundle.rear_port else 78)
+        y = note_y+(135 if bundle.folded_line is not None else
+                    105 if bundle.rear_port or bundle.port_resistance_pa_s_m3 is not None else 78)
         for index, line in enumerate(wrap(bundle.warnings[0], width=64)[:2]):
             parts.append(f'<text x="{note_x}" y="{y+index*19}" class="warning">'
                          f'{escape(line)}</text>')

@@ -19,6 +19,15 @@ def _dimension(x1: float, x2: float, y: float, caption: str) -> str:
 
 
 def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
+    if bundle.baffle_mode is not None:
+        from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
+        return render_baffle_svg(bundle)
+    if bundle.front_horn is not None:
+        from lautsprecher_konstruktion.drawings.front_horn_svg import render_front_horn_svg
+        return render_front_horn_svg(bundle)
+    if bundle.tapped_horn is not None:
+        from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
+        return render_tapped_horn_svg(bundle)
     c = bundle.cabinet
     d, h = _mm(c.depth_m), _mm(c.height_m)
     scale = min(550/max(d,1), 360/max(h,1))
@@ -46,19 +55,48 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     for xx,yy,ww,hh in ((x,y,ft,sh),(back,y,bt,sh),(front,y,back-front,tt),
                         (front,y+sh-bot,back-front,bot)):
         parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" width="{ww:.1f}" height="{hh:.1f}" class="panel"/>')
+    if bundle.folded_line is not None:
+        line = bundle.folded_line
+        yy = y+tt
+        gap = _mm(line.turn_gap_m)*scale
+        wall = _mm(c.panel_thickness_m)*scale
+        for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+            yy += _mm(channel_h)*scale
+            xx = front if index%2 == 0 else front+gap
+            parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" '
+                         f'width="{back-front-gap:.1f}" height="{wall:.1f}" class="panel"/>')
+            parts.append(f'<text x="{xx+4:.1f}" y="{yy-5:.1f}" class="dimtext">'
+                         f'F{index+1} · {_mm(channel_h):.1f} mm</text>')
+            yy += wall
     if bundle.partition_front_depth_m is not None:
         px = front+_mm(bundle.partition_front_depth_m)*scale
         driver = next((e for e in bundle.front_elements if e.surface == 'partition' and e.type != 'port'), None)
         cy = y+sh-_mm(driver.y_m)*scale if driver else y+sh/2
         opening = _mm(driver.cutout_diameter_m or driver.height)*scale if driver else 0
-        first_h = max(0, cy-opening/2-(y+tt))
-        second_y = cy+opening/2
-        parts.append(f'<rect x="{px:.1f}" y="{y+tt:.1f}" width="{_mm(c.panel_thickness_m)*scale:.1f}" height="{first_h:.1f}" class="panel"/>')
-        parts.append(f'<rect x="{px:.1f}" y="{second_y:.1f}" width="{_mm(c.panel_thickness_m)*scale:.1f}" height="{max(0,y+sh-bot-second_y):.1f}" class="panel"/>')
+        openings = sorted((y+sh-_mm(e.y_m)*scale-_mm(e.cutout_diameter_m or e.height)*scale/2,
+                           y+sh-_mm(e.y_m)*scale+_mm(e.cutout_diameter_m or e.height)*scale/2)
+                          for e in bundle.front_elements if e.surface == 'partition')
+        cursor = y+tt
+        for start,end in openings+[(y+sh-bot,y+sh-bot)]:
+            if start > cursor:
+                parts.append(f'<rect x="{px:.1f}" y="{cursor:.1f}" '
+                             f'width="{_mm(c.panel_thickness_m)*scale:.1f}" '
+                             f'height="{start-cursor:.1f}" class="panel"/>')
+            cursor = max(cursor,end)
         if driver:
             depth = _mm(driver.mounting_depth_m)*scale
             parts.append(f'<path d="M{px:.1f} {cy-opening/2:.1f}L{px+depth:.1f} {cy-opening/4:.1f}L{px+depth:.1f} {cy+opening/4:.1f}L{px:.1f} {cy+opening/2:.1f}Z" class="feature"/>')
             parts.append(f'<text x="{px+6:.1f}" y="{cy-opening/2-8:.1f}" class="dimtext">{escape(driver.id)}</text>')
+        for element in bundle.front_elements:
+            if element.surface == 'partition' and element.type == 'port':
+                py = y+sh-_mm(element.y_m)*scale
+                eh = _mm(element.cutout_diameter_m or element.height)*scale
+                depth = _mm(element.mounting_depth_m)*scale
+                xx = px+_mm(c.panel_thickness_m)*scale
+                parts.append(f'<rect x="{xx:.1f}" y="{py-eh/2:.1f}" '
+                             f'width="{depth:.1f}" height="{eh:.1f}" class="feature"/>')
+                parts.append(f'<text x="{xx+5:.1f}" y="{py-eh/2-7:.1f}" '
+                             f'class="dimtext">{escape(element.id)} intern</text>')
         parts.append(_dimension(front,px,y+sh+72,f'Frontkammer {_mm(bundle.partition_front_depth_m):.1f}'))
         rear = c.internal_depth_m-bundle.partition_front_depth_m-c.panel_thickness_m
         parts.append(_dimension(px+_mm(c.panel_thickness_m)*scale,back,y+sh+72,f'Rückkammer {_mm(rear):.1f}'))
@@ -71,7 +109,8 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         xx = front if element.surface == 'front' else back-depth
         parts.append(f'<rect x="{xx:.1f}" y="{cy-opening/2:.1f}" width="{depth:.1f}" height="{opening:.1f}" class="feature"/>')
         parts.append(f'<text x="{xx+5:.1f}" y="{cy-opening/2-7:.1f}" class="dimtext">{escape(element.id)}</text>')
-        if element.type == 'port' and bundle.port and bundle.port.shape == 'slot':
+        if (element.type == 'port' and bundle.port and bundle.port.shape == 'slot'
+                and bundle.folded_line is None):
             wall = _mm(c.panel_thickness_m)*scale
             for yy in (cy-opening/2-wall,cy+opening/2):
                 parts.append(f'<rect x="{front:.1f}" y="{yy:.1f}" width="{depth:.1f}" height="{wall:.1f}" class="panel"/>')
@@ -115,14 +154,28 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="720" y="{163+i*27}" class="text">{escape(line)}</text>')
     parts.append('<text x="720" y="285" class="head">Einbauten</text>')
     info = []
+    if bundle.folded_line is not None:
+        line = bundle.folded_line
+        info.extend((f'Linienweg {_mm(line.path_length_m):.1f} mm · Viertelwelle {line.estimated_quarter_wave_hz:.1f} Hz',
+                     f'Umlenkspalte {line.turn_gap_m*1000:.1f} mm, abwechselnd hinten/vorn',
+                     *(f'Kanal {i+1}: Höhe {_mm(height):.1f} mm · Fläche {area*10000:.1f} cm²'
+                       for i,(height,area) in enumerate(zip(line.channel_heights_m,line.channel_areas_m2,strict=True)))))
     if bundle.port:
         p = bundle.port
         section = (f'Ø {_mm(p.diameter_m):.1f}' if p.diameter_m else
                    f'{_mm(p.width_m):.1f} × {_mm(p.height_m):.1f}')
-        info.extend((f'Port BR1: {section}', f'Kanal physisch {_mm(p.physical_length_m):.1f} lang',
-                     f'Öffnungsfläche {p.area_m2*10000:.1f} cm²'))
-        if p.shape == 'slot':
+        if bundle.folded_line is not None and bundle.folded_line.family != 'mltl':
+            info.extend((f'Mündung BR1: {section}',
+                         f'Frontöffnung {_mm(p.physical_length_m):.1f} mm durch Plattenstärke',
+                         f'Öffnungsfläche {p.area_m2*10000:.1f} cm²'))
+        else:
+            info.extend((f'Port BR1: {section}', f'Kanal physisch {_mm(p.physical_length_m):.1f} lang',
+                         f'Öffnungsfläche {p.area_m2*10000:.1f} cm²'))
+        if p.shape == 'slot' and bundle.folded_line is None:
             info.append(f'Kanalwände: Plattenstärke {_mm(c.panel_thickness_m):.1f}')
+        if bundle.port_resistance_pa_s_m3 is not None:
+            info.extend((f'Aperiodischer Vent Soll: {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³',
+                         'Dämpfungseinsatz einsetzen; Widerstand am Prototyp messen'))
     if bundle.rear_port:
         p = bundle.rear_port
         info.extend((f'Port BR2 Rückkammer: Ø {_mm(p.diameter_m or 0):.1f}',

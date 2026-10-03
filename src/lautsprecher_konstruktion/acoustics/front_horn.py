@@ -1,0 +1,81 @@
+"""Segmented exponential horn on the cone front; sealed air volume on its rear."""
+from __future__ import annotations
+
+from math import exp, log, pi, sqrt
+
+import numpy as np
+
+from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.drivers.models import Driver
+from lautsprecher_konstruktion.enclosure.front_horn import FrontHorn
+
+
+def simulate_front_horn(driver: Driver, rear_volume_m3: float,
+                        horn: FrontHorn, power_w: float) -> VentedResponse:
+    if driver.vas_m3 is None or rear_volume_m3 <= 0 or power_w <= 0:
+        raise ValueError("Front-Horn benötigt Vas, Rückvolumen und Leistung")
+    f=np.geomspace(10,500,400)
+    w=2*pi*f
+    s=1j*w
+    rho,c=1.204,343.0
+    a=np.ones_like(f,dtype=complex)
+    b=np.zeros_like(a)
+    cc=np.zeros_like(a)
+    d=np.ones_like(a)
+    ratio=horn.mouth_area_m2/horn.throat_area_m2
+    gamma=(0.012+1j)*w/c
+    for index in range(24):
+        u=(index+0.5)/24
+        area=horn.throat_area_m2*exp(log(ratio)*u)
+        length=horn.axial_length_m/24
+        zc=rho*c/area
+        ch=np.cosh(gamma*length)
+        sh=np.sinh(gamma*length)
+        aa,bb,ccc,dd=ch,zc*sh,sh/zc,ch
+        a,b,cc,d=a*aa+b*ccc,a*bb+b*dd,cc*aa+d*ccc,cc*bb+d*dd
+    radius=sqrt(horn.mouth_area_m2/pi)
+    ka=w*radius/c
+    radiation=rho*c/horn.mouth_area_m2*(0.25*ka*ka+0.61j*ka)
+    zin=(a*radiation+b)/(cc*radiation+d)
+    flow_factor=1/(cc*radiation+d)
+    complete=all(v is not None for v in (driver.sd_m2,driver.re_ohm,driver.qes))
+    sd=driver.sd_m2 if driver.sd_m2 is not None else 1.0
+    cs=driver.vas_m3/(rho*c*c*sd*sd)
+    cb=rear_volume_m3/(rho*c*c)
+    ws=2*pi*driver.fs_hz
+    ms=1/(ws*ws*cs)
+    qms=driver.qms if complete and driver.qms is not None else driver.qts
+    if complete and driver.qms is None:
+        assert driver.qes is not None
+        if driver.qes<=driver.qts:
+            raise ValueError("Qes muss größer als Qts sein")
+        qms=driver.qes*driver.qts/(driver.qes-driver.qts)
+    mechanical=ws*ms/qms+s*ms+1/(s*cs)+sd*sd*(zin+1/(s*cb))
+    impedance=excursion=velocity=mach=spl=None
+    if complete:
+        assert driver.re_ohm is not None and driver.qes is not None
+        bl=sqrt(ws*ms*driver.re_ohm/driver.qes)
+        ze=driver.re_ohm+s*(driver.le_h or 0)
+        impedance=ze+bl*bl/mechanical
+        cone_speed=bl*(sqrt(power_w*driver.re_ohm)/impedance)/mechanical
+        excursion=abs(cone_speed/s)*1000
+    else:
+        cone_speed=1/mechanical
+    mouth_flow=sd*cone_speed*flow_factor
+    pressure=s*rho*mouth_flow/(2*pi)
+    magnitude=np.maximum(abs(pressure),np.finfo(float).tiny)
+    reference=float(np.max(magnitude[(f>=80)&(f<=400)]))
+    response=20*np.log10(magnitude/reference)
+    delay=-1000*np.gradient(np.unwrap(np.angle(pressure)),w)
+    if complete:
+        velocity=abs(mouth_flow)/horn.mouth_area_m2
+        mach=velocity/c
+        spl=20*np.log10(magnitude/20e-6)
+    crossings=np.flatnonzero((response[:-1]<-3)&(response[1:]>=-3))
+    f3=None
+    if crossings.size:
+        i=int(crossings[0])
+        fraction=(-3-response[i])/(response[i+1]-response[i])
+        f3=float(np.exp(np.log(f[i])+fraction*(np.log(f[i+1])-np.log(f[i]))))
+    return VentedResponse(f,response,excursion,velocity,mach,delay,
+                          impedance,spl,f3,power_w,complete)

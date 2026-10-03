@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lautsprecher-konstruktion"
-version = "2.4.0"
+version = "2.5.0"
 description = "Desktop application for loudspeaker enclosure calculation, crossover design and manufacturing drawings"
 readme = "README.md"
 requires-python = ">=3.12"

@@ -1,4 +1,10 @@
-# Nutzerhandbuch — V-02.04.00
+# Nutzerhandbuch — V-02.05.00
+
+## Gehäusetypen in V-02.05.00
+
+Im Expertenmodus sind alle 29 aufgeführten Gehäusetypen berechenbar. Bei Front-Horn braucht W1 eine mittige Frontposition ohne weitere Frontchassis. Das Horn sitzt vor einer geschlossenen Rückkammer. Der Zielwert „Abstimmung“ ist hier die Horn-Grenzfrequenz; Qtc bestimmt die Rückkammer. Bei Tapped-Horn wird W1 auf F1 im Innenraum montiert. Die Front zeigt nur die Mündung BR1. Zielvolumen, Breite und Höhe müssen genügend Tiefe für den Treiber auf F1 und Platz für beide Kanalwege ergeben. Der Grenzwert „Abstimmung“ dient als Ziel für die Viertelwellenlänge; die tatsächlich erreichte Frequenz steht im Ergebnis.
+
+Beide Hornarten besitzen eine eigene Gesamtzeichnung und ein PDF-Fertigungsblatt. Das Front-Horn exportiert zwei Trapez-DXF-Profile; das Tapped-Horn exportiert `tapped_horn_f1.dxf` mit Treiberöffnung und nur dann Schraublöchern, wenn Lochkreis und Bohrdurchmesser bekannt sind. Der Assistent wählt Hornarten für einen einzelnen Tieftöner und nur bei ausreichenden Außenmaßen. Messung von Impedanz und Nahfeld am Prototyp bleibt erforderlich. Die Modellannahmen und geometrischen Grenzen stehen in `docs/ENCLOSURE_MODELS_V205.md`.
 
 ## Neue Budget- und Bohrdatenprüfung
 

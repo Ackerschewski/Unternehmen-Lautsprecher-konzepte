@@ -21,6 +21,9 @@ class EnclosureConfig(BaseModel):
     rear_volume_l: float = Field(default=25.0, gt=0)
     rear_tuning_hz: float | None = Field(default=None, gt=0)
     rear_port_diameter_mm: float = Field(default=75.0, gt=0)
+    aperiodic_resistance_pa_s_m3: float | None = Field(default=None, gt=0)
+    baffle_wing_depth_mm: float = Field(default=150.0, ge=0)
+    cardioid_delay_ms: float = Field(default=0.5, ge=0, le=10)
     isobaric_wiring: Literal["series", "parallel"] = "series"
     isobaric_gap_mm: float = Field(default=20.0, ge=10.0)
     radiator_sd_cm2: float = Field(default=350.0, gt=0)
@@ -85,7 +88,7 @@ class ProjectAccessory(BaseModel):
 class SpeakerProject(BaseModel):
     schema_version: int = 3
     name: str = "Neues Lautsprecherprojekt"
-    revision: str = "V-02.04.00"
+    revision: str = "V-02.05.00"
     material: str = "Birke Multiplex"
     driver: Driver
     additional_drivers: tuple[Driver, ...] = ()

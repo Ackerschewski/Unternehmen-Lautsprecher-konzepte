@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
     projectCalculated = Signal(object)
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.04.00 · Expertenmodus")
+        self.setWindowTitle("Lautsprecher Konstruktion V-02.05.00 · Expertenmodus")
         self.resize(1450, 900)
         self._bundle: DesignBundle | None = None
         self._catalog = DriverCatalog()
@@ -194,11 +194,33 @@ class MainWindow(QMainWindow):
         self.enclosure_type = QComboBox()
         self.enclosure_type.addItem("Geschlossen", "sealed")
         self.enclosure_type.addItem("Bassreflex", "bass_reflex")
+        self.enclosure_type.addItem("Aperiodisch", "aperiodic")
         self.enclosure_type.addItem("Passivmembran", "passive_radiator")
         self.enclosure_type.addItem("Bandpass 4. Ordnung", "bandpass_4")
         self.enclosure_type.addItem("Bandpass 6. Ordnung parallel", "bandpass_6_parallel")
+        self.enclosure_type.addItem("Bandpass 6. Ordnung seriell", "bandpass_6_series")
         self.enclosure_type.addItem("Isobarisch geschlossen", "isobaric_sealed")
+        self.enclosure_type.addItem("Compound / Push Pull", "compound_push_pull")
         self.enclosure_type.addItem("Isobarisch Bassreflex", "isobaric_vented")
+        self.enclosure_type.addItem("Transmission Line geschlossen", "transmission_line_closed")
+        self.enclosure_type.addItem("Transmission Line offen", "transmission_line_open")
+        self.enclosure_type.addItem("Transmission Line verjüngt", "transmission_line_tapered")
+        self.enclosure_type.addItem("Mass Loaded Transmission Line", "mltl")
+        self.enclosure_type.addItem("TQWT", "tqwt")
+        self.enclosure_type.addItem("Labyrinth", "labyrinth")
+        self.enclosure_type.addItem("Rearloaded Horn · segmentiert", "horn_rear")
+        self.enclosure_type.addItem("Folded Horn · segmentiert", "horn_folded")
+        self.enclosure_type.addItem("Scoop · segmentiert", "horn_scoop")
+        self.enclosure_type.addItem("Exponentialhorn · segmentiert", "horn_exponential")
+        self.enclosure_type.addItem("Tractrixhorn · segmentiert", "horn_tractrix")
+        self.enclosure_type.addItem("Konisches Horn · segmentiert", "horn_conical")
+        self.enclosure_type.addItem("Hyperbolisches Horn · segmentiert", "horn_hyperbolic")
+        self.enclosure_type.addItem("Infinite Baffle / Wandeinbau", "infinite_baffle")
+        self.enclosure_type.addItem("Open Baffle / flache Schallwand", "open_baffle")
+        self.enclosure_type.addItem("Dipol / U-Frame", "dipole")
+        self.enclosure_type.addItem("Passiv-Kardioid", "cardioid")
+        self.enclosure_type.addItem("Frontloaded Horn", "horn_front")
+        self.enclosure_type.addItem("Tapped Horn · 2 Läufe", "horn_tapped")
         self.enclosure_type.currentIndexChanged.connect(self._refresh_mode_controls)
 
         self.target_qtc = self._spin(0.1, 2.0, 0.707, "", 3)
@@ -206,6 +228,9 @@ class MainWindow(QMainWindow):
         self.rear_volume = self._spin(0.1, 2000.0, 50.0, " l")
         self.rear_tuning = self._spin(5.0, 300.0, 30.0, " Hz")
         self.rear_port_diameter = self._spin(10.0, 500.0, 75.0, " mm")
+        self.aperiodic_resistance = self._spin(0.0, 1000000.0, 0.0, " Pa·s/m³", 0)
+        self.baffle_wing_depth = self._spin(0.0, 1000.0, 150.0, " mm")
+        self.cardioid_delay = self._spin(0.0, 10.0, 0.5, " ms", 2)
         self.isobaric_wiring = QComboBox()
         self.isobaric_wiring.addItem("Reihe", "series")
         self.isobaric_wiring.addItem("Parallel", "parallel")
@@ -257,9 +282,12 @@ class MainWindow(QMainWindow):
             ("Bandpass Rückkammer netto", self.rear_volume),
             ("Rückkammer Abstimmung Fb2", self.rear_tuning),
             ("Rückkammer Port BR2 Ø", self.rear_port_diameter),
+            ("Aperiodischer Widerstand (0 = Auto)", self.aperiodic_resistance),
+            ("Dipol-Seitenflügel Tiefe", self.baffle_wing_depth),
+            ("Kardioid-Ventverzug (Modell)", self.cardioid_delay),
             ("Isobarik Verschaltung", self.isobaric_wiring),
             ("Isobarik Freiraum", self.isobaric_gap),
-            ("Abstimmfrequenz Fb", self.tuning),
+            ("Abstimmziel Fb / Viertelwelle", self.tuning),
             ("PM wirksame Fläche Sd", self.radiator_sd),
             ("PM Grundmasse Mms", self.radiator_mms),
             ("PM Freiluft-Fs", self.radiator_fs),
@@ -596,30 +624,63 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "enclosure_type"):
             return
         enclosure = self.enclosure_type.currentData()
-        tuned = enclosure not in {"sealed", "isobaric_sealed"}
-        duct = enclosure in {"bass_reflex","bandpass_4","bandpass_6_parallel","isobaric_vented"}
+        line = enclosure in {"transmission_line_closed","transmission_line_open",
+                             "transmission_line_tapered","mltl","tqwt","labyrinth",
+                             "horn_rear","horn_folded","horn_scoop","horn_exponential",
+                             "horn_tractrix","horn_conical","horn_hyperbolic"}
+        baffle = enclosure in {"infinite_baffle","open_baffle","dipole"}
+        if enclosure == "infinite_baffle" and not self._loading and self.target_volume.value()<600:
+            self.target_volume.setValue(1000.0)
+        if enclosure == "horn_front" and not self._loading and self.tuning.value()<100:
+            self.tuning.setValue(150.0)
+        if enclosure == 'horn_front' and not self._loading and self.target_qtc.value()>0.55:
+            self.target_qtc.setValue(0.5)
+        if enclosure == 'horn_tapped' and not self._loading:
+            if self.cabinet_height.value()<1000:
+                self.cabinet_height.setValue(1200.0)
+            if self.cabinet_width.value()<450:
+                self.cabinet_width.setValue(450.0)
+            if self.target_volume.value()<200:
+                self.target_volume.setValue(200.0)
+            self.brace_count.setValue(0)
+            if self.tuning.value()<45 or self.tuning.value()>100:
+                self.tuning.setValue(60.0)
+        if (line and not self._loading and hasattr(self,"cabinet_height")
+                and self.cabinet_height.value()<900):
+            self.cabinet_height.setValue(1200.0)
+            if self.cabinet_width.value()<400:
+                self.cabinet_width.setValue(400.0)
+            if self.target_volume.value()<100:
+                self.target_volume.setValue(120.0)
+            self.tuning.setValue(60.0)
+            self.brace_count.setValue(0)
+        tuned = enclosure not in {"sealed", "isobaric_sealed", "compound_push_pull", "horn_front"} and not baffle
+        duct = enclosure in {"bass_reflex","bandpass_4","bandpass_6_parallel","bandpass_6_series","isobaric_vented"}
         radiator = enclosure == "passive_radiator"
-        self.target_qtc.setEnabled(enclosure in {"sealed", "isobaric_sealed"})
-        self.isobaric_wiring.setEnabled(enclosure.startswith("isobaric_"))
-        self.isobaric_gap.setEnabled(enclosure.startswith("isobaric_"))
-        self.target_volume.setEnabled(tuned)
-        self.rear_volume.setEnabled(enclosure in {"bandpass_4", "bandpass_6_parallel"})
-        self.rear_tuning.setEnabled(enclosure == "bandpass_6_parallel")
-        self.rear_port_diameter.setEnabled(enclosure == "bandpass_6_parallel")
-        self.tuning.setEnabled(tuned)
+        self.target_qtc.setEnabled(enclosure in {"sealed", "isobaric_sealed", "compound_push_pull", "horn_front"})
+        self.isobaric_wiring.setEnabled(enclosure.startswith("isobaric_") or enclosure == "compound_push_pull")
+        self.isobaric_gap.setEnabled(enclosure.startswith("isobaric_") or enclosure == "compound_push_pull")
+        self.target_volume.setEnabled(tuned or enclosure == "infinite_baffle")
+        self.rear_volume.setEnabled(enclosure.startswith("bandpass_"))
+        self.rear_tuning.setEnabled(enclosure in {"bandpass_6_parallel", "bandpass_6_series"})
+        self.rear_port_diameter.setEnabled(enclosure in {"bandpass_6_parallel", "bandpass_6_series"})
+        self.aperiodic_resistance.setEnabled(enclosure in {"aperiodic","cardioid"})
+        self.baffle_wing_depth.setEnabled(enclosure == "dipole")
+        self.cardioid_delay.setEnabled(enclosure == "cardioid")
+        self.tuning.setEnabled((tuned or enclosure == "horn_front") and enclosure not in {"aperiodic","cardioid"})
         self.alignment_button.setEnabled(enclosure == "bass_reflex")
-        self.port_type.setEnabled(duct)
+        self.port_type.setEnabled(duct and enclosure != "aperiodic")
         for control in (self.radiator_sd,self.radiator_mms,self.radiator_fs,
                         self.radiator_qms,self.radiator_xmax,self.radiator_cutout,
                         self.radiator_depth):
             control.setEnabled(radiator)
         for control in (self.port_diameter,self.slot_width,self.slot_height):
             control.setEnabled(False)
-        if duct:
+        if duct or enclosure in {"aperiodic","mltl","cardioid"}:
             round_selected = self.port_type.currentData() == "round"
-            self.port_diameter.setEnabled(round_selected)
-            self.slot_width.setEnabled(not round_selected)
-            self.slot_height.setEnabled(not round_selected)
+            self.port_diameter.setEnabled(round_selected or enclosure in {"aperiodic","mltl","cardioid"})
+            self.slot_width.setEnabled(not round_selected and duct)
+            self.slot_height.setEnabled(not round_selected and duct)
 
     def _driver_from_form(self) -> Driver:
         data = self._base_driver.model_dump(mode="python") if self._base_driver else {}
@@ -650,11 +711,11 @@ class MainWindow(QMainWindow):
     def _project_from_form(self) -> SpeakerProject:
         return SpeakerProject(
             name=self.project_name.text().strip() or "Lautsprecherprojekt",
-            revision="V-02.04.00",
+            revision="V-02.05.00",
             material=self.material.text().strip() or "Plattenmaterial",
             driver=self._driver_from_form(),
-            additional_drivers=self._additional_drivers,
-            tweeter_name=self.tweeter_name.text().strip(),
+            additional_drivers=() if self.enclosure_type.currentData()=='horn_tapped' else self._additional_drivers,
+            tweeter_name='' if self.enclosure_type.currentData()=='horn_tapped' else self.tweeter_name.text().strip(),
             enclosure=EnclosureConfig(
                 enclosure_type=self.enclosure_type.currentData(),
                 target_qtc=self.target_qtc.value(),
@@ -662,6 +723,9 @@ class MainWindow(QMainWindow):
                 rear_volume_l=self.rear_volume.value(),
                 rear_tuning_hz=self.rear_tuning.value(),
                 rear_port_diameter_mm=self.rear_port_diameter.value(),
+                aperiodic_resistance_pa_s_m3=(self.aperiodic_resistance.value() or None),
+                baffle_wing_depth_mm=self.baffle_wing_depth.value(),
+                cardioid_delay_ms=self.cardioid_delay.value(),
                 isobaric_wiring=self.isobaric_wiring.currentData(),
                 isobaric_gap_mm=self.isobaric_gap.value(),
                 tuning_hz=self.tuning.value(),
@@ -690,7 +754,7 @@ class MainWindow(QMainWindow):
                 brace_border_mm=self.brace_border.value(),
             ),
             crossover=CrossoverConfig(
-                enabled=self.crossover_enabled.isChecked(),
+                enabled=self.crossover_enabled.isChecked() and self.enclosure_type.currentData()!='horn_tapped',
                 topology=self.crossover_topology.currentData(),
                 crossover_hz=self.crossover_frequency.value(),
                 woofer_impedance_ohm=self.woofer_impedance.value(),
@@ -742,16 +806,26 @@ class MainWindow(QMainWindow):
         self._render_drawing(bundle)
         self._render_response(bundle)
         self._render_crossover(bundle)
-        f3=(bundle.sealed.f3_hz if bundle.sealed else
+        f3=(bundle.vented_response.f3_hz if bundle.front_horn and bundle.vented_response else
+            bundle.sealed.f3_hz if bundle.sealed else
             bundle.vented_response.f3_hz if bundle.vented_response else None)
         x=(float(np.max(bundle.vented_response.excursion_mm)) if bundle.vented_response and bundle.vented_response.excursion_mm is not None else None)
         v=(float(np.max(bundle.vented_response.port_velocity_m_s)) if bundle.vented_response and bundle.vented_response.port_velocity_m_s is not None else None)
-        tuning=(f"Fb {bundle.project.enclosure.tuning_hz:.1f} Hz" if bundle.port or bundle.radiator else
+        tuning=(f"Horn fc {bundle.front_horn.target_cutoff_hz:.0f} Hz" if bundle.front_horn else
+                f"Tapped ¼λ {bundle.tapped_horn.quarter_wave_hz:.1f} Hz" if bundle.tapped_horn else
+                f"Schallweg {(bundle.baffle_path_m or 0)*1000:.0f} mm" if bundle.baffle_mode else
+                f"¼λ {bundle.folded_line.estimated_quarter_wave_hz:.1f} Hz" if bundle.folded_line else
+                f"Rv {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³" if bundle.port_resistance_pa_s_m3 else
+                f"Fb {bundle.project.enclosure.tuning_hz:.1f} Hz" if bundle.port or bundle.radiator else
                 f"Qtc {bundle.sealed.target_qtc:.3f}")
         self.kpis.setText("  |  ".join((
-            f"Vb {bundle.target_net_volume_m3*1000:.1f} l",tuning,
+            (f"Rückraum ≥ {bundle.target_net_volume_m3*1000:.0f} l" if bundle.baffle_mode == "infinite_baffle" else
+             "Offene Schallwand" if bundle.baffle_mode else
+             f"Vb {bundle.target_net_volume_m3*1000:.1f} l"),tuning,
             f"F3 {f3:.1f} Hz" if f3 is not None else "F3 –",
-            f"Außen {bundle.cabinet.width_m*1000:.0f}×{bundle.cabinet.height_m*1000:.0f}×{bundle.cabinet.depth_m*1000:.0f} mm",
+            (f"Platte {bundle.cabinet.width_m*1000:.0f}×{bundle.cabinet.height_m*1000:.0f}×{bundle.cabinet.panel_thickness_m*1000:.0f} mm"
+             if bundle.baffle_mode else
+             f"Außen {bundle.cabinet.width_m*1000:.0f}×{bundle.cabinet.height_m*1000:.0f}×{bundle.cabinet.depth_m*1000:.0f} mm"),
             f"X {x:.1f} mm" if x is not None else "X –",
             (f"PM {v:.1f} m/s" if bundle.radiator else f"Port {v:.1f} m/s") if v is not None else "Resonator –",
             f"Warnungen {len(bundle.warnings)}")))
@@ -775,14 +849,23 @@ class MainWindow(QMainWindow):
             "",
             "GEHÄUSE",
             f"Typ: {bundle.project.enclosure.enclosure_type}",
-            f"Netto-Zielvolumen: {bundle.target_net_volume_m3 * 1000:.2f} l",
-            (
+        ]
+        if bundle.baffle_mode:
+            lines.extend([
+                f"Schallwand B × H × Stärke: {cabinet.width_m*1000:.1f} × {cabinet.height_m*1000:.1f} × {cabinet.panel_thickness_m*1000:.1f} mm",
+                f"Wirksamer Schallweg: {(bundle.baffle_path_m or 0)*1000:.1f} mm",
+                f"Seitenflügel: {bundle.baffle_wing_depth_m*1000:.1f} mm",
+                (f"Rückraum mindestens: {bundle.target_net_volume_m3*1000:.1f} l"
+                 if bundle.baffle_mode == "infinite_baffle" else "Vorder- und Rückseite offen"),
+            ])
+        else:
+            lines.extend([f"Netto-Zielvolumen: {bundle.target_net_volume_m3 * 1000:.2f} l", (
                 "Außenmaße B x H x T: "
                 f"{cabinet.width_m*1000:.1f} x {cabinet.height_m*1000:.1f} x "
                 f"{cabinet.depth_m*1000:.1f} mm"
             ),
             f"Gesamte Bauteilverdrängung: {bundle.total_displacement_m3*1000:.2f} l",
-        ]
+            ])
 
         if bundle.sealed:
             lines.extend(
@@ -797,13 +880,49 @@ class MainWindow(QMainWindow):
             lines.extend(
                 [
                     "",
+                    "LINIE / HORN-MÜNDUNG" if bundle.folded_line else
+                    "KARDIOID / RÜCKVENT" if bundle.project.enclosure.enclosure_type == "cardioid" else
+                    "APERIODISCH" if bundle.port_resistance_pa_s_m3 else
                     "BANDPASS / BASSREFLEX" if bundle.rear_chamber_volume_m3 else "BASSREFLEX",
                     f"BR1: {bundle.port.shape}",
-                    f"Fb: {bundle.port.tuning_hz:.2f} Hz",
+                    (f"Viertelwelle: {bundle.folded_line.estimated_quarter_wave_hz:.2f} Hz"
+                     if bundle.folded_line else
+                     f"Tapped ¼λ: {bundle.tapped_horn.quarter_wave_hz:.2f} Hz"
+                     if bundle.tapped_horn else f"Fb: {bundle.port.tuning_hz:.2f} Hz"),
                     f"Portfläche: {bundle.port.area_m2*1e4:.2f} cm²",
                     f"Portlänge: {bundle.port.physical_length_m*1000:.1f} mm",
                 ]
             )
+            if bundle.port_resistance_pa_s_m3:
+                lines.append(f"Soll-Strömungswiderstand: {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³")
+            if bundle.project.enclosure.enclosure_type == "cardioid" and bundle.vented_response:
+                rejection=bundle.vented_response.front_to_back_db
+                if rejection is not None:
+                    index=int(np.argmin(abs(bundle.vented_response.frequencies_hz-80)))
+                    lines.append(f"Front/Rück-Differenz bei 80 Hz: {rejection[index]:.1f} dB (Modell)")
+        if bundle.folded_line:
+            lines.extend(["", "INNERE KANALFALTUNG",
+                          f"Linienweg: {bundle.folded_line.path_length_m*1000:.1f} mm",
+                          f"Umlenkspalt: {bundle.folded_line.turn_gap_m*1000:.1f} mm",
+                          *(f"Kanal {i+1}: {height*1000:.1f} mm hoch, {area*10000:.1f} cm²"
+                            for i,(height,area) in enumerate(zip(bundle.folded_line.channel_heights_m,
+                                                                     bundle.folded_line.channel_areas_m2,strict=True)))])
+        if bundle.front_horn:
+            horn=bundle.front_horn
+            lines.extend(["", "FRONT-HORN",
+                          f"Hals: {horn.throat_width_m*1000:.1f} × {horn.throat_height_m*1000:.1f} mm",
+                          f"Mündung: {horn.mouth_width_m*1000:.1f} × {horn.mouth_height_m*1000:.1f} mm",
+                          f"Axiale Länge: {horn.axial_length_m*1000:.1f} mm",
+                          f"Ziel-Grenzfrequenz: {horn.target_cutoff_hz:.1f} Hz"])
+        if bundle.tapped_horn:
+            horn=bundle.tapped_horn
+            lines.extend(["", "TAPPED-HORN / INNERER TREIBER",
+                          f"F1: {horn.panel.width_m*1000:.1f} × {horn.baffle_length_m*1000:.1f} mm",
+                          f"W1 ab F1-Vorderkante: {horn.driver_depth_from_front_m*1000:.1f} mm",
+                          f"Oberer Kanal: {horn.upper_height_m*1000:.1f} mm",
+                          f"Unterer Kanal: {horn.lower_height_m*1000:.1f} mm",
+                          f"Umlenkspalt hinten: {horn.turn_gap_m*1000:.1f} mm",
+                          f"Linienweg: {horn.path_length_m*1000:.1f} mm"])
         if bundle.rear_port:
             lines.extend([f"BR2 Rückkammer: Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm",
                           f"Fb2: {bundle.rear_port.tuning_hz:.2f} Hz",
@@ -858,8 +977,8 @@ class MainWindow(QMainWindow):
 
     def _render_response(self, bundle: DesignBundle) -> None:
         self.figure.clear()
-        axis = self.figure.add_subplot(111 if bundle.sealed is not None else 221)
-        if bundle.sealed is not None:
+        axis = self.figure.add_subplot(111 if bundle.sealed is not None and bundle.front_horn is None else 221)
+        if bundle.sealed is not None and bundle.front_horn is None:
             frequencies = np.geomspace(10.0, 500.0, 400)
             response = sealed_response_db(
                 bundle.acoustic_driver,
@@ -876,11 +995,21 @@ class MainWindow(QMainWindow):
         else:
             response=bundle.vented_response
             if response is not None:
-                axis.semilogx(response.frequencies_hz,response.response_db)
+                axis.semilogx(response.frequencies_hz,response.response_db,
+                             label="Vorderachse" if response.rear_response_db is not None else None)
+                if response.rear_response_db is not None:
+                    axis.semilogx(response.frequencies_hz,response.rear_response_db,
+                                 label="Rückachse")
+                    axis.legend()
                 axis.axhline(-3.0,linewidth=0.8)
                 axis.set_title({"bass_reflex":"Bassreflex", "passive_radiator":"Passivmembran",
                                 "bandpass_4":"Bandpass 4. Ordnung",
-                                "bandpass_6_parallel":"Bandpass 6. Ordnung parallel"}.get(bundle.project.enclosure.enclosure_type,
+                                "bandpass_6_parallel":"Bandpass 6. Ordnung parallel",
+                                "bandpass_6_series":"Bandpass 6. Ordnung seriell",
+                                "compound_push_pull":"Compound / Push Pull",
+                                "aperiodic":"Aperiodisch", "cardioid":"Passiv-Kardioid",
+                                "horn_front":"Frontloaded Horn",
+                                "horn_tapped":"Tapped Horn"}.get(bundle.project.enclosure.enclosure_type,
                                 "Gehäuse")+" – Frequenzgang (relativ)")
                 axis.set_xlabel("Hz");axis.set_ylabel("dB")
                 axis.grid(True,which="both",alpha=0.25)
@@ -1040,6 +1169,9 @@ class MainWindow(QMainWindow):
         self.rear_volume.setValue(project.enclosure.rear_volume_l)
         self.rear_tuning.setValue(project.enclosure.rear_tuning_hz or 30.0)
         self.rear_port_diameter.setValue(project.enclosure.rear_port_diameter_mm)
+        self.aperiodic_resistance.setValue(project.enclosure.aperiodic_resistance_pa_s_m3 or 0.0)
+        self.baffle_wing_depth.setValue(project.enclosure.baffle_wing_depth_mm)
+        self.cardioid_delay.setValue(project.enclosure.cardioid_delay_ms)
         self.isobaric_wiring.setCurrentIndex(max(self.isobaric_wiring.findData(project.enclosure.isobaric_wiring), 0))
         self.isobaric_gap.setValue(project.enclosure.isobaric_gap_mm)
         if project.enclosure.tuning_hz:
