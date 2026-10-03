@@ -1,0 +1,19 @@
+{
+  "project_name": "Bassreflex-Subwoofer",
+  "speaker_type": "Subwoofer",
+  "enclosure_preference": "bass_reflex",
+  "max_width_m": 0.4,
+  "max_height_m": 0.6,
+  "max_depth_m": 0.6,
+  "sound_profile": "deep_bass",
+  "budget": null,
+  "target_spl_db": null,
+  "target_f3_hz": null,
+  "way_count": null,
+  "active": false,
+  "preferred_size_m": null,
+  "amplifier_power_w": 5.0,
+  "preferred_manufacturer": null,
+  "panel_thickness_m": 0.018,
+  "material": "Birke Multiplex"
+}

@@ -1,0 +1,7 @@
+{
+  "components": [
+    {"id":"dayton:dsa175-pr","category":"passive_radiators","manufacturer":"Dayton Audio","model":"DSA175-PR","source":"https://www.daytonaudio.com/product/1590/dsa175-pr-6-1-2-designer-series-aluminum-cone-passive-radiator","is_test_data":false,"specs":{"fs_hz":26.8,"qms":4.3,"mms_kg":0.0307,"sd_m2":0.01287,"xmax_m":0.008,"cutout_diameter_m":0.14402,"outer_diameter_m":0.17551,"mounting_depth_m":0.004}},
+    {"id":"dayton:ds215-pr","category":"passive_radiators","manufacturer":"Dayton Audio","model":"DS215-PR","source":"https://www.daytonaudio.com/product/129/ds215-pr-8-designer-series-passive-radiator","is_test_data":false,"specs":{"fs_hz":23.3,"qms":7.34,"mms_kg":0.0688,"sd_m2":0.02112,"xmax_m":0.010,"cutout_diameter_m":0.180,"outer_diameter_m":0.216,"mounting_depth_m":0.058}},
+    {"id":"dayton:ds270-pr","category":"passive_radiators","manufacturer":"Dayton Audio","model":"DS270-PR","source":"https://www.daytonaudio.com/product/132/ds270-pr-10-designer-series-passive-radiator","is_test_data":false,"specs":{"fs_hz":21.9,"qms":3.98,"mms_kg":0.0884,"sd_m2":0.0353,"xmax_m":0.011,"cutout_diameter_m":0.227,"outer_diameter_m":0.270,"mounting_depth_m":0.0714}}
+  ]
+}

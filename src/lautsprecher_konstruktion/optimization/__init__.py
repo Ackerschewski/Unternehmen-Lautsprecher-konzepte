@@ -1,0 +1,1 @@
+"""Automatic sizing and scoring."""

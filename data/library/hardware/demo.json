@@ -1,0 +1,1 @@
+[{"id":"demo:terminal","category":"hardware","manufacturer":"TESTDATEN","model":"Demo Anschlussterminal","is_test_data":true,"specs":{"kind":"terminal"}},{"id":"demo:damping","category":"hardware","manufacturer":"TESTDATEN","model":"Demo Dämmmaterial","is_test_data":true,"specs":{"kind":"damping"}}]

@@ -1,0 +1,1436 @@
+{
+  "components": [
+    {
+      "id": "thomann:visaton-bg-20---8-ohm",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "BG 20 - 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 35.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-8m",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 8M",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 13.7,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-w-200-8-ohm",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "W 200 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 30.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-w-130-x",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "W 130 X",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 54.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-b-100",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "B 100",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 88.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-hth-8-7",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "HTH 8.7",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 64.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-10-wp-8-black",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 10 WP-8 Black",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 47.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-bg-17-8-ohm",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "BG 17 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 21.8,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-fr-58",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FR 58",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 8.2,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-10-wp-4-ohm-black",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 10 WP 4 Ohm Black",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 47.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-bf-45---4-ohm",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "BF 45 / 4 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 15.8,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-dx-10-4",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "Dx 10-4",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 60.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-7-8-ohm",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 7-8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 11.7,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-w250-8",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "W250-8",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 49.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-5-x",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 5 X",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 11.6,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-7-4-ohm",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 7-4 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 11.7,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-kt-100-v",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "KT 100 V",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 25.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-bf-45---8-ohms",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "BF 45 / 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 15.8,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-wf-130-nd",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "WF 130 ND",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 119.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frws-4-nd",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRWS 4 ND",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 13.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-paw-38",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "PAW 38",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 255.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-10-wp-4-ohm-wh",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 10 WP 4 Ohm WH",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 47.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-paw-30-nd",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "PAW 30 ND",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 259.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-5",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 5",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 10.7,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:visaton-frs-10-wp-8-white",
+      "category": "drivers",
+      "manufacturer": "Visaton",
+      "model": "FRS 10 WP-8 White",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 47.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/visaton_lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-6fe200-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "6FE200 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 39.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_6fe200_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "6FE200 8 Ohms",
+        "driver_type": "midwoofer",
+        "nominal_size_m": 0.16,
+        "fs_hz": 120,
+        "qts": 0.67,
+        "qes": 0.75,
+        "qms": 6.2,
+        "vas_m3": 0.0036,
+        "re_ohm": 5.9,
+        "le_h": 0.0004,
+        "sd_m2": 0.0131,
+        "xmax_m": 0.00467,
+        "power_rms_w": 130,
+        "displacement_m3": 0.00045,
+        "nominal_impedance_ohm": 8,
+        "outer_diameter_m": 0.1674,
+        "cutout_diameter_m": 0.144,
+        "mounting_depth_m": 0.077,
+        "moving_mass_kg": 0.0115,
+        "force_factor_tm": 8.2,
+        "bolt_circle_diameter_m": 0.154,
+        "sensitivity_db_1w_1m": 95,
+        "min_frequency_hz": 85,
+        "max_frequency_hz": 6000,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/6FE200/8/6FE200_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/6FE200/8/6FE200_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft."
+      }
+    },
+    {
+      "id": "thomann:faitalpro-8fe200-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "8FE200 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 44.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_8fe200_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "8FE200 8 Ohms",
+        "driver_type": "midwoofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/8FE200/8/8FE200_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/8FE200/8/8FE200_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft.",
+        "nominal_size_m": 0.2,
+        "fs_hz": 80,
+        "qts": 0.63,
+        "qes": 0.66,
+        "qms": 13,
+        "vas_m3": 0.0161,
+        "re_ohm": 5.9,
+        "le_h": 0.00044,
+        "sd_m2": 0.0209,
+        "xmax_m": 0.00467,
+        "power_rms_w": 130,
+        "displacement_m3": 0.0006,
+        "outer_diameter_m": 0.2092,
+        "cutout_diameter_m": 0.178,
+        "mounting_depth_m": 0.089,
+        "moving_mass_kg": 0.015,
+        "force_factor_tm": 8.2,
+        "bolt_circle_diameter_m": 0.1969,
+        "sensitivity_db_1w_1m": 95,
+        "min_frequency_hz": 60,
+        "max_frequency_hz": 5000
+      }
+    },
+    {
+      "id": "thomann:faitalpro-4fe35-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "4FE35 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 19.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_4fe35_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "4FE35 8 Ohms",
+        "driver_type": "midwoofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/4FE35/8/4FE35_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/4FE35/8/4FE35_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft. Korbflansch asymmetrisch; Außenmaß ist Maximalmaß.",
+        "nominal_size_m": 0.1,
+        "fs_hz": 100,
+        "qts": 0.83,
+        "qes": 1.04,
+        "qms": 4.2,
+        "vas_m3": 0.0024,
+        "re_ohm": 6.5,
+        "le_h": 0.0001,
+        "sd_m2": 0.00519,
+        "xmax_m": 0.00273,
+        "power_rms_w": 30,
+        "displacement_m3": 0.00015,
+        "outer_diameter_m": 0.12985,
+        "cutout_diameter_m": 0.0915,
+        "mounting_depth_m": 0.0583,
+        "moving_mass_kg": 0.0039,
+        "force_factor_tm": 3.9,
+        "bolt_circle_diameter_m": 0.11526,
+        "sensitivity_db_1w_1m": 91,
+        "min_frequency_hz": 90,
+        "max_frequency_hz": 20000
+      }
+    },
+    {
+      "id": "thomann:faitalpro-15pr400-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "15PR400 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 219.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_15pr400_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "15PR400 8 Ohms",
+        "driver_type": "woofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/15PR400/8/15PR400_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/15PR400/8/15PR400_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft.",
+        "nominal_size_m": 0.38,
+        "fs_hz": 35,
+        "qts": 0.32,
+        "qes": 0.34,
+        "qms": 6,
+        "vas_m3": 0.2489,
+        "re_ohm": 5.1,
+        "le_h": 0.00072,
+        "sd_m2": 0.0857,
+        "xmax_m": 0.00575,
+        "power_rms_w": 400,
+        "displacement_m3": 0.0037,
+        "outer_diameter_m": 0.393,
+        "cutout_diameter_m": 0.356,
+        "mounting_depth_m": 0.165,
+        "moving_mass_kg": 0.0852,
+        "force_factor_tm": 16.7,
+        "bolt_circle_diameter_m": 0.374,
+        "sensitivity_db_1w_1m": 99,
+        "min_frequency_hz": 35,
+        "max_frequency_hz": 4000
+      }
+    },
+    {
+      "id": "thomann:faitalpro-4fe32-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "4FE32 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 29.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_4fe32_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "4FE32 8 Ohms",
+        "driver_type": "midwoofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/4FE32/8/4FE32_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/4FE32/8/4FE32_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft. Korbflansch asymmetrisch; Außenmaß ist Maximalmaß.",
+        "nominal_size_m": 0.1,
+        "fs_hz": 100,
+        "qts": 0.61,
+        "qes": 0.7,
+        "qms": 4.9,
+        "vas_m3": 0.0023,
+        "re_ohm": 6.5,
+        "le_h": 0.00018,
+        "sd_m2": 0.00519,
+        "xmax_m": 0.00273,
+        "power_rms_w": 30,
+        "displacement_m3": 7.5e-05,
+        "outer_diameter_m": 0.12985,
+        "cutout_diameter_m": 0.0915,
+        "mounting_depth_m": 0.0498,
+        "moving_mass_kg": 0.0042,
+        "force_factor_tm": 4.8,
+        "bolt_circle_diameter_m": 0.11526,
+        "sensitivity_db_1w_1m": 91,
+        "min_frequency_hz": 90,
+        "max_frequency_hz": 20000
+      }
+    },
+    {
+      "id": "thomann:faitalpro-6pr160-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "6PR160 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 109.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-18fh510-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "18FH510 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 269.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_18fh510_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "18FH510 8 Ohms",
+        "driver_type": "woofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/18FH510/8/18FH510_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/18FH510/8/18FH510_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft.",
+        "nominal_size_m": 0.46,
+        "fs_hz": 30,
+        "qts": 0.29,
+        "qes": 0.3,
+        "qms": 13.6,
+        "vas_m3": 0.4119,
+        "re_ohm": 5.1,
+        "le_h": 0.00106,
+        "sd_m2": 0.1207,
+        "xmax_m": 0.00925,
+        "power_rms_w": 600,
+        "displacement_m3": 0.0061,
+        "outer_diameter_m": 0.46,
+        "cutout_diameter_m": 0.421,
+        "mounting_depth_m": 0.2015,
+        "moving_mass_kg": 0.139,
+        "force_factor_tm": 21,
+        "bolt_circle_diameter_m": 0.44,
+        "sensitivity_db_1w_1m": 98,
+        "min_frequency_hz": 30,
+        "max_frequency_hz": 2500
+      }
+    },
+    {
+      "id": "thomann:faitalpro-10hp1020-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "10HP1020 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 269.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_10hp1020_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "10HP1020 8 Ohms",
+        "driver_type": "woofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/10HP1020/8/10HP1020_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/10HP1020/8/10HP1020_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft.",
+        "nominal_size_m": 0.25,
+        "fs_hz": 60,
+        "qts": 0.24,
+        "qes": 0.25,
+        "qms": 6.5,
+        "vas_m3": 0.0161,
+        "re_ohm": 5.5,
+        "le_h": 0.00085,
+        "sd_m2": 0.0345,
+        "xmax_m": 0.009,
+        "power_rms_w": 700,
+        "displacement_m3": 0.0022,
+        "outer_diameter_m": 0.261,
+        "cutout_diameter_m": 0.232,
+        "mounting_depth_m": 0.1413,
+        "moving_mass_kg": 0.0725,
+        "force_factor_tm": 24.5,
+        "bolt_circle_diameter_m": 0.246,
+        "sensitivity_db_1w_1m": 96,
+        "min_frequency_hz": 60,
+        "max_frequency_hz": 2500
+      }
+    },
+    {
+      "id": "thomann:faitalpro-15hx500-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "15HX500 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 549.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-18xl1700-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "18XL1700 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 549.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-6hx150-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "6HX150 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 198.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-12hp1060-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "12HP1060 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 339.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_12hp1060_8_ohms.htm",
+      "specs": {
+        "data_status": "Herstellerdaten vollständig für Entwurfsprüfung"
+      },
+      "is_test_data": false,
+      "driver": {
+        "manufacturer": "FaitalPRO",
+        "model": "12HP1060 8 Ohms",
+        "driver_type": "woofer",
+        "nominal_impedance_ohm": 8,
+        "source_name": "FaitalPRO Herstellerdaten",
+        "source_url": "https://faitalpro.com/products/files/12HP1060/8/12HP1060_datasheet_8.pdf",
+        "datasheet_url": "https://faitalpro.com/products/files/12HP1060/8/12HP1060_datasheet_8.pdf",
+        "data_source_date": "2026-10-02",
+        "source_document": "T/S und Maße aus FaitalPRO-Datenblatt; Preis separat bei Thomann geprüft.",
+        "nominal_size_m": 0.3,
+        "fs_hz": 45,
+        "qts": 0.28,
+        "qes": 0.29,
+        "qms": 12.1,
+        "vas_m3": 0.0369,
+        "re_ohm": 5,
+        "le_h": 0.00138,
+        "sd_m2": 0.0518,
+        "xmax_m": 0.01245,
+        "power_rms_w": 1000,
+        "displacement_m3": 0.0029,
+        "outer_diameter_m": 0.316,
+        "cutout_diameter_m": 0.282,
+        "mounting_depth_m": 0.16875,
+        "moving_mass_kg": 0.1269,
+        "force_factor_tm": 24.8,
+        "bolt_circle_diameter_m": 0.2985,
+        "sensitivity_db_1w_1m": 95,
+        "min_frequency_hz": 45,
+        "max_frequency_hz": 2500
+      }
+    },
+    {
+      "id": "thomann:faitalpro-8pr200-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "8PR200 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 159.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-6rs140-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "6RS140 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 115.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-21xl3000-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "21XL3000 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 1049.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-18hp1060-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "18HP1060 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 389.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-18xl1600-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "18XL1600 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 549.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-8hx200-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "8HX200 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 329.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-10hx240-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "10HX240 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 389.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-hf141-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "HF141 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 259.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-15xl1400-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "15XL1400 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 489.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-12hx500-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "12HX500 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 549.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:faitalpro-12xl1200-8-ohms",
+      "category": "drivers",
+      "manufacturer": "FaitalPRO",
+      "model": "12XL1200 8 Ohms",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 398.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/faitalpro_lautsprecher_komponenten.html?ls=50&pg=1",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-legend-1028k",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Legend 1028K",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 159.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-ga10-sc64",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "GA10-SC64",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 139.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-ga-sc64",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "GA-SC64",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 165.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappa-12a",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappa-12A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 185.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-legend-bp102-8",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Legend BP102-8",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 129.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-legend-1518",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Legend 1518",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 179.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-legend-1058",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Legend 1058",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 125.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-apt80-v2",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "APT80 V2",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 59.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappa-pro-10a",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappa Pro-10A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 189.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappalite-3012lf",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappalite 3012LF",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 313.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-delta-15lfc",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Delta-15LFC",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 198.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-delta-12b---16-ohm",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Delta-12B - 16 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 145.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappa-pro-15a",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappa Pro-15A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 209.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappa-pro-15lf-2",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappa Pro-15LF-2",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 249.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-delta-15lfa",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Delta-15LFA",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 179.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappa-15lfa",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappa-15LFA",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 229.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-delta-15a",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Delta-15A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 175.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-delta-12lfa",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Delta-12LFA",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 165.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-delta-12a-8-ohm",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Delta-12A 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 149.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-alpha-6a---8-ohm",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Alpha-6A - 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 89.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-beta-8a",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Beta-8A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 109.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-beta-10a",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Beta-10A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 123.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-alpha-10a---8-ohm",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Alpha-10A - 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 115.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:eminence-kappa-pro-18lfa",
+      "category": "drivers",
+      "manufacturer": "Eminence",
+      "model": "Kappa Pro-18LFA",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 298.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/eminence.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:b&c-18tbx100-8-ohm",
+      "category": "drivers",
+      "manufacturer": "B&C",
+      "model": "18TBX100 8 Ohm",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 279.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:b&c-de-250",
+      "category": "drivers",
+      "manufacturer": "B&C",
+      "model": "DE 250",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 93.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:b&c-21sw152",
+      "category": "drivers",
+      "manufacturer": "B&C",
+      "model": "21SW152",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 675.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:b&c-18ds115",
+      "category": "drivers",
+      "manufacturer": "B&C",
+      "model": "18DS115",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 525.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:rcf-lf18g401",
+      "category": "drivers",
+      "manufacturer": "RCF",
+      "model": "LF18G401",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 317.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:fane-sovereign-8-225",
+      "category": "drivers",
+      "manufacturer": "Fane",
+      "model": "Sovereign 8-225",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 59.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:the-box-speaker-15-300-8-a",
+      "category": "drivers",
+      "manufacturer": "the box",
+      "model": "Speaker 15-300/8-A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 85.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:the-box-speaker-12-280-8-a",
+      "category": "drivers",
+      "manufacturer": "the box",
+      "model": "Speaker 12-280/8-A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 59.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:the-box-speaker-12-280-8-w",
+      "category": "drivers",
+      "manufacturer": "the box",
+      "model": "Speaker 12-280/8-W",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 69.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:the-box-speaker-10-250-8-a",
+      "category": "drivers",
+      "manufacturer": "the box",
+      "model": "Speaker 10-250/8-A",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 49.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:celestion-cdx1-1070",
+      "category": "drivers",
+      "manufacturer": "Celestion",
+      "model": "CDX1-1070",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 30.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    },
+    {
+      "id": "thomann:beyma-cp-21-f-speaker",
+      "category": "drivers",
+      "manufacturer": "Beyma",
+      "model": "CP-21/F Speaker",
+      "source": "Thomann Katalog, Preis geprüft 2026-10-02; technische Daten unvollständig",
+      "price_eur": 123.0,
+      "price_checked_on": "2026-10-02",
+      "product_url": "https://www.thomann.de/de/lautsprecher_komponenten.html",
+      "specs": {
+        "data_status": "Katalogeintrag; T/S und Maße vor Berechnung ergänzen"
+      },
+      "is_test_data": false
+    }
+  ]
+}

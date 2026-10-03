@@ -1,0 +1,108 @@
+{
+  "status": "ok",
+  "candidates_tested": 162,
+  "rejection_reasons": [],
+  "suggested_constraint_changes": [],
+  "designs": [
+    {
+      "label": "A · Favorit",
+      "score": 80.3337051844682,
+      "woofer": "Demo 260 mm Subwoofer",
+      "tweeter": null,
+      "enclosure": "bass_reflex",
+      "dimensions_mm": [
+        340.0,
+        450.0,
+        441.35506730786665
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 100.0,
+          "weight": 5,
+          "evidence": "F3 26.9 Hz; Ziel 30.8 Hz"
+        },
+        {
+          "name": "size",
+          "value": 53.10602409853915,
+          "weight": 1,
+          "evidence": "Außenvolumen 67.5 von 144.0 l"
+        },
+        {
+          "name": "headroom",
+          "value": 78.65085250047073,
+          "weight": 3,
+          "evidence": "Auslenkung 2.1/10.0 mm bei 5 W"
+        },
+        {
+          "name": "port",
+          "value": 71.45499136628256,
+          "weight": 3,
+          "evidence": "Portgeschwindigkeit 4.9/17 m/s"
+        },
+        {
+          "name": "delay",
+          "value": 45.519024087834616,
+          "weight": 0.5,
+          "evidence": "Gruppenlaufzeit max. 27.2 ms (20–120 Hz)"
+        },
+        {
+          "name": "flatness",
+          "value": 58.321952247604344,
+          "weight": 1,
+          "evidence": "Pegelspanne 5.0 dB (20–120 Hz)"
+        }
+      ]
+    },
+    {
+      "label": "B · Alternative",
+      "score": 70.74449724024318,
+      "woofer": "Demo 200 mm Woofer",
+      "tweeter": null,
+      "enclosure": "bass_reflex",
+      "dimensions_mm": [
+        400.0,
+        410.0,
+        459.5476606940765
+      ],
+      "score_breakdown": [
+        {
+          "name": "bass",
+          "value": 100.0,
+          "weight": 5,
+          "evidence": "F3 25.0 Hz; Ziel 34.1 Hz"
+        },
+        {
+          "name": "size",
+          "value": 47.6626275320635,
+          "weight": 1,
+          "evidence": "Außenvolumen 75.4 von 144.0 l"
+        },
+        {
+          "name": "headroom",
+          "value": 40.83543763587737,
+          "weight": 3,
+          "evidence": "Auslenkung 3.5/6.0 mm bei 5 W"
+        },
+        {
+          "name": "port",
+          "value": 65.86718844640232,
+          "weight": 3,
+          "evidence": "Portgeschwindigkeit 5.8/17 m/s"
+        },
+        {
+          "name": "delay",
+          "value": 30.944370254426,
+          "weight": 0.5,
+          "evidence": "Gruppenlaufzeit max. 34.5 ms (20–120 Hz)"
+        },
+        {
+          "name": "flatness",
+          "value": 71.80802183716727,
+          "weight": 1,
+          "evidence": "Pegelspanne 3.4 dB (20–120 Hz)"
+        }
+      ]
+    }
+  ]
+}
