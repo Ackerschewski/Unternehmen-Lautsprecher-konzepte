@@ -6,7 +6,7 @@
 
 ## Prüfung
 
-- Pytest: 93 Fälle, einschließlich parametrischer Bauformen, Front-/Tapped-Horn-Export und automatischer Horn-Auswahl.
+- Pytest: 95 Fälle, einschließlich parametrischer Bauformen, Front-/Tapped-Horn-Export und automatischer Horn-Auswahl.
 - Ruff: Quellcode, Tests und Paketierung geprüft.
 - Windows-Onedir-Build und Offscreen-Starttest: erfolgreich, PyInstaller 6.22.3 unter Windows 11 mit Python 3.14.7.
 - Paketierung: Windows- und Quellcode-ZIP mit Beispielzeichnungen für Front-/Tapped-Horn.

@@ -4,6 +4,6 @@
   "status": "USER_TEST_REQUIRED",
   "owner": "local integration",
   "acceptance": ["all 29 catalogued enclosures have a solver and geometry", "front and tapped horns have specific acoustic networks, construction sheets and DXF", "automatic horn selection works for feasible constraints", "Windows test package and draft GitHub update"],
-  "tests": "93 pytest cases, Ruff, Windows PyInstaller build and offscreen smoke passed; horn export and automatic selection tested",
+  "tests": "95 pytest cases, Ruff, Windows PyInstaller build and offscreen smoke passed; horn export and automatic selection tested",
   "remaining": ["prototype measurement validation", "further T/S completion of catalog records", "full 3D collision and mitre control"]
 }

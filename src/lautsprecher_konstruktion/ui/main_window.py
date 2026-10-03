@@ -624,6 +624,12 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "enclosure_type"):
             return
         enclosure = self.enclosure_type.currentData()
+        single_horn=enclosure in {'horn_front','horn_tapped'}
+        if single_horn and not self._loading:
+            self._front_elements=[]
+            self._refresh_element_list()
+        self.tweeter_name.setEnabled(not single_horn)
+        self.crossover_enabled.setEnabled(not single_horn)
         line = enclosure in {"transmission_line_closed","transmission_line_open",
                              "transmission_line_tapered","mltl","tqwt","labyrinth",
                              "horn_rear","horn_folded","horn_scoop","horn_exponential",
@@ -714,8 +720,8 @@ class MainWindow(QMainWindow):
             revision="V-02.05.00",
             material=self.material.text().strip() or "Plattenmaterial",
             driver=self._driver_from_form(),
-            additional_drivers=() if self.enclosure_type.currentData()=='horn_tapped' else self._additional_drivers,
-            tweeter_name='' if self.enclosure_type.currentData()=='horn_tapped' else self.tweeter_name.text().strip(),
+            additional_drivers=() if self.enclosure_type.currentData() in {'horn_front','horn_tapped'} else self._additional_drivers,
+            tweeter_name='' if self.enclosure_type.currentData() in {'horn_front','horn_tapped'} else self.tweeter_name.text().strip(),
             enclosure=EnclosureConfig(
                 enclosure_type=self.enclosure_type.currentData(),
                 target_qtc=self.target_qtc.value(),
@@ -754,7 +760,7 @@ class MainWindow(QMainWindow):
                 brace_border_mm=self.brace_border.value(),
             ),
             crossover=CrossoverConfig(
-                enabled=self.crossover_enabled.isChecked() and self.enclosure_type.currentData()!='horn_tapped',
+                enabled=self.crossover_enabled.isChecked() and self.enclosure_type.currentData() not in {'horn_front','horn_tapped'},
                 topology=self.crossover_topology.currentData(),
                 crossover_hz=self.crossover_frequency.value(),
                 woofer_impedance_ohm=self.woofer_impedance.value(),

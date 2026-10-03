@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import os
+
+os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
+
 import numpy as np
 import pytest
+from PySide6.QtWidgets import QApplication
 
 from lautsprecher_konstruktion.drawings.front_horn_svg import render_front_horn_svg
 from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
@@ -13,6 +18,7 @@ from lautsprecher_konstruktion.project.demo import demo_project
 from lautsprecher_konstruktion.project.models import CrossoverConfig
 from lautsprecher_konstruktion.services.automatic import AutomaticDesignRequest, automatic_design
 from lautsprecher_konstruktion.services.design import calculate_project
+from lautsprecher_konstruktion.ui.main_window import MainWindow
 
 
 def _horn_project(kind: str):
@@ -97,3 +103,18 @@ def test_automatic_horn_selection_reaches_a_buildable_result(
     assert result.status=='ok'
     assert result.designs
     assert all(design.project.enclosure.enclosure_type==family for design in result.designs)
+
+
+@pytest.mark.parametrize('family',['horn_front','horn_tapped'])
+def test_expert_mode_switch_from_demo_makes_single_driver_horn(family: str) -> None:
+    app=QApplication.instance() or QApplication([])
+    window=MainWindow()
+    window.enclosure_type.setCurrentIndex(window.enclosure_type.findData(family))
+    window.calculate()
+    app.processEvents()
+    assert window._bundle is not None
+    assert window._bundle.project.enclosure.enclosure_type==family
+    assert not [issue for issue in window._bundle.issues if issue.severity=='error']
+    assert window._bundle.project.tweeter_name==''
+    assert not window._bundle.project.crossover.enabled
+    window.close()

@@ -5,7 +5,7 @@
 - Owner/Arbeitsbereich: lokale Integration · Status: implementiert und technisch geprüft, Benutzerprüfung ausstehend.
 - Alle 29 Katalogtypen haben berechenbare Geometrie und akustische Vorschau. Front-Horn und Tapped-Horn besitzen eigene Solver und Fertigungs-DXF/PDF/SVG.
 - Der automatische Assistent kann beide Hornarten bei ausreichenden Baumaßen auswählen. Erkannte mechanische Fehler sperren den Export.
-- 93 Pytest-Fälle, Ruff, Windows-Build und Offscreen-Starttest bestanden. Lineare Modelle, keine Messfreigabe oder vollständige 3D-Kollisionsprüfung.
+- 95 Pytest-Fälle, Ruff, Windows-Build und Offscreen-Starttest bestanden. Lineare Modelle, keine Messfreigabe oder vollständige 3D-Kollisionsprüfung.
 
 ## Task LK-022 · Bandpass 6 parallel
 
