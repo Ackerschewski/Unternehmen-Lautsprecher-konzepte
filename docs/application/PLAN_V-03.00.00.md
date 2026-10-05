@@ -1,5 +1,11 @@
 # Plan zur fertigen Version V-03.00.00
 
+> **Hinweis zum Gesamtumfang:** Dieser Releaseplan bleibt die Abnahmeliste für V-03.00.00.  
+> Der darüber hinausgehende Produkt-Masterplan (V-02.08 bis V-04.00 und langfristige Plattformziele) steht in  
+> **[`MASTERPLAN_FULL_PRODUCT.md`](MASTERPLAN_FULL_PRODUCT.md)**.  
+> Neue größere Featureentscheidungen sollen gegen beide Dokumente geprüft werden.
+
+
 Stand der Analyse: V-02.05.00, Branch `feature/LK-021-budget-fertigungsblatt` (Draft-PR #4).
 Dieser Plan beantwortet zwei Fragen: **Was fehlt noch?** und **Was muss in einer fertigen Version enthalten sein?**
 Er trennt strikt zwischen Arbeit, die im Repository erledigt und automatisch geprüft werden kann, und Nachweisen,
