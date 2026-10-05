@@ -8,8 +8,9 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
-    QFormLayout,
+    QGridLayout,
     QGroupBox,
+    QLabel,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -62,7 +63,7 @@ class CuttingPanel(QWidget):
         self.plan: CuttingPlan | None = None
 
         box = QGroupBox("Plattenmaß und Sägeschnitt")
-        form = QFormLayout(box)
+        grid = QGridLayout(box)
         self.sheet_width = _spin(300, 6000, float(self._settings.get("sheet_width_mm", 2500)), " mm")
         self.sheet_height = _spin(300, 4000, float(self._settings.get("sheet_height_mm", 1250)), " mm")
         self.kerf = _spin(0, 10, float(self._settings.get("kerf_mm", DEFAULT_KERF_MM)), " mm", 1)
@@ -70,14 +71,16 @@ class CuttingPanel(QWidget):
         self.rotation.setChecked(bool(self._settings.get("allow_rotation", True)))
         self.use_defaults = QCheckBox("Standardplatte des Materials verwenden")
         self.use_defaults.setChecked(bool(self._settings.get("use_default_sheet", True)))
-        for label, widget in (("Plattenbreite", self.sheet_width), ("Plattenhöhe", self.sheet_height),
-                              ("Sägeschnitt", self.kerf)):
-            form.addRow(label, widget)
-        form.addRow(self.use_defaults)
-        form.addRow(self.rotation)
+        for column, (label, widget) in enumerate((("Plattenbreite", self.sheet_width),
+                                                  ("Plattenhöhe", self.sheet_height),
+                                                  ("Sägeschnitt", self.kerf))):
+            grid.addWidget(QLabel(label), 0, 2 * column)
+            grid.addWidget(widget, 0, 2 * column + 1)
+        grid.addWidget(self.use_defaults, 1, 0, 1, 3)
+        grid.addWidget(self.rotation, 1, 3, 1, 3)
 
         self.summary = QTextBrowser()
-        self.summary.setMaximumHeight(190)
+        self.summary.setMaximumHeight(120)
         self.sheet_choice = QComboBox()
         self.view = ZoomableSvgView()
         layout = QVBoxLayout(self)

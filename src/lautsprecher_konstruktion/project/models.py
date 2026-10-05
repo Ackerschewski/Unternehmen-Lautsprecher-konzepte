@@ -62,11 +62,16 @@ class EnclosureConfig(BaseModel):
 
 class CrossoverConfig(BaseModel):
     enabled: bool = True
+    ways: Literal[2, 3] = 2
     topology: Literal["first_order", "butterworth_2", "linkwitz_riley_2"] = "butterworth_2"
     crossover_hz: float = Field(default=2500.0, gt=0)
     woofer_impedance_ohm: float = Field(default=8.0, gt=0)
     tweeter_impedance_ohm: float = Field(default=8.0, gt=0)
     tweeter_attenuation_db: float = Field(default=0.0, ge=0)
+    # Three-way only: crossover_hz is the woofer/midrange split, this is the midrange/tweeter split.
+    upper_crossover_hz: float | None = Field(default=None, gt=0)
+    mid_impedance_ohm: float = Field(default=8.0, gt=0)
+    mid_attenuation_db: float = Field(default=0.0, ge=0)
     add_woofer_zobel: bool = False
     # 0 = off. Otherwise a baffle step compensation of this size (max 6 dB) is added to the woofer branch.
     baffle_step_compensation_db: float = Field(default=0.0, ge=0, le=6.0)
@@ -75,6 +80,17 @@ class CrossoverConfig(BaseModel):
     tweeter_frd: FrequencyResponseData | None = None
     woofer_zma: ImpedanceData | None = None
     tweeter_zma: ImpedanceData | None = None
+    mid_frd: FrequencyResponseData | None = None
+    mid_zma: ImpedanceData | None = None
+
+    @model_validator(mode="after")
+    def check_three_way(self) -> CrossoverConfig:
+        if self.ways == 3:
+            if self.upper_crossover_hz is None:
+                raise ValueError("3-Wege-Weiche benötigt eine obere Trennfrequenz.")
+            if self.upper_crossover_hz < 1.5 * self.crossover_hz:
+                raise ValueError("Die obere Trennfrequenz muss mindestens das 1,5-fache der unteren betragen.")
+        return self
 
 
 class ProjectAccessory(BaseModel):

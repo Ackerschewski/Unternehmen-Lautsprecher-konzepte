@@ -27,6 +27,7 @@ from lautsprecher_konstruktion.crossover.passive import (
 )
 from lautsprecher_konstruktion.crossover.simulation import CrossoverResponse, simulate_crossover
 from lautsprecher_konstruktion.crossover.standards import round_crossover_to_e12
+from lautsprecher_konstruktion.crossover.three_way import simulate_three_way, three_way_network
 from lautsprecher_konstruktion.enclosure.bracing import WindowBrace, brace_depths
 from lautsprecher_konstruktion.enclosure.folded_line import (
     FOLDED_TYPES,
@@ -53,7 +54,7 @@ from lautsprecher_konstruktion.enclosure.tapped_horn import (
     design_tapped_horn,
     tapped_baffle_displacement_m3,
 )
-from lautsprecher_konstruktion.project.models import SpeakerProject
+from lautsprecher_konstruktion.project.models import CrossoverConfig, SpeakerProject
 from lautsprecher_konstruktion.warnings import DesignWarning
 
 
@@ -163,11 +164,38 @@ def _resolve_layout(elements: tuple[FrontElement, ...], port: PortDesign | None,
     return tuple(result)
 
 
+def _simulate_network(design: CrossoverDesign, co: CrossoverConfig) -> CrossoverResponse:
+    if design.ways == 3:
+        return simulate_three_way(design, co.woofer_impedance_ohm, co.mid_impedance_ohm,
+            co.tweeter_impedance_ohm, co.woofer_zma, co.mid_zma, co.tweeter_zma,
+            co.woofer_frd, co.mid_frd, co.tweeter_frd)
+    return simulate_crossover(design, co.woofer_impedance_ohm, co.tweeter_impedance_ohm,
+        co.woofer_zma, co.tweeter_zma, co.woofer_frd, co.tweeter_frd)
+
+
 def _crossover(project: SpeakerProject) -> tuple[CrossoverDesign | None, list[str]]:
     cfg = project.crossover
     warnings: list[str] = []
     if not cfg.enabled:
         return None, warnings
+
+    if cfg.ways == 3:
+        zobel = None
+        if cfg.add_woofer_zobel:
+            if project.driver.re_ohm and project.driver.le_h:
+                zobel = (project.driver.re_ohm, project.driver.le_h)
+            else:
+                warnings.append("Zobel requested, but woofer Re/Le are incomplete.")
+        step = None
+        if cfg.baffle_step_compensation_db > 0:
+            step = (baffle_step_frequency_hz(project.enclosure.external_width_mm / 1000.0),
+                    cfg.baffle_step_compensation_db)
+        assert cfg.upper_crossover_hz is not None  # guaranteed by CrossoverConfig for three ways
+        network = three_way_network(
+            cfg.crossover_hz, cfg.upper_crossover_hz, cfg.woofer_impedance_ohm, cfg.mid_impedance_ohm,
+            cfg.tweeter_impedance_ohm, cfg.topology, woofer_re_le=zobel, baffle_step=step,
+            mid_attenuation_db=cfg.mid_attenuation_db, tweeter_attenuation_db=cfg.tweeter_attenuation_db)
+        return (round_crossover_to_e12(network) if cfg.round_to_standard_values else network), warnings
 
     if cfg.topology == "first_order":
         design = first_order_two_way(
@@ -248,8 +276,7 @@ def _calculate_baffle_project(project: SpeakerProject) -> DesignBundle:
     crossover_response = None
     if crossover is not None:
         co = project.crossover
-        crossover_response = simulate_crossover(crossover,co.woofer_impedance_ohm,
-            co.tweeter_impedance_ohm,co.woofer_zma,co.tweeter_zma,co.woofer_frd,co.tweeter_frd)
+        crossover_response = _simulate_network(crossover, co)
     warnings = ["Schallwandmodell: Achsantwort mit vereinfachter Wegdifferenz; Raum, Kantenbeugung und Richtwirkung messen."]
     if volume is not None:
         warnings.append("Infinite Baffle: Rückraum vor Ort luftdicht trennen und Mindestvolumen sicherstellen; keine Gehäuserückwand in der Stückliste.")
@@ -716,10 +743,10 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     crossover_response = None
     if crossover is not None:
         co = project.crossover
-        crossover_response = simulate_crossover(crossover, co.woofer_impedance_ohm,
-            co.tweeter_impedance_ohm, co.woofer_zma, co.tweeter_zma,
-            co.woofer_frd, co.tweeter_frd)
-        if co.woofer_frd is not None and co.tweeter_frd is not None and not crossover_response.phase_complete:
+        crossover_response = _simulate_network(crossover, co)
+        all_frd = co.woofer_frd is not None and co.tweeter_frd is not None and (
+            crossover.ways == 2 or co.mid_frd is not None)
+        if all_frd and not crossover_response.phase_complete:
             issues.append(DesignWarning(code="FRD_PHASE_MISSING", severity="info",
                 message="FRD ohne vollständige Phase: akustische Summe nur als Magnituden-Näherung."))
         if rear_volume is not None and co.woofer_frd is not None:

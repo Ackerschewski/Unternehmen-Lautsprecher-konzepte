@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from pydantic import ValidationError
 from PySide6.QtCore import QByteArray, Qt, Signal
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -51,6 +52,8 @@ from lautsprecher_konstruktion.project.models import (
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
 from lautsprecher_konstruktion.ui.cutting_panel import stored_cutting_settings
+from lautsprecher_konstruktion.ui.history import History
+from lautsprecher_konstruktion.ui.layout_canvas import FrontLayoutCanvas
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 
 
@@ -63,6 +66,7 @@ class MainWindow(QMainWindow):
         self._bundle: DesignBundle | None = None
         self._catalog = DriverCatalog()
         self._front_elements: list[FrontElement] = []
+        self._history: History[tuple[FrontElement, ...]] = History((), merge_window_s=2.0)
         self._measurements: dict[str, object] = {}
         self._base_driver: Driver | None = None
         self._additional_drivers: tuple[Driver, ...] = ()
@@ -82,6 +86,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
 
         self.statusBar().showMessage("Bereit")
+        for sequence, slot in (("Ctrl+Z", self._undo), ("Ctrl+Y", self._redo), ("Ctrl+Shift+Z", self._redo)):
+            QShortcut(QKeySequence(sequence), self, activated=slot)
         self._refresh_mode_controls()
         self._load_demo()
         self._connect_dirty_signals()
@@ -339,6 +345,12 @@ class MainWindow(QMainWindow):
         self.crossover_topology.addItem("1. Ordnung / 6 dB", "first_order")
         self.crossover_topology.addItem("Butterworth 2. Ordnung / 12 dB", "butterworth_2")
         self.crossover_topology.addItem("Linkwitz-Riley 2. Ordnung / 12 dB", "linkwitz_riley_2")
+        self.crossover_ways = QComboBox()
+        self.crossover_ways.addItem("2-Wege", 2)
+        self.crossover_ways.addItem("3-Wege", 3)
+        self.upper_frequency = self._spin(40.0, 30000.0, 3500.0, " Hz")
+        self.mid_impedance = self._spin(1.0, 32.0, 8.0, " Ohm")
+        self.mid_attenuation = self._spin(0.0, 30.0, 0.0, " dB")
         self.crossover_frequency = self._spin(20.0, 30000.0, 2500.0, " Hz")
         self.woofer_impedance = self._spin(1.0, 32.0, 8.0, " Ohm")
         self.tweeter_impedance = self._spin(1.0, 32.0, 8.0, " Ohm")
@@ -357,8 +369,12 @@ class MainWindow(QMainWindow):
         note.setStyleSheet("color: #a66; padding: 6px;")
 
         form.addRow(self.crossover_enabled)
+        form.addRow("Wege", self.crossover_ways)
         form.addRow("Topologie", self.crossover_topology)
-        form.addRow("Trennfrequenz", self.crossover_frequency)
+        form.addRow("Trennfrequenz (unten)", self.crossover_frequency)
+        form.addRow("Obere Trennfrequenz (3-Wege)", self.upper_frequency)
+        form.addRow("Mitteltöner-Impedanz (3-Wege)", self.mid_impedance)
+        form.addRow("Mitteltöner-Absenkung (3-Wege)", self.mid_attenuation)
         form.addRow("Woofer-Impedanz", self.woofer_impedance)
         form.addRow("Tweeter", self.tweeter_name)
         form.addRow("Tweeter-Impedanz", self.tweeter_impedance)
@@ -366,8 +382,10 @@ class MainWindow(QMainWindow):
         form.addRow(self.woofer_zobel)
         form.addRow("Schallwandkorrektur", self.baffle_step)
         for title, key in (("Woofer FRD laden", "woofer_frd"),
+                           ("Mitteltöner FRD laden (3-Wege)", "mid_frd"),
                            ("Tweeter FRD laden", "tweeter_frd"),
                            ("Woofer ZMA laden", "woofer_zma"),
+                           ("Mitteltöner ZMA laden (3-Wege)", "mid_zma"),
                            ("Tweeter ZMA laden", "tweeter_zma")):
             button = QPushButton(title)
             button.clicked.connect(lambda _=False, item=key: self._load_measurement(item))
@@ -381,7 +399,28 @@ class MainWindow(QMainWindow):
     def _build_layout_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        toolbar = QHBoxLayout()
+        self.canvas_surface = QComboBox()
+        for key, label in FrontLayoutCanvas.SURFACES:
+            self.canvas_surface.addItem(label, key)
+        self.canvas_surface.currentIndexChanged.connect(self._canvas_surface_changed)
+        self.undo_button = QPushButton("↶ Rückgängig")
+        self.redo_button = QPushButton("↷ Wiederholen")
+        self.undo_button.clicked.connect(self._undo)
+        self.redo_button.clicked.connect(self._redo)
+        self.snap_check = QCheckBox("Einrasten (5 mm, Mitte)")
+        self.snap_check.setChecked(True)
+        for widget_ in (QLabel("Ansicht:"), self.canvas_surface, self.undo_button, self.redo_button, self.snap_check):
+            toolbar.addWidget(widget_)
+        toolbar.addStretch()
+        layout.addLayout(toolbar)
+        self.layout_canvas = FrontLayoutCanvas()
+        self.layout_canvas.elementSelected.connect(self._canvas_selected)
+        self.layout_canvas.elementMoved.connect(self._canvas_moved)
+        self.snap_check.toggled.connect(lambda on: setattr(self.layout_canvas, "snap_enabled", on))
+        layout.addWidget(self.layout_canvas, 2)
         self.element_list = QListWidget()
+        self.element_list.setMaximumHeight(110)
         self.element_list.currentRowChanged.connect(self._select_element)
         layout.addWidget(self.element_list)
         row = QHBoxLayout()
@@ -421,7 +460,7 @@ class MainWindow(QMainWindow):
             form.addRow(label,control)
             control.valueChanged.connect(self._edit_selected_element)
         layout.addLayout(form)
-        hint=QLabel("X/Y gelten auf der gewählten Platte von links/unten. Bei Bandpass sitzt der Tieftöner auf der Trennwand; die Passivmembran kann auf der Rückwand sitzen.")
+        hint=QLabel("Elemente mit der Maus ziehen oder mit den Pfeiltasten verschieben (Umschalt = 10 mm); Strg+Z macht rückgängig, Strg+Y wiederholt. X/Y gelten auf der gewählten Platte von links/unten. Bei Bandpass sitzt der Tieftöner auf der Trennwand; die Passivmembran kann auf der Rückwand sitzen.")
         hint.setWordWrap(True)
         layout.addWidget(hint)
         return widget
@@ -436,6 +475,70 @@ class MainWindow(QMainWindow):
         self.element_list.blockSignals(False)
         if selected is not None and 0 <= selected < len(self._front_elements):
             self.element_list.setCurrentRow(selected)
+        self._refresh_canvas()
+
+    # --- interactive layout, undo/redo ------------------------------------------
+
+    def _plate_size_mm(self, surface: str) -> tuple[float, float]:
+        if self._bundle is not None:
+            cabinet = self._bundle.cabinet
+            if surface == "partition":
+                return cabinet.internal_width_m * 1000, cabinet.internal_height_m * 1000
+            return cabinet.width_m * 1000, cabinet.height_m * 1000
+        return self.cabinet_width.value(), self.cabinet_height.value()
+
+    def _refresh_canvas(self) -> None:
+        if not hasattr(self, "layout_canvas"):
+            return
+        surface = self.canvas_surface.currentData()
+        self.layout_canvas.set_surface(surface)
+        self.layout_canvas.set_plate(*self._plate_size_mm(surface))
+        self.layout_canvas.set_layout(tuple(self._front_elements), self.element_list.currentRow())
+        self.undo_button.setEnabled(self._history.can_undo)
+        self.redo_button.setEnabled(self._history.can_redo)
+
+    def _canvas_surface_changed(self, _index: int = 0) -> None:
+        self._refresh_canvas()
+
+    def _canvas_selected(self, index: int) -> None:
+        if index != self.element_list.currentRow():
+            self.element_list.setCurrentRow(index)
+
+    def _canvas_moved(self, index: int, x_m: float, y_m: float, from_keyboard: bool) -> None:
+        if not 0 <= index < len(self._front_elements):
+            return
+        data = self._front_elements[index].model_dump()
+        data.update(x_m=x_m, y_m=y_m)
+        try:
+            self._front_elements[index] = FrontElement.model_validate(data)
+        except ValidationError as exc:
+            self.statusBar().showMessage(str(exc))
+            return
+        self._record_history(("move", index) if from_keyboard else None)
+        self._refresh_element_list(index)
+        self._select_element(index)
+        self.calculate()
+
+    def _record_history(self, merge_key: object | None = None) -> None:
+        self._history.push(tuple(self._front_elements), merge_key)
+        if hasattr(self, "undo_button"):
+            self.undo_button.setEnabled(self._history.can_undo)
+            self.redo_button.setEnabled(self._history.can_redo)
+
+    def _restore_history(self, state: tuple[FrontElement, ...] | None) -> None:
+        if state is None:
+            return
+        selected = self.element_list.currentRow()
+        self._front_elements = list(state)
+        self._refresh_element_list(min(max(selected, 0), len(state) - 1) if state else None)
+        self._select_element(self.element_list.currentRow())
+        self.calculate()
+
+    def _undo(self) -> None:
+        self._restore_history(self._history.undo())
+
+    def _redo(self) -> None:
+        self._restore_history(self._history.redo())
 
     def _select_element(self, index: int) -> None:
         if not 0 <= index < len(self._front_elements):
@@ -477,6 +580,7 @@ class MainWindow(QMainWindow):
         except ValidationError as exc:
             self.statusBar().showMessage(str(exc))
             return
+        self._record_history(("edit", index))
         self._refresh_element_list(index)
         self.calculate()
 
@@ -492,6 +596,7 @@ class MainWindow(QMainWindow):
             outer_diameter_m=diameter,cutout_diameter_m=diameter*0.88,
             mounting_depth_m=0.1 if kind=="woofer" else 0.05)
         self._front_elements.append(element)
+        self._record_history()
         self._refresh_element_list(len(self._front_elements)-1)
         self.calculate()
 
@@ -499,6 +604,7 @@ class MainWindow(QMainWindow):
         index=self.element_list.currentRow()
         if 0 <= index < len(self._front_elements):
             del self._front_elements[index]
+            self._record_history()
             self._refresh_element_list(min(index,len(self._front_elements)-1))
             self.calculate()
 
@@ -773,8 +879,13 @@ class MainWindow(QMainWindow):
             ),
             crossover=CrossoverConfig(
                 enabled=self.crossover_enabled.isChecked() and self.enclosure_type.currentData() not in {'horn_front','horn_tapped'},
+                ways=self.crossover_ways.currentData(),
                 topology=self.crossover_topology.currentData(),
                 crossover_hz=self.crossover_frequency.value(),
+                upper_crossover_hz=(self.upper_frequency.value()
+                                    if self.crossover_ways.currentData() == 3 else None),
+                mid_impedance_ohm=self.mid_impedance.value(),
+                mid_attenuation_db=self.mid_attenuation.value(),
                 woofer_impedance_ohm=self.woofer_impedance.value(),
                 tweeter_impedance_ohm=self.tweeter_impedance.value(),
                 tweeter_attenuation_db=self.tweeter_attenuation.value(),
@@ -1070,9 +1181,13 @@ class MainWindow(QMainWindow):
             self.crossover_canvas.draw();return
         ax=self.crossover_figure.add_subplot(211)
         ax.semilogx(r.frequencies_hz,20*np.log10(np.maximum(abs(r.woofer_voltage),1e-12)),label="Woofer elektrisch")
+        if r.midrange_voltage is not None:
+            ax.semilogx(r.frequencies_hz,20*np.log10(np.maximum(abs(r.midrange_voltage),1e-12)),label="Mitteltöner elektrisch")
         ax.semilogx(r.frequencies_hz,20*np.log10(np.maximum(abs(r.tweeter_voltage),1e-12)),label="Tweeter elektrisch")
         if r.sum_acoustic_db is not None:
             ax.semilogx(r.frequencies_hz,r.woofer_acoustic_db,label="Woofer FRD")
+            if r.midrange_acoustic_db is not None:
+                ax.semilogx(r.frequencies_hz,r.midrange_acoustic_db,label="Mitteltöner FRD")
             ax.semilogx(r.frequencies_hz,r.tweeter_acoustic_db,label="Tweeter FRD")
             ax.semilogx(r.frequencies_hz,r.sum_acoustic_db,label="Summe"+("" if r.phase_complete else " (ohne Phase)"))
         ax.set_ylabel("Pegel [dB]");ax.set_xlabel("Frequenz [Hz]");ax.grid(True,which="both",alpha=.25);ax.legend()
@@ -1196,10 +1311,12 @@ class MainWindow(QMainWindow):
         self.material.setText(project.material)
         self._set_driver(project.driver)
         self._front_elements=list(project.front_elements)
+        self._history.reset(tuple(self._front_elements))
         self._refresh_element_list()
         self._measurements={key:data for key,data in (
             ("woofer_frd",project.crossover.woofer_frd),("tweeter_frd",project.crossover.tweeter_frd),
-            ("woofer_zma",project.crossover.woofer_zma),("tweeter_zma",project.crossover.tweeter_zma)) if data is not None}
+            ("woofer_zma",project.crossover.woofer_zma),("tweeter_zma",project.crossover.tweeter_zma),
+            ("mid_frd",project.crossover.mid_frd),("mid_zma",project.crossover.mid_zma)) if data is not None}
         self.measurement_status.setText("Geladen: "+", ".join(sorted(self._measurements)) if self._measurements else "Keine Messdaten geladen")
         enclosure_index = self.enclosure_type.findData(project.enclosure.enclosure_type)
         self.enclosure_type.setCurrentIndex(max(enclosure_index, 0))
@@ -1244,7 +1361,11 @@ class MainWindow(QMainWindow):
         self.crossover_enabled.setChecked(project.crossover.enabled)
         topology_index = self.crossover_topology.findData(project.crossover.topology)
         self.crossover_topology.setCurrentIndex(max(topology_index, 0))
+        self.crossover_ways.setCurrentIndex(max(self.crossover_ways.findData(project.crossover.ways), 0))
         self.crossover_frequency.setValue(project.crossover.crossover_hz)
+        self.upper_frequency.setValue(project.crossover.upper_crossover_hz or 3500.0)
+        self.mid_impedance.setValue(project.crossover.mid_impedance_ohm)
+        self.mid_attenuation.setValue(project.crossover.mid_attenuation_db)
         self.woofer_impedance.setValue(project.crossover.woofer_impedance_ohm)
         self.tweeter_impedance.setValue(project.crossover.tweeter_impedance_ohm)
         self.tweeter_name.setText(project.tweeter_name)

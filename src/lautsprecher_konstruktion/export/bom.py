@@ -100,6 +100,10 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
             )
         )
 
+    if bundle.crossover and bundle.crossover.ways == 3 and not project.additional_drivers:
+        items.append(BomItem("Treiber", "M1", "Mitteltöner", 1,
+                             f"{project.crossover.mid_impedance_ohm:g} Ohm"))
+
     if bundle.port:
         p = bundle.port
         if p.shape == "round":

@@ -12,14 +12,24 @@ def render_crossover_svg(design: CrossoverDesign) -> str:
     """
     width = 1100
     row_height = 86
-    branches = [
-        ("Woofer / Tiefpass", [c for c in design.components if "woofer" in c.branch]),
-        ("Tweeter / Hochpass", [c for c in design.components if "tweeter" in c.branch]),
-        ("Pegel / Korrektur", [
-            c for c in design.components
-            if "attenuation" in c.branch or "zobel" in c.branch
-        ]),
-    ]
+    if design.ways == 3:
+        branches = [
+            ("Woofer / Tiefpass", [c for c in design.components if c.branch.split()[0] == "woofer"]),
+            ("Mitteltöner / Bandpass", [c for c in design.components if c.branch.split()[0] == "midrange"]),
+            ("Tweeter / Hochpass", [c for c in design.components if c.branch.split()[0] == "tweeter"]),
+        ]
+    else:
+        branches = [
+            ("Woofer / Tiefpass", [c for c in design.components if "woofer" in c.branch]),
+            ("Tweeter / Hochpass", [c for c in design.components if "tweeter" in c.branch]),
+            ("Pegel / Korrektur", [
+                c for c in design.components
+                if "attenuation" in c.branch or "zobel" in c.branch
+            ]),
+        ]
+    split_text = f'{design.crossover_hz:.0f} Hz'
+    if design.ways == 3 and design.upper_crossover_hz:
+        split_text += f' / {design.upper_crossover_hz:.0f} Hz'
     active = [(name, components) for name, components in branches if components]
     height = 150 + row_height * max(len(active), 1)
 
@@ -29,8 +39,7 @@ def render_crossover_svg(design: CrossoverDesign) -> str:
         ('<style>.wire{stroke:#111;stroke-width:2;fill:none}.box{fill:#fff;stroke:#111;stroke-width:1.5}'
         '.title{font:bold 22px sans-serif}.label{font:bold 14px sans-serif}'
         '.txt{font:13px sans-serif}.note{font:12px sans-serif;fill:#555}</style>'),
-        (f'<text x="30" y="34" class="title">{escape(design.name)} — '
-        f'{design.crossover_hz:.0f} Hz</text>'),
+        f'<text x="30" y="34" class="title">{escape(design.name)} — {split_text}</text>',
         ('<text x="30" y="62" class="note">Elektrischer Startentwurf auf Basis nominaler '
         'resistiver Lasten; finale Abstimmung mit Messdaten.</text>'),
     ]

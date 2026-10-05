@@ -22,6 +22,8 @@ class CrossoverResponse:
     sum_acoustic_db: NDArray[np.float64] | None
     phase_complete: bool
     measured_impedance_used: bool
+    midrange_voltage: NDArray[np.complex128] | None = None
+    midrange_acoustic_db: NDArray[np.float64] | None = None
 
 
 def _parallel(*impedances: NDArray[np.complex128] | complex) -> NDArray[np.complex128]:

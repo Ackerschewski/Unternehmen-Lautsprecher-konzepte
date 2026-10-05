@@ -38,6 +38,8 @@ class CrossoverDesign:
     slope_db_oct: int
     components: tuple[PassiveComponent, ...]
     notes: tuple[str, ...]
+    ways: int = 2
+    upper_crossover_hz: float | None = None
 
 
 def _validate(fc_hz: float, impedance_ohm: float) -> None:
