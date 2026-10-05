@@ -280,7 +280,7 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
                     f"Verdrängung {bundle.total_displacement_m3*1000:.1f} l · "
                     f"Streben-Tiefen: {', '.join(f'{v*1000:.1f}' for v in bundle.brace_depths_m) or 'keine'} mm")]
     if bundle.port:
-        caption = (f"BR1 Mündung: {bundle.port.width_m*1000:.1f} × {bundle.port.height_m*1000:.1f} mm"
+        caption = (f"BR1 Mündung: {(bundle.port.width_m or 0.0)*1000:.1f} × {(bundle.port.height_m or 0.0)*1000:.1f} mm"
                    if bundle.folded_line is not None and bundle.folded_line.family != "mltl" else
                    f"BR1 {bundle.port.shape}: Querschnitt {bundle.port.area_m2*10000:.1f} cm², "
                    f"physische Länge {bundle.port.physical_length_m*1000:.1f} mm")

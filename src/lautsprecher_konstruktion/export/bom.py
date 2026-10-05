@@ -107,10 +107,10 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
     if bundle.port:
         p = bundle.port
         if p.shape == "round":
-            spec = f"Ø {p.diameter_m*1000:.1f} x {p.physical_length_m*1000:.1f} mm"
+            spec = f"Ø {(p.diameter_m or 0.0)*1000:.1f} x {p.physical_length_m*1000:.1f} mm"
         else:
             spec = (
-                f"{p.width_m*1000:.1f} x {p.height_m*1000:.1f} x "
+                f"{(p.width_m or 0.0)*1000:.1f} x {(p.height_m or 0.0)*1000:.1f} x "
                 f"{p.physical_length_m*1000:.1f} mm"
             )
         if bundle.port_resistance_pa_s_m3 is not None:
@@ -121,7 +121,7 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
         elif ((bundle.folded_line is not None and bundle.folded_line.family != "mltl")
               or bundle.tapped_horn is not None):
             items.append(BomItem("Fräsung", "BR1", "Linien-/Hornmündung in Frontplatte", 1,
-                f"{p.width_m*1000:.1f} x {p.height_m*1000:.1f} mm",
+                f"{(p.width_m or 0.0)*1000:.1f} x {(p.height_m or 0.0)*1000:.1f} mm",
                 "Ausschnitt, kein separates Portrohr; Kanten verrunden"))
         else:
             items.append(BomItem("Ports", "BR1", f"{p.shape} port", 1, spec))
@@ -130,7 +130,7 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
         second_surface = next((e.surface for e in bundle.front_elements if e.id == "BR2"), "back")
         items.append(BomItem("Ports", "BR2",
             "Interner Verbindungskanal" if second_surface == "partition" else "Rückkammer Rundport", 1,
-            f"Ø {p.diameter_m*1000:.1f} x {p.physical_length_m*1000:.1f} mm"))
+            f"Ø {(p.diameter_m or 0.0)*1000:.1f} x {p.physical_length_m*1000:.1f} mm"))
     if bundle.radiator:
         r=bundle.radiator
         items.append(BomItem("Passivmembran", "PM1", "Passivmembran mit Zusatzmasse", 1,

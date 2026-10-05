@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from reportlab.lib.colors import HexColor
@@ -43,7 +44,7 @@ def _lines(c: Canvas, lines: list[str], x: float, y: float, step: float = 21) ->
     return y
 
 
-def _table(c: Canvas, headers: tuple[str, ...], rows: list[tuple[str, ...]],
+def _table(c: Canvas, headers: tuple[str, ...], rows: Sequence[tuple[str, ...]],
            widths: tuple[float, ...], y: float) -> None:
     x0 = 42.0
     c.setFillColor(BLUE)
@@ -289,7 +290,7 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
         data.append(f'Passivmembran: Zusatzmasse {bundle.radiator.added_mass_kg*1000:.1f} g')
     if bundle.project.enclosure.enclosure_type == 'compound_push_pull':
         data.append('Push-Pull: W2 mechanisch umdrehen und elektrisch gegensinnig polen.')
-    if bundle.front_chamber_volume_m3 is not None:
+    if bundle.front_chamber_volume_m3 is not None and bundle.rear_chamber_volume_m3 is not None:
         data.append(f'Bandpass: Frontkammer {bundle.front_chamber_volume_m3*1000:.1f} l, Rueckkammer {bundle.rear_chamber_volume_m3*1000:.1f} l')
     if bundle.sealed:
         data.append(f'Geschlossen: Qtc {bundle.sealed.target_qtc:.3f}, F3 {bundle.sealed.f3_hz:.1f} Hz')
@@ -352,7 +353,7 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
     if bundle.port:
         p = bundle.port
         opening = (f'Ø {p.diameter_m*1000:.1f} mm' if p.diameter_m else
-                   f'{p.width_m*1000:.1f} x {p.height_m*1000:.1f} mm')
+                   f'{(p.width_m or 0.0)*1000:.1f} x {(p.height_m or 0.0)*1000:.1f} mm')
         inside.append(f'BR1 Portöffnung: {opening}; Länge {p.physical_length_m*1000:.1f} mm; Fläche {p.area_m2*10000:.1f} cm2')
     if bundle.rear_port:
         p = bundle.rear_port
@@ -376,13 +377,14 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
     c.showPage(); page += 1
 
     _header(c, 'Zuschnittliste', bundle, page)
-    cut_rows = [(p.name, str(p.quantity), f'{p.width_m*1000:.1f}', f'{p.height_m*1000:.1f}',
-                 f'{p.thickness_m*1000:.1f}', bundle.project.material) for p in bundle.panels]
+    panel_rows: list[tuple[str, ...]] = [
+        (p.name, str(p.quantity), f'{p.width_m*1000:.1f}', f'{p.height_m*1000:.1f}',
+         f'{p.thickness_m*1000:.1f}', bundle.project.material) for p in bundle.panels]
     if bundle.brace:
         b = bundle.brace
-        cut_rows.append(('Fensterstrebe', str(b.quantity), f'{b.outer_width_m*1000:.1f}',
+        panel_rows.append(('Fensterstrebe', str(b.quantity), f'{b.outer_width_m*1000:.1f}',
                          f'{b.outer_height_m*1000:.1f}', f'{b.thickness_m*1000:.1f}', bundle.project.material))
-    _table(c, ('Bauteil','Anzahl','Länge mm','Breite mm','Dicke mm','Material'), cut_rows,
+    _table(c, ('Bauteil','Anzahl','Länge mm','Breite mm','Dicke mm','Material'), panel_rows,
            (230,70,110,110,110,390), PAGE_H-105)
     c.showPage(); page += 1
 
@@ -511,14 +513,14 @@ def _write_front_horn_pdf(path: str | Path, bundle: DesignBundle,
     cy=y+h*scale/2
     c.setStrokeColor(INK)
     c.rect(sx+length*scale,y,d*scale,h*scale)
-    path=c.beginPath()
-    path.moveTo(sx,cy-h*scale/2)
-    path.lineTo(sx+length*scale,cy-throat*scale/2)
-    path.lineTo(sx+length*scale,cy+throat*scale/2)
-    path.lineTo(sx,cy+h*scale/2)
-    path.close()
+    outline=c.beginPath()
+    outline.moveTo(sx,cy-h*scale/2)
+    outline.lineTo(sx+length*scale,cy-throat*scale/2)
+    outline.lineTo(sx+length*scale,cy+throat*scale/2)
+    outline.lineTo(sx,cy+h*scale/2)
+    outline.close()
     c.setStrokeColor(BLUE)
-    c.drawPath(path)
+    c.drawPath(outline)
     _lines(c,[f'Horn axial {length:.1f} mm',f'Rueckgehaeuse Tiefe {d:.1f} mm',
               f'Plattenstaerke {cab.panel_thickness_m*1000:.1f} mm',
               f'Soll-Grenzfrequenz {horn.target_cutoff_hz:.1f} Hz'],

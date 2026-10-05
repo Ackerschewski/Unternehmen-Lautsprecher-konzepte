@@ -30,12 +30,12 @@ stages:
     required_when: hardware_or_manufacturing
 
 project_overrides:
-  static_command: PROJECT_SPECIFIC
-  unit_command: PROJECT_SPECIFIC
-  integration_command: PROJECT_SPECIFIC
-  host_runtime_command: PROJECT_SPECIFIC_OR_MANUAL
-  user_test_runbook: PROJECT_SPECIFIC
-  physical_test_runbook: PROJECT_SPECIFIC
+  static_command: ".venv/bin/ruff check src tests && .venv/bin/mypy"
+  unit_command: "QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -p no:cacheprovider"
+  integration_command: "QT_QPA_PLATFORM=offscreen .venv/bin/python -m lautsprecher_konstruktion.app --smoke-assistant"
+  host_runtime_command: "powershell -ExecutionPolicy Bypass -File scripts/build_windows.ps1  # Windows only, manual"
+  user_test_runbook: docs/application/USER_MANUAL.md
+  physical_test_runbook: docs/application/MESSPROTOKOLL.md
 
 evidence:
   source_revision_required: true

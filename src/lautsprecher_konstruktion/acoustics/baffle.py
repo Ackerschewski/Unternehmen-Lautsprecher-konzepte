@@ -10,6 +10,7 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 
 
@@ -38,7 +39,9 @@ def simulate_baffle(driver: Driver, family: str, path_m: float,
     if rear_volume_m3 is not None:
         cb = rear_volume_m3/(rho*c*c)
         zmechanical += sd*sd/(s*cb)
-    impedance = excursion = spl = None
+    impedance: ComplexArray | None = None
+    excursion: FloatArray | None = None
+    spl: FloatArray | None = None
     if complete:
         assert driver.re_ohm is not None and driver.qes is not None
         bl = sqrt(ws*ms*driver.re_ohm/driver.qes)
@@ -47,7 +50,7 @@ def simulate_baffle(driver: Driver, family: str, path_m: float,
         speed = bl*(sqrt(power_w*driver.re_ohm)/impedance)/zmechanical
         excursion = abs(speed/s)*1000
     else:
-        speed = 1/zmechanical
+        speed = np.asarray(1/zmechanical, dtype=complex)
     cancellation = (np.ones_like(s) if family == "infinite_baffle" else
                     1-np.exp(-s*path_m/c))
     pressure = s*rho*sd*speed*cancellation/(2*pi)

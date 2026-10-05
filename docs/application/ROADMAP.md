@@ -30,6 +30,10 @@ Umgesetzt: Zuschnittplan mit Sägeschnitt (Guillotine-Verfahren, mehrere Heurist
 Bauanleitung je Bauform; Prototypvergleich mit Portkorrektur (UI und Kommandozeile); Schallwandkorrektur; Referenztests; Zuletzt geöffnet, Autosave, Protokoll,
 Einstellungen, Hilfe; einheitliche Versionsquelle. Gesamtplan: `PLAN_V-03.00.00.md`.
 
+## V-02.07.00 — Mehrwege und Bedienkomfort
+
+Umgesetzt: passive 3-Wege-Weiche mit Kettenschaltungs-Simulation, interaktives Frontlayout mit Undo/Redo, `mypy --strict` für Nicht-UI-Pakete, UI-Tests.
+
 ## Nächste Ausbaustufe — priorisiert (Stand vor V-02.06.00, teilweise erledigt)
 
 1. Modell gegen Messungen und etablierte Simulationsprogramme für mehrere reale Treiber abgleichen; Leckage-/Portverlustparameter kalibrieren.

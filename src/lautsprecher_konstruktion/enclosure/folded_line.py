@@ -130,4 +130,4 @@ def baffle_displacement_m3(line: FoldedLine) -> float:
 
 
 def mouth_equivalent_radius_m(line: FoldedLine) -> float:
-    return (line.mouth_width_m*line.mouth_height_m/pi)**0.5
+    return float((line.mouth_width_m*line.mouth_height_m/pi)**0.5)

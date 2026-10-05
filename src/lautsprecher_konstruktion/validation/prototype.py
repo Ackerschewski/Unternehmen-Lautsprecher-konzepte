@@ -11,16 +11,14 @@ from dataclasses import dataclass, field, replace
 from typing import Literal
 
 import numpy as np
-from numpy.typing import NDArray
 from scipy.optimize import brentq
 from scipy.signal import find_peaks
 
 from lautsprecher_konstruktion.acoustics.response import sealed_response_db
 from lautsprecher_konstruktion.acoustics.vented import simulate_vented
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.services.design import DesignBundle
-
-FloatArray = NDArray[np.float64]
 
 # Rating grid (engineering rules of thumb, not a standard).
 RMS_GOOD_DB = 1.5
@@ -106,10 +104,10 @@ def _first_f3(f: FloatArray, level_db: FloatArray) -> float | None:
 
 
 def _interp_log(f: FloatArray, xs: tuple[float, ...], ys: tuple[float, ...] | FloatArray) -> FloatArray:
-    return np.interp(np.log(f), np.log(np.asarray(xs)), np.asarray(ys, dtype=float))
+    return np.asarray(np.interp(np.log(f), np.log(np.asarray(xs)), np.asarray(ys, dtype=float)), dtype=float)
 
 
-def simulated_curves(bundle: DesignBundle) -> tuple[FloatArray, FloatArray, NDArray[np.complex128] | None]:
+def simulated_curves(bundle: DesignBundle) -> tuple[FloatArray, FloatArray, ComplexArray | None]:
     """Frequency grid, relative level in dB and (if modelled) complex impedance."""
     response = bundle.vented_response
     if response is not None:

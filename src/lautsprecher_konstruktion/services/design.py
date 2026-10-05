@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from typing import Any, cast
 
 import numpy as np
 
@@ -28,6 +29,7 @@ from lautsprecher_konstruktion.crossover.passive import (
 from lautsprecher_konstruktion.crossover.simulation import CrossoverResponse, simulate_crossover
 from lautsprecher_konstruktion.crossover.standards import round_crossover_to_e12
 from lautsprecher_konstruktion.crossover.three_way import simulate_three_way, three_way_network
+from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.bracing import WindowBrace, brace_depths
 from lautsprecher_konstruktion.enclosure.folded_line import (
     FOLDED_TYPES,
@@ -90,7 +92,7 @@ class DesignBundle:
     tapped_horn: TappedHorn | None = None
 
     @property
-    def acoustic_driver(self):
+    def acoustic_driver(self) -> Driver:
         return (equivalent_driver(self.project.driver, self.project.enclosure.isobaric_wiring)
                 if self.coupler else self.project.driver)
 
@@ -105,7 +107,7 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
     if driver.cutout_diameter_m:
         layout_type = ("woofer" if driver.driver_type in {"midwoofer", "coaxial_driver"} else
                        "tweeter" if driver.driver_type == "compression_driver" else driver.driver_type)
-        result.append(FrontElement(id="W1", type=layout_type,
+        result.append(FrontElement(id="W1", type=cast(Any, layout_type),
             surface="partition" if project.enclosure.enclosure_type.startswith("bandpass_") else "front",
             x_m=w/2, y_m=h*(0.50 if project.enclosure.enclosure_type.startswith("isobaric_") or
                             project.enclosure.enclosure_type == "compound_push_pull" else 0.62),
@@ -132,7 +134,7 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
         assert rear_port.diameter_m is not None
         second_surface = ("partition" if project.enclosure.enclosure_type == "bandpass_6_series"
                           else "back")
-        result.append(FrontElement(id="BR2", type="port", surface=second_surface, x_m=w/2,
+        result.append(FrontElement(id="BR2", type="port", surface=cast(Any, second_surface), x_m=w/2,
             y_m=max(rear_port.diameter_m/2+0.025, h*0.18),
             outer_diameter_m=rear_port.diameter_m,
             cutout_diameter_m=rear_port.diameter_m,
@@ -269,7 +271,7 @@ def _calculate_baffle_project(project: SpeakerProject) -> DesignBundle:
             message="H-Frame-Seitenflügel kollidieren mit dem Treiberflansch."))
     path = width+2*wing
     response = simulate_baffle(driver,cfg.enclosure_type,path,volume,cfg.input_power_w)
-    panels = (CutPanel("Schallwand",1,width,height,t),)
+    panels: tuple[CutPanel, ...] = (CutPanel("Schallwand",1,width,height,t),)
     if wing:
         panels += (CutPanel("H-Frame Seitenflügel",2,wing,height,t),)
     crossover,crossover_warnings = _crossover(project)
@@ -543,7 +545,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     if folded_line is not None:
         top = cabinet.height_m-(cabinet.top_thickness_m or t)-folded_line.channel_heights_m[0]/2
         driver = project.driver
-        woofer = FrontElement(id="W1",type="woofer" if driver.driver_type == "midwoofer" else driver.driver_type,
+        woofer = FrontElement(id="W1",type=cast(Any, "woofer" if driver.driver_type == "midwoofer" else driver.driver_type),
             surface="front",x_m=cabinet.width_m/2,y_m=top,
             outer_diameter_m=driver.outer_diameter_m or driver.cutout_diameter_m,
             cutout_diameter_m=driver.cutout_diameter_m,
@@ -594,11 +596,11 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                               for e in source_layout)
     layout = _resolve_layout(source_layout or _default_layout(project, cabinet, port, radiator, rear_port), port, rear_port)
     if front_horn is not None:
-        woofer = next((e for e in layout if e.id == "W1" and e.surface == "front"),None)
-        if woofer is None:
+        horn_driver = next((e for e in layout if e.id == "W1" and e.surface == "front"),None)
+        if horn_driver is None:
             issues.append(DesignWarning(code="FRONT_HORN_DRIVER",severity="error",
                 message="Front-Horn benötigt W1 mittig auf der Frontplatte."))
-        elif abs(woofer.x_m-cabinet.width_m/2)>0.005 or abs(woofer.y_m-cabinet.height_m/2)>0.005:
+        elif abs(horn_driver.x_m-cabinet.width_m/2)>0.005 or abs(horn_driver.y_m-cabinet.height_m/2)>0.005:
             issues.append(DesignWarning(code="FRONT_HORN_DRIVER",severity="error",
                 message="W1 muss für den geraden Front-Hornhals mittig auf der Frontplatte sitzen."))
         if any(e.id!="W1" and e.surface=="front" for e in layout):
@@ -621,11 +623,12 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         partition_top_m=cabinet.top_thickness_m or t,
         partition_bottom_m=cabinet.bottom_thickness_m or t))
     if coupler is not None:
-        woofer = next((e for e in layout if e.id == "W1" and e.surface == "front"), None)
-        if woofer is None:
+        pair_woofer = next((e for e in layout if e.id == "W1" and e.surface == "front"), None)
+        if pair_woofer is None:
             issues.append(DesignWarning(code="ISOBARIC_DRIVER", severity="error",
                 message="Für Isobarik muss W1 auf der Front sitzen."))
         else:
+            woofer = pair_woofer
             margin = min(woofer.x_m-t, cabinet.width_m-t-woofer.x_m,
                          woofer.y_m-(cabinet.bottom_thickness_m or t),
                          cabinet.height_m-(cabinet.top_thickness_m or t)-woofer.y_m)
@@ -691,6 +694,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                 response = simulate_bandpass(project.driver, rear_volume, front_volume,
                                              port, power_w=cfg.input_power_w, rear_port=rear_port)
         else:
+            assert resonator is not None
             response = simulate_vented(pair_driver, target_net_volume_m3,
                 resonator, power_w=cfg.input_power_w, ql=cfg.ql, qa=cfg.qa, qp=cfg.qp,
                 resonator_compliance_m5_n=(radiator.acoustic_compliance_m5_n if radiator else None),

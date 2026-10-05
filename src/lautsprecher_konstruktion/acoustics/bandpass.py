@@ -11,6 +11,7 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.ports import PortDesign
 
@@ -39,7 +40,7 @@ def simulate_bandpass(
 
     complete = all(v is not None for v in (driver.sd_m2, driver.re_ohm, driver.qes))
     sd = driver.sd_m2 if driver.sd_m2 is not None else 1.0
-    cs = driver.vas_m3/(rho_kg_m3*sound_speed_m_s**2*sd**2)
+    cs = driver.require_vas_m3()/(rho_kg_m3*sound_speed_m_s**2*sd**2)
     ws = 2*pi*driver.fs_hz
     ms = 1/(ws**2*cs)
     if complete and driver.qms is not None:
@@ -53,9 +54,10 @@ def simulate_bandpass(
         qms = driver.qts
     zm = ws*ms/qms + s*ms + 1/(s*cs)
     ztotal = zm + sd**2*(zfront+zrear)
-    impedance = None
-    excursion = None
-    speed = None
+    impedance: ComplexArray | None = None
+    excursion: FloatArray | None = None
+    speed: FloatArray | None = None
+    cone_speed: ComplexArray
     front_speed = None
     rear_speed = None
     mach = None
@@ -69,7 +71,7 @@ def simulate_bandpass(
         cone_speed = bl*current/ztotal
         excursion = np.abs(cone_speed/s)*1000
     else:
-        cone_speed = 1/ztotal
+        cone_speed = np.asarray(1/ztotal, dtype=complex)
 
     u_port = -sd*cone_speed*zfront/zp
     # Rear-chamber volume velocity has the opposite sign at the diaphragm.
@@ -143,7 +145,7 @@ def simulate_bandpass_series(
 
     complete = all(v is not None for v in (driver.sd_m2, driver.re_ohm, driver.qes))
     sd = driver.sd_m2 if driver.sd_m2 is not None else 1.0
-    cs = driver.vas_m3/(rho_kg_m3*sound_speed_m_s**2*sd**2)
+    cs = driver.require_vas_m3()/(rho_kg_m3*sound_speed_m_s**2*sd**2)
     ws = 2*pi*driver.fs_hz
     ms = 1/(ws**2*cs)
     if complete and driver.qms is not None:
@@ -157,7 +159,13 @@ def simulate_bandpass_series(
         qms = driver.qts
     zm = ws*ms/qms + s*ms + 1/(s*cs)
     ztotal = zm + sd**2*acoustic_load
-    impedance = excursion = spl = front_speed = rear_speed = speed = mach = None
+    impedance: ComplexArray | None = None
+    excursion: FloatArray | None = None
+    spl: FloatArray | None = None
+    front_speed: FloatArray | None = None
+    rear_speed: FloatArray | None = None
+    speed: FloatArray | None = None
+    mach: FloatArray | None = None
     if complete:
         assert driver.re_ohm is not None and driver.qes is not None
         bl = sqrt(ws*ms*driver.re_ohm/driver.qes)

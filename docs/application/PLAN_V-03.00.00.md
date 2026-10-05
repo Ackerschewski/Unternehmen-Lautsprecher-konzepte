@@ -55,7 +55,7 @@ Ein Punkt gilt erst als erfüllt, wenn der genannte Nachweis existiert.
 |---|---|---|---|
 | F1 | Alle 29 Gehäusetypen berechenbar mit Fertigungsgeometrie | Pytest | erfüllt |
 | F2 | Baffle-Step-Korrektur im Systemfrequenzgang, abschaltbar, dokumentiert | Pytest | V-02.06 |
-| F3 | 3-Wege-Weiche | Pytest + Doku | offen (V-02.07) |
+| F3 | 3-Wege-Weiche | Pytest + Doku | **erfüllt (V-02.07)** |
 | K1 | Solver gegen Literaturreferenzen abgesichert | Pytest (`test_reference_*`) | V-02.06 |
 | K2 | Prototyp-Messvergleich mit Abweichungskennzahlen und Korrekturvorschlag | Pytest + Beispielmessung | V-02.06 |
 | K3 | Messvalidierung: ≥ 3 reale Treiber in ≥ 3 Bauformen, Abweichung dokumentiert | Messprotokoll (PHYSICAL) | **nur Nutzer** |
@@ -65,9 +65,9 @@ Ein Punkt gilt erst als erfüllt, wenn der genannte Nachweis existiert.
 | M4 | 3D-Kollisions-/Gehrungsprüfung | Pytest | offen (V-02.08) |
 | U1 | Zuletzt geöffnet, Einstellungen, Autosave/Wiederherstellung, Ungespeichert-Warnung | Offscreen-UI-Test | V-02.06 |
 | U2 | Programmlog (rotierend), Hilfe/Über, Handbuch aktuell | Pytest + Review | V-02.06 |
-| U3 | Undo/Redo + Drag-and-drop im Frontlayout | Offscreen-UI-Test | offen (V-02.07) |
-| Q1 | Ruff sauber, Pytest grün, Kernabdeckung ≥ 90 %, UI ≥ 70 % | lokaler Lauf | teilweise |
-| Q2 | `mypy --strict` für Nicht-UI-Pakete grün | mypy | offen (V-02.07) |
+| U3 | Undo/Redo + Drag-and-drop im Frontlayout | Offscreen-UI-Test | **erfüllt (V-02.07)** |
+| Q1 | Ruff sauber, Pytest grün, Kernabdeckung ≥ 90 %, UI ≥ 70 % | lokaler Lauf | **erfüllt (V-02.07)**: gesamt 90 %, UI-Dateien 75–100 % |
+| Q2 | `mypy --strict` für Nicht-UI-Pakete grün | mypy | **erfüllt (V-02.07)** |
 | Q3 | Eine einzige Versionsquelle | Pytest | V-02.06 |
 | Q4 | Spezifikation, Anforderungen, Abnahmekriterien ausgefüllt | Review | V-02.06 |
 | R1 | Windows-Onedir-Build + Smoke-Test grün | HOST_RUNTIME (Windows) | **nur Nutzer/CI** |
@@ -76,15 +76,15 @@ Ein Punkt gilt erst als erfüllt, wenn der genannte Nachweis existiert.
 
 ## 4. Stufenplan
 
-### V-02.06.00 — „Fertigung und Vertrauen“ (in diesem Ausbau umgesetzt)
+### V-02.06.00 — „Fertigung und Vertrauen“ (umgesetzt)
 1. WP-A Zuschnittoptimierung, Gewicht, Bauanleitung (M1–M3).
 2. WP-B Referenztests und Prototyp-Messvergleich (K1, K2).
 3. WP-C Baffle Step (F2).
 4. WP-D Alltagstauglichkeit: Einstellungen, Zuletzt geöffnet, Autosave, Log, Hilfe (U1, U2).
 5. WP-E Governance: einheitliche Version, Spezifikation, Task, Changelog (Q3, Q4).
 
-### V-02.07.00 — „Mehrwege und Bedienkomfort“
-3-Wege-Weiche/Netlist, Undo/Redo und Drag-and-drop im Frontlayout, mypy-strict für alle Nicht-UI-Pakete, UI-Tests ausbauen, Chassis-Datenbank um belegte Herstellerdaten erweitern.
+### V-02.07.00 — „Mehrwege und Bedienkomfort“ (umgesetzt)
+3-Wege-Weiche, Undo/Redo und Drag-and-drop im Frontlayout, `mypy --strict` für alle Nicht-UI-Pakete, UI-Tests. Nicht umgesetzt: Erweiterung der Chassis-Datenbank (braucht belegte Herstellerdaten, die nicht erfunden werden dürfen) und automatische 3-Wege-Auswahl im Assistenten.
 
 ### V-02.08.00 — „Geometrie-Härtung“
 3D-Kollisionsprüfung, Gehrungen, Plattenstöße, Horn-Faltungen mit echten Profilen, DXF-Validierung gegen CNC-Software.

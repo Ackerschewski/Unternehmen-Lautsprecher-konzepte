@@ -4,7 +4,7 @@
 
 - Berechnung und Fertigungsgeometrie für alle 29 Gehäusetypen des Katalogs (geschlossen, Bassreflex, aperiodisch, Passivmembran, Bandpass, Isobarik, Linien, Hörner, offene Schallwand, Kardioid).
 - Automatischer Assistent (Wunschmaße → Varianten) und Expertenmodus (T/S-Eingabe, Frontlayout, Messdatenimport).
-- Passive Zweiwegeweiche (Startwerte, E12), Schallwandkorrektur, Weichensimulation mit gemessenen FRD/ZMA.
+- Passive Zwei- und Dreiwegeweiche (Startwerte, E12), Schallwandkorrektur, Weichensimulation mit gemessenen FRD/ZMA.
 - Komponentenbibliothek mit belegten Herstellerdaten und datierten Preisen; Budgetprüfung für ein Gehäuse.
 - Export: SVG, DXF, PDF, CSV, Zuschnittplan, Gewicht, Bauanleitung.
 - Prototypvergleich (Messung gegen Simulation) und Referenztests der Solver.
@@ -19,7 +19,7 @@
 
 ## Future Candidates
 
-- 3-Wege-Weiche / Netlist, Undo/Redo und Drag-and-drop im Frontlayout.
+- Automatische 3-Wege-Auswahl im Assistenten, freie Netlist.
 - 3D-Kollisions- und Gehrungsprüfung, CNC-Profilvalidierung.
 - Erweiterte Chassis-Datenbasis aus belegten Herstellerdaten.
 - Kalibrierung der Verlustparameter aus Prototypmessungen.

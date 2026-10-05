@@ -1,6 +1,6 @@
 {
-  "version": "V-02.06.00",
-  "task_id": "LK-024",
+  "version": "V-02.07.00",
+  "task_id": "TASK-0025",
   "status": "USER_TEST_REQUIRED",
   "owner": "local integration",
   "acceptance": [
@@ -10,17 +10,19 @@
     "baffle step compensation option",
     "reference tests against literature relations",
     "recent files, autosave recovery, settings, log, help",
-    "single version source"
+    "single version source",
+    "three-way passive crossover with exact ladder simulation",
+    "interactive front layout with undo/redo",
+    "mypy --strict green for all non-UI packages"
   ],
-  "tests": "see BUILD_REPORT_V-02.06.00.md",
+  "tests": "228 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen smoke; see BUILD_REPORT_V-02.07.00.md",
   "remaining": [
     "prototype measurement validation (K3)",
-    "Windows build and smoke of V-02.06.00 (R1)",
+    "Windows build and smoke of V-02.07.00 (R1)",
     "interactive user test (R2)",
     "owner approval (R3)",
-    "3-way crossover",
-    "undo/redo and drag-and-drop in front layout",
     "3D collision and mitre check",
-    "mypy strict"
+    "automatic 3-way selection in the assistant",
+    "extend chassis data from sourced manufacturer data"
   ]
 }

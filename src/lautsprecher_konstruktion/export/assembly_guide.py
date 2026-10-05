@@ -208,7 +208,7 @@ def _write_pdf(path: Path, bundle: DesignBundle, steps: tuple[Step, ...]) -> Non
         canvas.drawString(40, height - 50, f"Bauanleitung – {bundle.project.name}"[:70])
         canvas.setFont("Helvetica", 8)
         canvas.drawString(40, 24, f"{bundle.project.revision} · Seite {page}")
-        return height - 80
+        return float(height) - 80
 
     y = page_frame()
     for number, step in enumerate(steps, start=1):

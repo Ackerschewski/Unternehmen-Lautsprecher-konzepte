@@ -13,7 +13,7 @@ def nearest_e12(value: float) -> float:
     if value <= 0:
         raise ValueError("Standardwert muss positiv sein")
     exponent = floor(log10(value))
-    options = (base*10**power for power in (exponent-1, exponent, exponent+1)
+    options = (base*10.0**power for power in (exponent-1, exponent, exponent+1)
                for base in E12)
     return min(options, key=lambda option: (abs(log10(option/value)), option))
 

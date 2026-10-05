@@ -53,12 +53,12 @@ gates:
 
   unit:
     blocking: true
-    command: PROJECT_SPECIFIC
+    command: "QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -p no:cacheprovider"
     evidence: UNIT
 
   integration:
     blocking: true
-    command: PROJECT_SPECIFIC
+    command: "QT_QPA_PLATFORM=offscreen .venv/bin/python -m lautsprecher_konstruktion.app --smoke-assistant"
     evidence: INTEGRATION
 
   architecture:
@@ -73,7 +73,7 @@ gates:
 
   host_runtime:
     blocking_when_required: true
-    command: PROJECT_SPECIFIC_OR_MANUAL
+    command: "powershell -ExecutionPolicy Bypass -File scripts/build_windows.ps1  # Windows only, manual"
     evidence: HOST_RUNTIME
 
   user_test:

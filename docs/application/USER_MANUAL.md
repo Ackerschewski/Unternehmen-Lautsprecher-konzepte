@@ -1,4 +1,19 @@
-# Nutzerhandbuch — V-02.06.00
+# Nutzerhandbuch — V-02.07.00
+
+## Neu in V-02.07.00
+
+### 3-Wege-Weiche (Expertenmodus)
+
+Unter **Frequenzweiche → Wege** „3-Wege“ wählen und die untere Trennfrequenz (Woofer/Mitteltöner), die obere Trennfrequenz (Mitteltöner/Hochtöner, mindestens das 1,5-fache der unteren) sowie
+die Impedanzen eintragen. Optional: Mitteltöner- und Hochtöner-Absenkung (L-Pad), Zobel und Schallwandkorrektur am Woofer. Der Mitteltöner erhält einen Bandpass aus Hochpass (untere Trennung) und Tiefpass
+(obere Trennung). Mess-Dateien lassen sich für Woofer, Mitteltöner und Hochtöner laden; die akustische Summe erscheint, wenn alle drei FRD vorliegen. Die Treiber platzieren Sie wie üblich im Frontlayout;
+der Assistent wählt keine 3-Wege-Lautsprecher automatisch. Bauteilwerte sind Startwerte für nominale Lasten; die Simulation zeigt die Wirkung der gemessenen Impedanz.
+
+### Frontlayout mit Maus und Tastatur
+
+Die Zeichenfläche im Reiter **Frontlayout** zeigt die gewählte Platte (Front, Rückwand, Trennwand). Elemente werden mit der Maus gezogen und rasten auf ein 5-mm-Raster und die Mittellinie ein (abschaltbar).
+Mit den Pfeiltasten wandert das gewählte Element um 1 mm, mit Umschalt um 10 mm. **↶ Rückgängig** und **↷ Wiederholen** (`Strg+Z`, `Strg+Y`) gelten für Hinzufügen, Löschen, Ziehen und Werteingaben; schnelle Folgeänderungen
+bilden einen Schritt. Das Laden eines Projekts leert den Verlauf. Die Feinwerte bleiben in den Eingabefeldern darunter.
 
 ## Neu in V-02.06.00
 

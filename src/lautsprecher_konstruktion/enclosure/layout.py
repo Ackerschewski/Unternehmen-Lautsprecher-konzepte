@@ -68,7 +68,8 @@ def _overlap(a: FrontElement, b: FrontElement) -> float:
     circle, rect = (a,b) if a.outer_diameter_m is not None else (b,a)
     dx = max(abs(circle.x_m-rect.x_m)-rect.width/2, 0.0)
     dy = max(abs(circle.y_m-rect.y_m)-rect.height/2, 0.0)
-    return circle.outer_diameter_m/2 + max(a.clearance_m,b.clearance_m) - sqrt(dx*dx+dy*dy)
+    diameter = circle.outer_diameter_m or 0.0
+    return diameter/2 + max(a.clearance_m,b.clearance_m) - sqrt(dx*dx+dy*dy)
 
 
 def check_layout(elements: tuple[FrontElement, ...], width_m: float, height_m: float,

@@ -66,6 +66,12 @@ class Driver(BaseModel):
                 )
         return self
 
+    def require_vas_m3(self) -> float:
+        """Vas in m3; calculations that need it fail with a clear message instead of a TypeError."""
+        if self.vas_m3 is None:
+            raise ValueError(f"Vas fehlt für {self.manufacturer} {self.model}; Berechnung nicht möglich.")
+        return self.vas_m3
+
     @property
     def vas_l(self) -> float | None:
         return None if self.vas_m3 is None else self.vas_m3 * 1000.0

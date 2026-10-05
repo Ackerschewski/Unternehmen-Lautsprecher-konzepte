@@ -17,7 +17,7 @@ def render_horn_trapezoid_dxf(horn: FrontHorn, kind: str) -> str:
         raise ValueError("Unknown horn panel")
     points=((0.0,(mouth-throat)/2),(0.0,(mouth+throat)/2),
             (slant,mouth),(slant,0.0))
-    lines=[]
+    lines: list[str]=[]
     for (x1,y1),(x2,y2) in zip(points,points[1:]+points[:1],strict=True):
         lines.extend(("0","LINE","8","CUT_TRAPEZOID","10",f"{x1:.3f}",
                       "20",f"{y1:.3f}","11",f"{x2:.3f}","21",f"{y2:.3f}"))

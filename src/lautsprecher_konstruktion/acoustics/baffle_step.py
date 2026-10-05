@@ -34,4 +34,5 @@ def baffle_step_db(frequencies_hz: NDArray[np.float64], baffle_width_m: float,
     f_zero, f_pole = f3 / sqrt(k), f3 * sqrt(k)
     f = np.asarray(frequencies_hz, dtype=float)
     gain = np.sqrt((1.0 + (f / f_zero) ** 2) / (1.0 + (f / f_pole) ** 2))
-    return 20.0 * np.log10(gain / k)
+    result: NDArray[np.float64] = 20.0 * np.log10(gain / k)
+    return result

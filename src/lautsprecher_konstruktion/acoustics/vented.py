@@ -11,28 +11,29 @@ from math import pi, sqrt
 import numpy as np
 from numpy.typing import NDArray
 
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.ports import PortDesign
 
 
 @dataclass(frozen=True)
 class VentedResponse:
-    frequencies_hz: NDArray[np.float64]
-    response_db: NDArray[np.float64]
-    excursion_mm: NDArray[np.float64] | None
-    port_velocity_m_s: NDArray[np.float64] | None
-    port_mach: NDArray[np.float64] | None
-    group_delay_ms: NDArray[np.float64]
-    impedance_ohm: NDArray[np.complex128] | None
-    spl_db_1m: NDArray[np.float64] | None
+    frequencies_hz: FloatArray
+    response_db: FloatArray
+    excursion_mm: FloatArray | None
+    port_velocity_m_s: FloatArray | None
+    port_mach: FloatArray | None
+    group_delay_ms: FloatArray
+    impedance_ohm: ComplexArray | None
+    spl_db_1m: FloatArray | None
     f3_hz: float | None
     power_w: float
     absolute_available: bool
     upper_f3_hz: float | None = None
-    front_port_velocity_m_s: NDArray[np.float64] | None = None
-    rear_port_velocity_m_s: NDArray[np.float64] | None = None
-    rear_response_db: NDArray[np.float64] | None = None
-    front_to_back_db: NDArray[np.float64] | None = None
+    front_port_velocity_m_s: FloatArray | None = None
+    rear_port_velocity_m_s: FloatArray | None = None
+    rear_response_db: FloatArray | None = None
+    front_to_back_db: FloatArray | None = None
 
 
 def simulate_vented(
@@ -91,7 +92,7 @@ def simulate_vented(
     # damping. This determines only the normalized transfer function.
     complete = all(v is not None for v in (driver.sd_m2, driver.re_ohm, driver.qes))
     sd = driver.sd_m2 if driver.sd_m2 is not None else 1.0
-    cs = driver.vas_m3 / (rho_kg_m3 * sound_speed_m_s**2 * sd**2)
+    cs = driver.require_vas_m3() / (rho_kg_m3 * sound_speed_m_s**2 * sd**2)
     ws = 2.0 * pi * driver.fs_hz
     ms = 1.0 / (ws**2 * cs)
     qs = driver.qms if complete and driver.qms is not None else driver.qts
@@ -99,11 +100,12 @@ def simulate_vented(
     zm = rms + s * ms + 1.0 / (s * cs)
     zmechanical = zm + sd**2 * zb
 
-    impedance: NDArray[np.complex128] | None = None
-    excursion: NDArray[np.float64] | None = None
-    velocity: NDArray[np.float64] | None = None
-    mach: NDArray[np.float64] | None = None
-    spl: NDArray[np.float64] | None = None
+    impedance: ComplexArray | None = None
+    excursion: FloatArray | None = None
+    velocity: FloatArray | None = None
+    mach: FloatArray | None = None
+    spl: FloatArray | None = None
+    cone_speed: ComplexArray
     if complete:
         assert driver.re_ohm is not None and driver.qes is not None
         # If Qms was omitted, derive it from the Qts/Qes parallel relation.
@@ -121,7 +123,7 @@ def simulate_vented(
         current = input_voltage / impedance
         cone_speed = bl * current / zmechanical
     else:
-        cone_speed = 1.0 / zmechanical
+        cone_speed = np.asarray(1.0 / zmechanical, dtype=complex)
 
     u_cone = sd * cone_speed
     u_port = -u_cone * zb / zp

@@ -35,11 +35,12 @@ def suggest_alignments(driver: Driver, *, input_power_w: float = 1.0,
         raise ValueError("cabinet width/height are too small")
     profiles = (("Kompakt", 0.55, 1.00), ("Ausgewogen", 0.85, 0.88),
                 ("Tiefbass", 1.25, 0.75))
+    vas = driver.require_vas_m3()
     candidates: list[AlignmentOption] = []
     for name, volume_ratio, tuning_ratio in profiles:
         ranked: list[tuple[float, AlignmentOption]] = []
         for vm in (0.85, 1.0, 1.15):
-            volume = driver.vas_m3 * volume_ratio * vm
+            volume = vas * volume_ratio * vm
             for fm in (0.92, 1.0, 1.08):
                 fb = driver.fs_hz * tuning_ratio * fm
                 for diameter in (0.06, 0.08, 0.10):
@@ -61,7 +62,7 @@ def suggest_alignments(driver: Driver, *, input_power_w: float = 1.0,
                         warnings.append("Xmax überschritten")
                     if port.physical_length_m > depth-2*panel_thickness_m:
                         warnings.append("Port muss gefaltet oder anders platziert werden")
-                    score = (abs(volume/driver.vas_m3-volume_ratio)*3
+                    score = (abs(volume/vas-volume_ratio)*3
                              + abs(fb/driver.fs_hz-tuning_ratio)*3
                              + (speed or 0)/35 + len(warnings)*0.5
                              + (sim.f3_hz or 200)/200)

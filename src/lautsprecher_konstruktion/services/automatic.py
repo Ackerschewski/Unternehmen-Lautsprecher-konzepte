@@ -252,6 +252,14 @@ def _score(bundle: DesignBundle, request: AutomaticDesignRequest,
     return score, tuple(metrics)
 
 
+def _spec_float(specs: dict[str, str | float | int | bool | None], key: str, default: float) -> float:
+    """Numeric library spec; CSV imports may hold numbers as text, missing or invalid values use the default."""
+    try:
+        return float(specs.get(key, default) or default)
+    except (TypeError, ValueError):
+        return default
+
+
 def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                      progress: Callable[[int], None] | None = None,
                      cancelled: Callable[[], bool] | None = None) -> AutomaticDesignResult:
@@ -342,21 +350,23 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
             if (enclosure.startswith("bandpass_") or enclosure in {'horn_front','horn_tapped'}) and two_way:
                 continue
             radiators = tuple(item for item in library.entries("passive_radiators")
-                if float(item.specs.get("sd_m2", 0)) >= (woofer.sd_m2 or 0))
+                if _spec_float(item.specs, "sd_m2", 0.0) >= (woofer.sd_m2 or 0))
             if any(not item.is_test_data for item in radiators):
                 radiators = tuple(item for item in radiators if not item.is_test_data)
             if enclosure == "passive_radiator" and not radiators:
                 rejected["Keine passende Passivmembran mit ausreichender Fläche"] += 1
                 continue
+            vas_m3 = woofer.require_vas_m3()
+            volumes: list[tuple[float, float | None, None]]
             if enclosure in {"sealed", "isobaric_sealed", "compound_push_pull"}:
                 volumes = [(q, None, None) for q in profile.qtc_targets if q > woofer.qts]
             elif enclosure == 'horn_tapped':
-                volumes=[(max(woofer.vas_m3*1000*ratio,120),woofer.fs_hz,None)
+                volumes=[(max(vas_m3*1000*ratio,120),woofer.fs_hz,None)
                          for ratio in (2.5,3.5,4.5)]
             elif enclosure == 'horn_front':
                 volumes=[(max(0.5,woofer.qts+0.08),150.0,None)]
             else:
-                volumes = [(woofer.vas_m3*r*1000*(0.5 if enclosure.startswith("isobaric_") else 1), woofer.fs_hz*fb, None)
+                volumes = [(vas_m3*r*1000*(0.5 if enclosure.startswith("isobaric_") else 1), woofer.fs_hz*fb, None)
                            for r, fb in zip(profile.volume_ratios, (0.95, 0.85, 0.75), strict=True)]
             for volume, tuning, _ in volumes:
                 volumes_tested.append(solve_sealed(
@@ -382,16 +392,16 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                                 rear_volume_l=(max(volume, woofer.vas_m3*1000)
                                     if enclosure in {"bandpass_6_parallel", "bandpass_6_series"} else max(8.0, volume*0.5)),
                                 tuning_hz=tuning,
-                                rear_tuning_hz=(tuning*0.85 if enclosure in {"bandpass_6_parallel", "bandpass_6_series"} else None),
+                                rear_tuning_hz=(tuning*0.85 if tuning is not None and enclosure in {"bandpass_6_parallel", "bandpass_6_series"} else None),
                                 rear_port_diameter_mm=(port_diameter*1000 if port_diameter else 60),
                                 port_diameter_mm=port_diameter*1000 if port_diameter else 60,
-                                radiator_sd_cm2=float(pr.get("sd_m2", 0.035))*10000,
-                                radiator_mms_g=float(pr.get("mms_kg", 0.08))*1000,
-                                radiator_fs_hz=float(pr.get("fs_hz", 20)),
-                                radiator_qms=float(pr.get("qms", 5)),
-                                radiator_xmax_mm=float(pr.get("xmax_m", 0.012))*1000,
-                                radiator_cutout_mm=float(pr.get("cutout_diameter_m", 0.23))*1000,
-                                radiator_depth_mm=float(pr.get("mounting_depth_m", 0.06))*1000,
+                                radiator_sd_cm2=_spec_float(pr, "sd_m2", 0.035)*10000,
+                                radiator_mms_g=_spec_float(pr, "mms_kg", 0.08)*1000,
+                                radiator_fs_hz=_spec_float(pr, "fs_hz", 20),
+                                radiator_qms=_spec_float(pr, "qms", 5),
+                                radiator_xmax_mm=_spec_float(pr, "xmax_m", 0.012)*1000,
+                                radiator_cutout_mm=_spec_float(pr, "cutout_diameter_m", 0.23)*1000,
+                                radiator_depth_mm=_spec_float(pr, "mounting_depth_m", 0.06)*1000,
                                 external_width_mm=width*1000, external_height_mm=height*1000,
                                 panel_thickness_mm=request.panel_thickness_m*1000,
                                 brace_quantity=1 if estimated_volume_l >= 25 or height >= .55 else 0,
@@ -401,7 +411,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                                 woofer_impedance_ohm=(
                                     equivalent_driver(woofer,"series").nominal_impedance_ohm or 8
                                     if enclosure.startswith("isobaric_") or enclosure == "compound_push_pull" else woofer.nominal_impedance_ohm or 8),
-                                tweeter_impedance_ohm=tweeter.nominal_impedance_ohm if tweeter else 8,
+                                tweeter_impedance_ohm=(tweeter.nominal_impedance_ohm or 8) if tweeter else 8,
                                 tweeter_attenuation_db=max(0.0,
                                     tweeter.sensitivity_db_1w_1m-
                                     woofer.sensitivity_db_1w_1m) if tweeter and

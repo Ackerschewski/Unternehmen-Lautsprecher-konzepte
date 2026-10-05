@@ -5,48 +5,48 @@ from dataclasses import dataclass
 from math import pi
 
 import numpy as np
-from numpy.typing import NDArray
 
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.crossover.passive import CrossoverDesign
 
 
 @dataclass(frozen=True)
 class CrossoverResponse:
-    frequencies_hz: NDArray[np.float64]
-    woofer_voltage: NDArray[np.complex128]
-    tweeter_voltage: NDArray[np.complex128]
-    total_impedance: NDArray[np.complex128]
-    woofer_acoustic_db: NDArray[np.float64] | None
-    tweeter_acoustic_db: NDArray[np.float64] | None
-    sum_acoustic_db: NDArray[np.float64] | None
+    frequencies_hz: FloatArray
+    woofer_voltage: ComplexArray
+    tweeter_voltage: ComplexArray
+    total_impedance: ComplexArray
+    woofer_acoustic_db: FloatArray | None
+    tweeter_acoustic_db: FloatArray | None
+    sum_acoustic_db: FloatArray | None
     phase_complete: bool
     measured_impedance_used: bool
-    midrange_voltage: NDArray[np.complex128] | None = None
-    midrange_acoustic_db: NDArray[np.float64] | None = None
+    midrange_voltage: ComplexArray | None = None
+    midrange_acoustic_db: FloatArray | None = None
 
 
-def _parallel(*impedances: NDArray[np.complex128] | complex) -> NDArray[np.complex128]:
-    return 1.0 / sum(1.0 / z for z in impedances)
+def _parallel(*impedances: ComplexArray | complex) -> ComplexArray:
+    return np.asarray(1.0 / sum(1.0 / z for z in impedances), dtype=complex)
 
 
-def _load(data: ImpedanceData | None, nominal: float, f: NDArray[np.float64]) -> NDArray[np.complex128]:
+def _load(data: ImpedanceData | None, nominal: float, f: FloatArray) -> ComplexArray:
     if data is None:
-        return np.full(f.shape, complex(nominal), dtype=np.complex128)
+        return np.full(f.shape, complex(nominal), dtype=complex)
     x = np.log(np.asarray(data.frequencies_hz))
     magnitude = np.interp(np.log(f), x, data.magnitude_ohm)
     phase = np.interp(np.log(f), x, np.unwrap(np.deg2rad(data.phase_deg)))
-    result = magnitude * np.exp(1j * phase)
+    result = np.asarray(magnitude * np.exp(1j * phase), dtype=complex)
     result[(f < data.frequencies_hz[0]) | (f > data.frequencies_hz[-1])] = np.nan
     return result
 
 
-def _acoustic(data: FrequencyResponseData, f: NDArray[np.float64]) -> NDArray[np.complex128]:
+def _acoustic(data: FrequencyResponseData, f: FloatArray) -> ComplexArray:
     x = np.log(np.asarray(data.frequencies_hz))
     mag = 10.0 ** (np.interp(np.log(f), x, data.magnitude_db) / 20.0)
     phase = (np.interp(np.log(f), x, np.unwrap(np.deg2rad(data.phase_deg)))
              if data.phase_deg is not None else np.zeros_like(f))
-    result = mag * np.exp(1j * phase)
+    result = np.asarray(mag * np.exp(1j * phase), dtype=complex)
     result[(f < data.frequencies_hz[0]) | (f > data.frequencies_hz[-1])] = np.nan
     return result
 
@@ -59,7 +59,7 @@ def simulate_crossover(
     tweeter_zma: ImpedanceData | None = None,
     woofer_frd: FrequencyResponseData | None = None,
     tweeter_frd: FrequencyResponseData | None = None,
-    frequencies_hz: NDArray[np.float64] | None = None,
+    frequencies_hz: FloatArray | None = None,
 ) -> CrossoverResponse:
     if min(woofer_nominal_ohm, tweeter_nominal_ohm) <= 0:
         raise ValueError("nominal impedances must be positive")
@@ -75,7 +75,7 @@ def simulate_crossover(
     if "Rz" in parts and "Cz" in parts:
         zobel = parts["Rz"].value_si + 1.0 / (s * parts["Cz"].value_si)
         wz = _parallel(wz, zobel)
-    driver_share = 1.0  # voltage across the driver relative to the node in front of the baffle step network
+    driver_share: complex | ComplexArray = 1.0  # voltage across the driver relative to the node in front of the baffle step network
     if "Lbs" in parts and "Rbs" in parts:
         driver_side = wz
         wz = _parallel(complex(parts["Rbs"].value_si), s * parts["Lbs"].value_si) + driver_side

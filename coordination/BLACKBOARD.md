@@ -1,5 +1,11 @@
 # Blackboard — V-02.00.00
 
+## Task TASK-0025 · 3-Wege-Weiche, Frontlayout, Typprüfung / V-02.07.00
+
+- Bearbeitet durch Claude Code auf `claude/modest-bell-guqoxu` · Status: technisch geprüft (Linux/Offscreen), Benutzerprüfung ausstehend.
+- Passive 3-Wege-Weiche mit exakter Kettenschaltungs-Simulation; interaktives Frontlayout (Ziehen, Einrasten, Pfeiltasten) mit Rückgängig/Wiederholen; `mypy --strict` für alle Nicht-UI-Pakete.
+- 228 Pytest-Fälle, Ruff, mypy, Smoke. NOT_RUN: Windows-Build, Sichttest, Messvalidierung.
+
 ## Task TASK-0024 · Zuschnitt, Bauanleitung, Prototypvergleich / V-02.06.00
 
 - Bearbeitet durch Claude Code auf `claude/modest-bell-guqoxu` · Status: technisch geprüft (Linux/Offscreen), Benutzerprüfung ausstehend.

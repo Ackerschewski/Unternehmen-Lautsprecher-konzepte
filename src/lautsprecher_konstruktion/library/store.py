@@ -10,7 +10,7 @@ import json
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
@@ -85,9 +85,13 @@ class ComponentLibrary:
 
     @staticmethod
     def _read_file(path: Path, category: Category) -> tuple[LibraryEntry, ...]:
+        records: list[Any]
         if path.suffix.lower() == ".json":
             raw = json.loads(path.read_text(encoding="utf-8"))
-            records = raw.get("components", raw.get("drivers", [])) if isinstance(raw, dict) else raw
+            loaded = raw.get("components", raw.get("drivers", [])) if isinstance(raw, dict) else raw
+            if not isinstance(loaded, list):
+                raise ValueError(f"{path.name}: Katalogdatei muss eine Liste von Komponenten enthalten.")
+            records = loaded
         else:
             with path.open(encoding="utf-8-sig", newline="") as stream:
                 records = list(csv.DictReader(stream, delimiter=";"))

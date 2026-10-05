@@ -279,8 +279,8 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
     if bundle.warnings:
         y = note_y+(135 if bundle.folded_line is not None else
                     105 if bundle.rear_port or bundle.port_resistance_pa_s_m3 is not None else 78)
-        for index, line in enumerate(wrap(bundle.warnings[0], width=64)[:2]):
+        for index, text in enumerate(wrap(bundle.warnings[0], width=64)[:2]):
             parts.append(f'<text x="{note_x}" y="{y+index*19}" class="warning">'
-                         f'{escape(line)}</text>')
+                         f'{escape(text)}</text>')
     parts.append('</svg>')
     return ''.join(parts)

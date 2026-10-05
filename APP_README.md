@@ -1,4 +1,4 @@
-# Lautsprecher Konstruktion V-02.06.00
+# Lautsprecher Konstruktion V-02.07.00
 
 Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm fragt nach Typ, maximalen Außenmaßen und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Gehäuseparameter.
 
@@ -8,6 +8,16 @@ Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm f
 2. `Lautsprecher-Konstruktion_V-02.05.00.exe` starten; `_internal` muss daneben bleiben.
 3. Entwurf erstellen und Variantenvergleich, Zeichnungen, Simulation und Stückliste prüfen.
 4. Fertigungsunterlagen als PDF, SVG, DXF und CSV exportieren.
+
+## V-02.07.00
+
+**Mehrwege und Bedienkomfort.** Der Expertenmodus berechnet jetzt eine **passive 3-Wege-Weiche** (1. Ordnung, Butterworth 2. Ordnung, Linkwitz-Riley 2. Ordnung) mit Tiefpass für den Woofer, Bandpass für den Mitteltöner und Hochpass für den Hochtöner. Optional kommen Zobel, Schallwandkorrektur und L-Pads für Mittel- und Hochtöner dazu. Die Simulation löst jeden Zweig als exakte Kettenschaltung gegen die komplexe Last (gemessene ZMA, falls geladen); die Wechselwirkung der beiden Mittelton-Abschnitte ist damit sichtbar. Schaltplan, Stückliste, Weichen-CSV und Export kennen die dritte Weg. Die Bauteilwerte sind elektrische Startwerte; Schallzentren, Laufzeit und Treiberpegel sind am Prototyp zu messen. Der Assistent wählt weiterhin keine 3-Wege-Lautsprecher automatisch.
+
+Das **Frontlayout** hat eine interaktive Zeichenfläche: Treiber und Ports lassen sich mit der Maus ziehen (Einrasten auf 5 mm und Mittellinie, abschaltbar) oder mit den Pfeiltasten verschieben (Umschalt = 10 mm); die Ansicht wechselt zwischen Front, Rückwand und Trennwand. **Rückgängig/Wiederholen** (`Strg+Z`, `Strg+Y`) gilt für Hinzufügen, Löschen, Ziehen und Werteingaben; schnelle Folgeänderungen werden zu einem Schritt zusammengefasst.
+
+Qualität: `mypy --strict` ist für alle Rechen-, Export- und Datenpakete grün (die Qt-Oberfläche ist ausdrücklich ausgenommen). Dabei wurden fehlende Vas-Werte als klare Fehlermeldung statt als Programmfehler behandelt und eine fehlerhafte Katalogdatei wird gemeldet statt abzustürzen. Alle Oberflächendateien sind zu mindestens 75 % getestet.
+
+Nicht enthalten und weiter offen: 3D-Kollisions- und Gehrungsprüfung, Messvalidierung mit Prototypen, automatische Auswahl von 3-Wege-Lautsprechern, Windows-Build dieser Version.
 
 ## V-02.06.00
 
@@ -19,7 +29,7 @@ Die **Schallwandkorrektur** (Baffle Step, Näherung 115 Hz·m / Schallwandbreite
 
 Alltagstauglichkeit: Menü mit **Zuletzt geöffnet**, Tastenkürzeln, Ungespeichert-Warnung, **Autosave und Wiederherstellung** nach einem Absturz, gespeicherte Einstellungen (Theme, Plattenmaß, Sägeschnitt), rotierendes **Programmprotokoll** und Hilfe/Über (F1). Referenztests prüfen die Solver gegen Literaturwerte (Small/Thiele-Beziehungen, Butterworth-/Linkwitz-Riley-Eigenschaften). Die Versionsangabe stammt aus einer einzigen Quelle (`lautsprecher_konstruktion.__version__`).
 
-Nicht enthalten und weiter offen: 3-Wege-Weiche, Undo/Redo und Drag-and-drop im Frontlayout, 3D-Kollisions- und Gehrungsprüfung, Messvalidierung mit realen Prototypen, Windows-Build dieser Version.
+Offen blieben in dieser Version: 3-Wege-Weiche, Undo/Redo und Drag-and-drop im Frontlayout (seit V-02.07.00 vorhanden), 3D-Kollisions- und Gehrungsprüfung, Messvalidierung mit realen Prototypen, Windows-Build.
 
 ## V-02.05.00
 
@@ -77,4 +87,4 @@ Tests: `.venv\Scripts\python -m pytest --basetemp .test_run -p no:cacheprovider`
 
 Die Gehäusemodelle sind lineare Kleinsignal-Näherungen ohne umfassenden Abgleich mit realen Messungen. Portkompression, thermische Effekte, Baffle Step, Raum, gefaltete Ports, vollständige 3D-Kollisionen und Bauteiltoleranzen fehlen. Ein E12-Weichenvorschlag ist ein elektrischer Startwert. Alle Herstellerangaben, Maße und Bohrbilder vor dem Zuschnitt am echten Chassis prüfen.
 
-Weitere Details: `docs/application/USER_MANUAL.md`, `docs/application/ARCHITECTURE.md`, `docs/application/MAINTENANCE.md`, `docs/application/VALIDATION.md` und `docs/application/BUILD_REPORT_V-02.06.00.md`. Plan zur fertigen Version: `docs/application/PLAN_V-03.00.00.md`.
+Weitere Details: `docs/application/USER_MANUAL.md`, `docs/application/ARCHITECTURE.md`, `docs/application/MAINTENANCE.md`, `docs/application/VALIDATION.md` und `docs/application/BUILD_REPORT_V-02.07.00.md`. Plan zur fertigen Version: `docs/application/PLAN_V-03.00.00.md`.

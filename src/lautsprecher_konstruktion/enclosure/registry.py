@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from lautsprecher_konstruktion.project.models import SpeakerProject
+    from lautsprecher_konstruktion.services.design import DesignBundle
 
 Status = Literal["SUPPORTED", "EXPERIMENTAL", "PLANNED"]
 
@@ -41,7 +45,7 @@ class EnclosureTypeRegistry:
     def supported(self) -> tuple[EnclosureType, ...]:
         return tuple(item for item in self.all() if item.status == "SUPPORTED")
 
-    def solve(self, key: str, project: object) -> object:
+    def solve(self, key: str, project: SpeakerProject) -> DesignBundle:
         entry = self.get(key)
         if entry.status != "SUPPORTED":
             raise ValueError(f"{entry.label}: derzeit kein belastbarer Solver ({entry.status}).")

@@ -11,6 +11,7 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.folded_line import FoldedLine, mouth_equivalent_radius_m
 from lautsprecher_konstruktion.enclosure.ports import PortDesign
@@ -54,19 +55,19 @@ def simulate_folded_line(driver: Driver, line: FoldedLine, power_w: float,
         if outlet is not None and line.family == "mltl":
             outlet_area = outlet.area_m2
             mass = rho*outlet.effective_length_m/outlet.area_m2
-            load = (2*pi*outlet.tuning_hz*mass/7+s*mass+
-                    rho*c/outlet.area_m2*0.08)
+            load = np.asarray(2*pi*outlet.tuning_hz*mass/7+s*mass+
+                              rho*c/outlet.area_m2*0.08, dtype=complex)
         else:
             outlet_area = line.mouth_width_m*line.mouth_height_m
             radius = mouth_equivalent_radius_m(line)
             ka = w*radius/c
-            load = rho*c/outlet_area*(0.25*ka**2+0.61j*ka)
+            load = np.asarray(rho*c/outlet_area*(0.25*ka**2+0.61j*ka), dtype=complex)
         zin = (a*load+b)/(cc*load+d)
         flow_factor = 1/(cc*load+d)
 
     complete = all(v is not None for v in (driver.sd_m2,driver.re_ohm,driver.qes))
     sd = driver.sd_m2 if driver.sd_m2 is not None else 1.0
-    compliance = driver.vas_m3/(rho*c*c*sd*sd)
+    compliance = driver.require_vas_m3()/(rho*c*c*sd*sd)
     ws = 2*pi*driver.fs_hz
     mass = 1/(ws*ws*compliance)
     qms = (driver.qms if complete and driver.qms is not None else driver.qts)
@@ -77,8 +78,12 @@ def simulate_folded_line(driver: Driver, line: FoldedLine, power_w: float,
         qms = driver.qes*driver.qts/(driver.qes-driver.qts)
     zm = ws*mass/qms+s*mass+1/(s*compliance)
     ztotal = zm+sd*sd*zin
-    impedance = None
-    excursion = velocity = mach = spl = None
+    impedance: ComplexArray | None = None
+    excursion: FloatArray | None = None
+    velocity: FloatArray | None = None
+    mach: FloatArray | None = None
+    spl: FloatArray | None = None
+    cone_speed: ComplexArray
     if complete:
         assert driver.re_ohm is not None and driver.qes is not None
         bl = sqrt(ws*mass*driver.re_ohm/driver.qes)

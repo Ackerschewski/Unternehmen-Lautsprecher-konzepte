@@ -18,11 +18,11 @@
 - Bauanleitung je Bauform.
 - Gewichtsangabe als Bereich.
 - Schallwandkorrektur als Option.
-- `mypy --strict` für Nicht-UI-Pakete.
+- `mypy --strict` für Nicht-UI-Pakete (erfüllt seit V-02.07.00).
 
 ## COULD
 
-- 3-Wege-Weiche, Undo/Redo, Drag-and-drop im Frontlayout.
+- Automatische 3-Wege-Auswahl im Assistenten.
 - 3D-Kollisions- und Gehrungsprüfung.
 
 ## MUST NOT

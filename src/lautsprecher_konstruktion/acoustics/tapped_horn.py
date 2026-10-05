@@ -6,6 +6,7 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.tapped_horn import TappedHorn
 
@@ -59,7 +60,12 @@ def simulate_tapped_horn(driver: Driver, horn: TappedHorn,
             raise ValueError('Qes muss größer als Qts sein')
         qms=driver.qes*driver.qts/(driver.qes-driver.qts)
     mechanical=ws*mass/qms+s*mass+1/(s*compliance)+sd*sd*differential
-    impedance=excursion=velocity=mach=spl=None
+    impedance: ComplexArray | None = None
+    excursion: FloatArray | None = None
+    velocity: FloatArray | None = None
+    mach: FloatArray | None = None
+    spl: FloatArray | None = None
+    cone_speed: ComplexArray
     if complete:
         assert driver.re_ohm is not None and driver.qes is not None
         bl=sqrt(ws*mass*driver.re_ohm/driver.qes)
@@ -68,7 +74,7 @@ def simulate_tapped_horn(driver: Driver, horn: TappedHorn,
         cone_speed=bl*(sqrt(power_w*driver.re_ohm)/impedance)/mechanical
         excursion=abs(cone_speed/s)*1000
     else:
-        cone_speed=1/mechanical
+        cone_speed=np.asarray(1/mechanical,dtype=complex)
     mouth_flow=sd*cone_speed*mouth_factor
     pressure=s*rho*mouth_flow/(2*pi)
     magnitude=np.maximum(abs(pressure),np.finfo(float).tiny)

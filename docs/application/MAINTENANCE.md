@@ -55,6 +55,23 @@ Der einfach abgestimmte Bandpass hat zwei Luftfedern `Cf=Vfront/(rho c²)` und `
 
 `.venv\\Scripts\\python -m pytest` und `-m ruff check src tests`. Die EXE wird lokal mit PyInstaller gebaut. Der offscreen-QT-Test prüft Fensterausbau und den Demo-Workflow; ein interaktiver Sichttest auf dem Zielrechner bleibt sinnvoll.
 
+## 3-Wege-Weiche (V-02.07.00)
+
+`crossover/three_way.py`: Jeder Zweig wird als geordnete Liste aus Serien- und Querelementen von der Quelle zur Last beschrieben; die Auswertung läuft rückwärts von der (komplexen) Last. Für ein Serienelement
+gilt `H *= Zdown/(Z+Zdown)` und `Zdown = Z+Zdown`, für ein Querelement `Zdown = Zdown ∥ Z`. Zobel (`Rz`+`Cz`, quer) und Schallwandkorrektur (`Lbs ∥ Rbs`, in Reihe) sitzen unmittelbar vor dem Treiber,
+L-Pads (`Rpad-M-*`, `Rpad-T-*`) davor. Die Zweige liegen parallel an der Quelle; die Gesamtimpedanz ist ihre Parallelschaltung. Bauteilwerte: `L = R/(Q ω)`, `C = Q/(ω R)` je Abschnitt mit Q = 1/√2
+(Butterworth) bzw. 0,5 (Linkwitz-Riley); 1. Ordnung `L = R/ω`, `C = 1/(ω R)`. Test: Für verlustfreie Netzwerke ist die an die Lasten gelieferte Leistung gleich der aufgenommenen.
+
+## Frontlayout und Verlauf
+
+`ui/history.py` (ohne Qt) speichert vollständige Zustände. `push(state, merge_key)` ersetzt den neuesten Eintrag, wenn Schlüssel gleich und der Abstand höchstens 2 s (Oberfläche) beträgt. `ui/layout_canvas.py`
+zeichnet in Millimetern (y nach unten in der Szene, Umrechnung auf „y von unten“), `snap_position` rastet zuerst auf die Mittellinie, sonst auf das Raster, und begrenzt auf die Platte.
+
+## Typprüfung
+
+`mypy --strict` gilt für alle Pakete außer `ui` und `app` (Qt-Stubs). `arrays.py` stellt präzisionsneutrale Array-Typen bereit, weil NumPy-Ergebnistypen (`floating[Any]`) sonst nicht zu `float64` passen.
+Zuweisungen mit unterschiedlichen Array-Typen werden vermieden (eigene Variablen mit Annotation, `np.asarray(..., dtype=complex)` bei Fallbacks).
+
 ## Zuschnitt, Gewicht, Bauanleitung (V-02.06.00)
 
 `export/cutting.py` plant mit Guillotineschnitten. Ein Teil belegt Breite+Sägeschnitt × Höhe+Sägeschnitt; die Platte wird um einen Sägeschnitt vergrößert,

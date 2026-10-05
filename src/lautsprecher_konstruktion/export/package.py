@@ -207,7 +207,7 @@ def export_project_package(bundle: DesignBundle, directory: str | Path,
     summary.extend(('', 'Warnungen:', *(f'- {w}' for w in bundle.warnings)))
     if bundle.radiator:
         summary.insert(4,f'Passivmembran-Zusatzmasse: {bundle.radiator.added_mass_kg*1000:.1f} g')
-    if bundle.front_chamber_volume_m3 is not None:
+    if bundle.front_chamber_volume_m3 is not None and bundle.rear_chamber_volume_m3 is not None:
         summary.insert(4,f'Front-/Rückkammer: {bundle.front_chamber_volume_m3*1000:.1f}/{bundle.rear_chamber_volume_m3*1000:.1f} l')
     (package/'projektzusammenfassung.txt').write_text('\n'.join(summary),encoding='utf-8')
     return package

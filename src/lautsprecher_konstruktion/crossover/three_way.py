@@ -12,8 +12,8 @@ from dataclasses import replace
 from math import pi, sqrt
 
 import numpy as np
-from numpy.typing import NDArray
 
+from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.crossover.passive import (
     CrossoverDesign,
@@ -109,11 +109,11 @@ def three_way_network(
 # ---------------------------------------------------------------------------
 
 def _elements(design: CrossoverDesign, family: str,
-              s: NDArray[np.complex128]) -> list[tuple[str, NDArray[np.complex128] | complex]]:
+              s: ComplexArray) -> list[tuple[str, ComplexArray | complex]]:
     """Ordered (kind, impedance) elements of one branch; kind is 'series' or 'shunt'."""
     parts = [c for c in design.components if c.branch.split()[0] == family]
     by_ref = {c.reference: c for c in parts}
-    elements: list[tuple[str, NDArray[np.complex128] | complex]] = []
+    elements: list[tuple[str, ComplexArray | complex]] = []
     done: set[str] = set()
     for c in parts:
         if c.reference in done:
@@ -137,8 +137,8 @@ def _elements(design: CrossoverDesign, family: str,
     return elements
 
 
-def _ladder(elements: list[tuple[str, NDArray[np.complex128] | complex]],
-            load: NDArray[np.complex128]) -> tuple[NDArray[np.complex128], NDArray[np.complex128]]:
+def _ladder(elements: list[tuple[str, ComplexArray | complex]],
+            load: ComplexArray) -> tuple[ComplexArray, ComplexArray]:
     """Voltage transfer to the load and input impedance, walking from the load to the source."""
     z_down = load
     transfer = np.ones_like(load)
@@ -156,7 +156,7 @@ def simulate_three_way(
     woofer_zma: ImpedanceData | None = None, mid_zma: ImpedanceData | None = None,
     tweeter_zma: ImpedanceData | None = None, woofer_frd: FrequencyResponseData | None = None,
     mid_frd: FrequencyResponseData | None = None, tweeter_frd: FrequencyResponseData | None = None,
-    frequencies_hz: NDArray[np.float64] | None = None,
+    frequencies_hz: FloatArray | None = None,
 ) -> CrossoverResponse:
     if design.ways != 3:
         raise ValueError("simulate_three_way needs a three-way design")

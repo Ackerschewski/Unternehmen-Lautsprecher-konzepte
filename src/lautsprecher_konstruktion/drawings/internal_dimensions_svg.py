@@ -150,10 +150,10 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         f'Netto akustisch: {bundle.target_net_volume_m3*1000:.2f} l',
         f'Innen B × H: {_mm(c.internal_width_m):.1f} × {_mm(c.internal_height_m):.1f}',
     )
-    for i,line in enumerate(volume_lines):
-        parts.append(f'<text x="720" y="{163+i*27}" class="text">{escape(line)}</text>')
+    for i,text in enumerate(volume_lines):
+        parts.append(f'<text x="720" y="{163+i*27}" class="text">{escape(text)}</text>')
     parts.append('<text x="720" y="285" class="head">Einbauten</text>')
-    info = []
+    info: list[str] = []
     if bundle.folded_line is not None:
         line = bundle.folded_line
         info.extend((f'Linienweg {_mm(line.path_length_m):.1f} mm · Viertelwelle {line.estimated_quarter_wave_hz:.1f} Hz',
@@ -163,7 +163,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     if bundle.port:
         p = bundle.port
         section = (f'Ø {_mm(p.diameter_m):.1f}' if p.diameter_m else
-                   f'{_mm(p.width_m):.1f} × {_mm(p.height_m):.1f}')
+                   f'{_mm(p.width_m or 0.0):.1f} × {_mm(p.height_m or 0.0):.1f}')
         if bundle.folded_line is not None and bundle.folded_line.family != 'mltl':
             info.extend((f'Mündung BR1: {section}',
                          f'Frontöffnung {_mm(p.physical_length_m):.1f} mm durch Plattenstärke',
@@ -194,14 +194,14 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
                      f'Ring-Ausschnitt Ø {_mm(k.driver_cutout_m):.1f}; zwei gleiche Chassis'))
     if bundle.partition_front_depth_m is not None:
         info.append(f'Trennwand: {_mm(c.internal_width_m):.1f} × {_mm(c.internal_height_m):.1f} × {_mm(c.panel_thickness_m):.1f}')
-    for i,line in enumerate(info):
-        parts.append(f'<text x="720" y="{317+i*25}" class="text">{escape(line)}</text>')
+    for i,text in enumerate(info):
+        parts.append(f'<text x="720" y="{317+i*25}" class="text">{escape(text)}</text>')
     parts.append(f'<text x="45" y="{row:.1f}" class="head">Platten und Zuschnitt (Rohmaße)</text>')
     for index,panel in enumerate(bundle.panels):
         yy = row+31+index*28
-        line = (f'{panel.quantity} × {panel.name}: {_mm(panel.width_m):.1f} × '
-                f'{_mm(panel.height_m):.1f} × {_mm(panel.thickness_m):.1f}')
-        parts.append(f'<text x="49" y="{yy:.1f}" class="text">{escape(line)}</text>')
+        panel_text = (f'{panel.quantity} × {panel.name}: {_mm(panel.width_m):.1f} × '
+                      f'{_mm(panel.height_m):.1f} × {_mm(panel.thickness_m):.1f}')
+        parts.append(f'<text x="49" y="{yy:.1f}" class="text">{escape(panel_text)}</text>')
         parts.append(f'<path d="M45 {yy+7:.1f}H1155" class="rule"/>')
     parts.append(f'<text x="45" y="{sheet_height-32}" class="sub">Bohrbilder nur dort übernehmen, wo Herstellerdaten vorliegen. Material, Dichtungen und reale Maße vor Fertigung prüfen.</text>')
     parts.append('</svg>')

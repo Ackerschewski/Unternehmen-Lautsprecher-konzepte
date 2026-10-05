@@ -30,6 +30,15 @@ DriverCatalog/FRD/ZMA -> SpeakerProject (Schema 3)
 
 Erweiterungspunkte: weitere Treibertypen sind im Modell vorbereitet; zusätzliche Filterzweige sollten als echte Netlist statt weiterer fester 2-Wege-Topologien implementiert werden. Materialkatalog und Messdatenmodelle sind UI-unabhängig.
 
+## Ergänzungen V-02.07.00
+
+```text
+crossover/three_way.py  three_way_network() + simulate_three_way()  (ladder per branch)  -> CrossoverDesign(ways=3)
+services/design._crossover / _simulate_network  chooses 2- or 3-way
+ui/layout_canvas.py + ui/history.py  interactive front layout, undo/redo over immutable snapshots
+arrays.py  FloatArray / ComplexArray aliases;  drivers.Driver.require_vas_m3()
+```
+
 ## Ergänzungen V-02.06.00
 
 ```text
