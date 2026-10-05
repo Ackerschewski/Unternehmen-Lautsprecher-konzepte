@@ -283,6 +283,9 @@ class MainWindow(QMainWindow):
         self.bottom_thickness = self._spin(0.0,100.0,0.0," mm")
         self.front_layers=QSpinBox();self.front_layers.setRange(1,3);self.front_layers.setValue(1)
         self.additional_displacement = self._spin(0.0, 500.0, 0.0, " l")
+        self.joint_style = QComboBox()
+        self.joint_style.addItem("Stumpf verleimt", "butt")
+        self.joint_style.addItem("Gehrung 45° (Seiten, Deckel, Boden)", "mitre")
         self.brace_count = QSpinBox()
         self.brace_count.setRange(0, 20)
         self.brace_count.setValue(1)
@@ -327,6 +330,7 @@ class MainWindow(QMainWindow):
             ("Weitere Verdrängung", self.additional_displacement),
             ("Anzahl Fensterstreben", self.brace_count),
             ("Streben-Randbreite", self.brace_border),
+            ("Verbindung", self.joint_style),
             ("Material", self.material),
         ]:
             form.addRow(label, control)
@@ -876,6 +880,7 @@ class MainWindow(QMainWindow):
                 additional_displacement_l=self.additional_displacement.value(),
                 brace_quantity=self.brace_count.value(),
                 brace_border_mm=self.brace_border.value(),
+                joint_style=self.joint_style.currentData(),
             ),
             crossover=CrossoverConfig(
                 enabled=self.crossover_enabled.isChecked() and self.enclosure_type.currentData() not in {'horn_front','horn_tapped'},
@@ -1357,6 +1362,7 @@ class MainWindow(QMainWindow):
         self.additional_displacement.setValue(project.enclosure.additional_displacement_l)
         self.brace_count.setValue(project.enclosure.brace_quantity)
         self.brace_border.setValue(project.enclosure.brace_border_mm)
+        self.joint_style.setCurrentIndex(max(self.joint_style.findData(project.enclosure.joint_style), 0))
 
         self.crossover_enabled.setChecked(project.crossover.enabled)
         topology_index = self.crossover_topology.findData(project.crossover.topology)

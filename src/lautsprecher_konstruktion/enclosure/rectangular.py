@@ -59,6 +59,7 @@ class CutPanel:
     width_m: float
     height_m: float
     thickness_m: float
+    note: str = ""
 
 
 def calculate_net_volume(cabinet: CabinetDimensions, displacement_m3: float = 0.0) -> float:
@@ -110,11 +111,29 @@ def solve_depth_for_net_volume(
     )
 
 
-def cut_list(cabinet: CabinetDimensions) -> tuple[CutPanel, ...]:
-    """Return a basic six-panel butt-joint cut list."""
+MITRE_NOTE = "45° Gehrung an beiden Längskanten; Maße gelten für die lange (äußere) Kante"
+
+
+def cut_list(cabinet: CabinetDimensions, joint: str = "butt") -> tuple[CutPanel, ...]:
+    """Six-panel cut list; with joint="mitre" the four panels between front and back are mitred."""
+    if joint not in {"butt", "mitre"}:
+        raise ValueError(f"unknown joint style: {joint}")
     t = cabinet.panel_thickness_m
     between_front_back = cabinet.internal_depth_m
     between_sides = cabinet.width_m - 2 * t
+    if joint == "mitre":
+        # Sides, top and bottom wrap around the cabinet: every panel spans its full outer length.
+        side_t = t
+        top_t = cabinet.top_thickness_m or t
+        bottom_t = cabinet.bottom_thickness_m or t
+        return (
+            CutPanel("Front", cabinet.front_layers, cabinet.width_m, cabinet.height_m,
+                     cabinet.front_thickness_m or t),
+            CutPanel("Back", 1, cabinet.width_m, cabinet.height_m, cabinet.back_thickness_m or t),
+            CutPanel("Side", 2, between_front_back, cabinet.height_m, side_t, MITRE_NOTE),
+            CutPanel("Top", 1, cabinet.width_m, between_front_back, top_t, MITRE_NOTE),
+            CutPanel("Bottom", 1, cabinet.width_m, between_front_back, bottom_t, MITRE_NOTE),
+        )
 
     return (
         CutPanel("Front", cabinet.front_layers, cabinet.width_m, cabinet.height_m,

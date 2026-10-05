@@ -49,6 +49,7 @@ class EnclosureConfig(BaseModel):
     front_layers: int = Field(default=1, ge=1, le=3)
     additional_displacement_l: float = Field(default=0.0, ge=0)
 
+    joint_style: Literal["butt", "mitre"] = "butt"
     brace_quantity: int = Field(default=1, ge=0)
     brace_border_mm: float = Field(default=35.0, gt=0)
 

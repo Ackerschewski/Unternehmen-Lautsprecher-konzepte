@@ -10,7 +10,7 @@ Unternehmen-Lautsprecher-konzepte_V-03.00.00
 - [x] Prototypvergleich mit Abweichungskennzahlen und Portkorrektur (K2) – V-02.06.00
 - [x] Schallwandkorrektur abschaltbar (F2) – V-02.06.00
 - [x] 3-Wege-Weiche (F3) – V-02.07.00
-- [ ] 3D-Kollisions-/Gehrungsprüfung (M4)
+- [ ] 3D-Kollisionsprüfung (M4); Gehrungsoption seit V-02.07.00 vorhanden
 - [x] Undo/Redo und Drag-and-drop im Frontlayout (U3) – V-02.07.00
 
 ## Quality

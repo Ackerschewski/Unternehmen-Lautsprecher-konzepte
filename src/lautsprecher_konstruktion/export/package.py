@@ -36,6 +36,7 @@ from lautsprecher_konstruktion.export.cutting import (
     CuttingPlan,
     CuttingSettings,
     plan_cutting,
+    render_cutting_dxf,
     render_cutting_svg,
     summary_lines,
     write_cutting_csv,
@@ -102,6 +103,8 @@ def _cutting_files(folder: Path, bundle: DesignBundle,
         for s_index, sheet in enumerate(group.sheets):
             (sheets/f'platte_{group.thickness_mm:.0f}mm_{sheet.index}.svg').write_text(
                 render_cutting_svg(plan, g_index, s_index), encoding='utf-8')
+            (sheets/f'platte_{group.thickness_mm:.0f}mm_{sheet.index}.dxf').write_text(
+                render_cutting_dxf(plan, g_index, s_index), encoding='utf-8')
     return plan
 
 

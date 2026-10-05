@@ -9,6 +9,11 @@ die Impedanzen eintragen. Optional: Mitteltöner- und Hochtöner-Absenkung (L-Pa
 (obere Trennung). Mess-Dateien lassen sich für Woofer, Mitteltöner und Hochtöner laden; die akustische Summe erscheint, wenn alle drei FRD vorliegen. Die Treiber platzieren Sie wie üblich im Frontlayout;
 der Assistent wählt keine 3-Wege-Lautsprecher automatisch. Bauteilwerte sind Startwerte für nominale Lasten; die Simulation zeigt die Wirkung der gemessenen Impedanz.
 
+### Gehrungsverbindung und Zuschnitt-DXF
+
+Im Expertenmodus unter **Gehäuse → Verbindung** „Gehrung 45°“ wählen: Seiten, Deckel und Boden werden an den Längskanten auf Gehrung gesägt (Maße der Zuschnittliste gelten für die lange Außenkante); Front und Rückwand bleiben stumpf.
+Das Netto-Volumen bleibt gleich. Die Bauanleitung ergänzt den Gehrungsschritt. Jede Zuschnitt-Platte wird auch als DXF (`fertigung/zuschnittplan/platte_*.dxf`) exportiert.
+
 ### Frontlayout mit Maus und Tastatur
 
 Die Zeichenfläche im Reiter **Frontlayout** zeigt die gewählte Platte (Front, Rückwand, Trennwand). Elemente werden mit der Maus gezogen und rasten auf ein 5-mm-Raster und die Mittellinie ein (abschaltbar).

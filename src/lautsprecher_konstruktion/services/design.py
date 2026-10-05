@@ -346,7 +346,7 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
     warnings=['Tapped-Horn: Zweifach-Einspeisung an F1, ebene Wellen und angenäherte Faltungs-/Mündungsverluste. Impedanz und Nahfeld am Prototyp messen.']
     warnings.extend(issue.message for issue in issues)
     return DesignBundle(project.model_copy(update={'front_elements':layout}),target,
-        cabinet,cut_list(cabinet)+(horn.panel,),port,None,None,None,displacement,
+        cabinet,cut_list(cabinet, cfg.joint_style)+(horn.panel,),port,None,None,None,displacement,
         tuple(warnings),issues=tuple(issues),front_elements=layout,
         vented_response=response,tapped_horn=horn)
 
@@ -773,7 +773,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         project=project.model_copy(update={"front_elements":layout}),
         target_net_volume_m3=target_net_volume_m3,
         cabinet=cabinet,
-        panels=cut_list(cabinet) + slot_panels + (folded_line.baffle_panels if folded_line else ()) + (front_horn.panels if front_horn else ()) + ((CutPanel("Isobarik-Montagering", 1,
+        panels=cut_list(cabinet, cfg.joint_style) + slot_panels + (folded_line.baffle_panels if folded_line else ()) + (front_horn.panels if front_horn else ()) + ((CutPanel("Isobarik-Montagering", 1,
             coupler.outer_diameter_m, coupler.outer_diameter_m, t),) if coupler else ()) + ((CutPanel("Partition mit Treiberausschnitt", 1,
             cabinet.internal_width_m, cabinet.internal_height_m, t),) if rear_volume is not None else ()),
         port=port,

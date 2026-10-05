@@ -62,7 +62,7 @@ Ein Punkt gilt erst als erfüllt, wenn der genannte Nachweis existiert.
 | M1 | Zuschnittoptimierung mit Sägeschnitt, Verschnitt, Plattenzahl, SVG/CSV/PDF | Pytest | V-02.06 |
 | M2 | Gewicht (Gehäuse, Chassis, gesamt) in Stückliste und PDF | Pytest | V-02.06 |
 | M3 | Bauanleitung mit Montagereihenfolge je Bauform | Pytest + Sichtprüfung | V-02.06 |
-| M4 | 3D-Kollisions-/Gehrungsprüfung | Pytest | offen (V-02.08) |
+| M4 | 3D-Kollisions-/Gehrungsprüfung | Pytest | teilweise: Gehrungsoption und Zuschnitt seit V-02.07; 3D-Kollisionsprüfung offen (V-02.08) |
 | U1 | Zuletzt geöffnet, Einstellungen, Autosave/Wiederherstellung, Ungespeichert-Warnung | Offscreen-UI-Test | V-02.06 |
 | U2 | Programmlog (rotierend), Hilfe/Über, Handbuch aktuell | Pytest + Review | V-02.06 |
 | U3 | Undo/Redo + Drag-and-drop im Frontlayout | Offscreen-UI-Test | **erfüllt (V-02.07)** |

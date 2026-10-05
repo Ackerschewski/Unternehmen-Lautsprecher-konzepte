@@ -62,6 +62,11 @@ gilt `H *= Zdown/(Z+Zdown)` und `Zdown = Z+Zdown`, für ein Querelement `Zdown =
 L-Pads (`Rpad-M-*`, `Rpad-T-*`) davor. Die Zweige liegen parallel an der Quelle; die Gesamtimpedanz ist ihre Parallelschaltung. Bauteilwerte: `L = R/(Q ω)`, `C = Q/(ω R)` je Abschnitt mit Q = 1/√2
 (Butterworth) bzw. 0,5 (Linkwitz-Riley); 1. Ordnung `L = R/ω`, `C = 1/(ω R)`. Test: Für verlustfreie Netzwerke ist die an die Lasten gelieferte Leistung gleich der aufgenommenen.
 
+## Gehrung und Zuschnitt-DXF
+
+`cut_list(cabinet, joint)` kennt `butt` und `mitre`. Bei Gehrung bleiben Front und Rückwand unverändert; Deckel und Boden erhalten die volle Außenbreite (+2 t gegenüber stumpf), Seiten bleiben so lang wie bisher.
+`CutPanel.note` trägt den Gehrungshinweis in die CSV. `render_cutting_dxf` schreibt LINE- und TEXT-Entitäten (R12, mm, Ursprung links unten, y nach oben; die Szenen-y-Achse des Plans zeigt nach unten und wird umgerechnet).
+
 ## Frontlayout und Verlauf
 
 `ui/history.py` (ohne Qt) speichert vollständige Zustände. `push(state, merge_key)` ersetzt den neuesten Eintrag, wenn Schlüssel gleich und der Abstand höchstens 2 s (Oberfläche) beträgt. `ui/layout_canvas.py`

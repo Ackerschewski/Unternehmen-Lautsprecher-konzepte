@@ -345,6 +345,40 @@ def render_cutting_svg(plan: CuttingPlan, group_index: int, sheet_index: int) ->
     return "\n".join(out)
 
 
+def _dxf_pair(code: int, value: object) -> str:
+    return f"{code}\n{value}\n"
+
+
+def render_cutting_dxf(plan: CuttingPlan, group_index: int, sheet_index: int) -> str:
+    """One stock sheet as ASCII DXF R12 in millimetres, origin bottom-left, for CNC and panel-saw services.
+
+    Layers: SHEET (stock outline), PARTS (part outlines), TEXT (part id and size).
+    """
+    group = plan.groups[group_index]
+    sheet = group.sheets[sheet_index]
+    cfg = group.settings
+    entities: list[str] = []
+
+    def rectangle(x: float, y: float, w: float, h: float, layer: str) -> None:
+        for (x1, y1), (x2, y2) in (((x, y), (x + w, y)), ((x + w, y), (x + w, y + h)),
+                                   ((x + w, y + h), (x, y + h)), ((x, y + h), (x, y))):
+            entities.append(_dxf_pair(0, "LINE") + _dxf_pair(8, layer) + _dxf_pair(10, f"{x1:.3f}")
+                            + _dxf_pair(20, f"{y1:.3f}") + _dxf_pair(30, 0) + _dxf_pair(11, f"{x2:.3f}")
+                            + _dxf_pair(21, f"{y2:.3f}") + _dxf_pair(31, 0))
+
+    rectangle(0.0, 0.0, cfg.sheet_width_mm, cfg.sheet_height_mm, "SHEET")
+    for item in sheet.placed:
+        y = cfg.sheet_height_mm - item.y_mm - item.height_mm  # scene y points down, DXF y up
+        rectangle(item.x_mm, y, item.width_mm, item.height_mm, "PARTS")
+        label = f"{item.part.part_id} {item.width_mm:.0f}x{item.height_mm:.0f}".replace("\n", " ")
+        entities.append(_dxf_pair(0, "TEXT") + _dxf_pair(8, "TEXT") + _dxf_pair(10, f"{item.x_mm + 10:.3f}")
+                        + _dxf_pair(20, f"{y + item.height_mm / 2:.3f}") + _dxf_pair(30, 0)
+                        + _dxf_pair(40, f"{min(30.0, item.width_mm / 10):.1f}") + _dxf_pair(1, label))
+    return (_dxf_pair(0, "SECTION") + _dxf_pair(2, "HEADER") + _dxf_pair(0, "ENDSEC")
+            + _dxf_pair(0, "SECTION") + _dxf_pair(2, "ENTITIES") + "".join(entities)
+            + _dxf_pair(0, "ENDSEC") + _dxf_pair(0, "EOF"))
+
+
 def _esc(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 

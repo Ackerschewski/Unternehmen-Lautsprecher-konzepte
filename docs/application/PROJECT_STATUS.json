@@ -13,9 +13,10 @@
     "single version source",
     "three-way passive crossover with exact ladder simulation",
     "interactive front layout with undo/redo",
-    "mypy --strict green for all non-UI packages"
+    "mypy --strict green for all non-UI packages",
+    "mitre joint option and DXF per cutting sheet"
   ],
-  "tests": "228 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen smoke; see BUILD_REPORT_V-02.07.00.md",
+  "tests": "233 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen smoke; see BUILD_REPORT_V-02.07.00.md",
   "remaining": [
     "prototype measurement validation (K3)",
     "Windows build and smoke of V-02.07.00 (R1)",

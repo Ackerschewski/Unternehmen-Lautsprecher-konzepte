@@ -101,6 +101,12 @@ def build_instructions(bundle: DesignBundle, cutting: CuttingPlan | None = None)
             "Gehäuse ohne Leim und mit Zwingen zusammenstellen. Treiber, Port, Streben und Terminal einsetzen und prüfen, "
             "ob alles passt und die Kabel durchgeführt werden können.",
             "Alle Teile passen ohne Gewalt; Maße stimmen mit `massblatt.svg`."))
+        if cfg.joint_style == "mitre":
+            steps.append(Step("Gehrungen sägen und verkleben",
+                "Seiten, Deckel und Boden mit 45°-Gehrungen an den Längskanten sägen (Maße gelten für die lange Außenkante). "
+                "Die vier Platten außen aneinanderlegen, Klebeband über die Fugen, Leim auftragen und zum Kasten falten; "
+                "Front und Rückwand werden stumpf aufgesetzt.",
+                "Winkel stimmen, Fugen schließen ohne Spalt; Diagonalen messen."))
         steps.append(Step("Verleimen",
             "Seitenwände, Deckel und Boden mit Leim bestreichen und rechtwinklig verspannen; Diagonalen messen. "
             "Rückwand erst nach Einbau von Dämmung, Verkabelung und Innenteilen schließen; hierbei Dichtmasse verwenden.",

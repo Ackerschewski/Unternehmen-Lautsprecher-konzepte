@@ -2,7 +2,7 @@
 
 ## Umfang
 
-3-Wege-Weiche mit exakter Kettenschaltungs-Simulation, interaktives Frontlayout mit Ziehen, Einrasten, Pfeiltasten und Rückgängig/Wiederholen,
+3-Wege-Weiche mit exakter Kettenschaltungs-Simulation, Gehrungsoption, DXF je Zuschnitt-Platte, interaktives Frontlayout mit Ziehen, Einrasten, Pfeiltasten und Rückgängig/Wiederholen,
 `mypy --strict` für alle Nicht-UI-Pakete, UI-Tests für Bibliotheksdialog und Frontlayout, Aufnahme der Prüfkommandos in die Qualitätsmatrix.
 Basis ist V-02.06.00 (Zuschnitt, Bauanleitung, Prototypvergleich, Benutzerdaten).
 
@@ -10,7 +10,7 @@ Basis ist V-02.06.00 (Zuschnitt, Bauanleitung, Prototypvergleich, Benutzerdaten)
 
 | Prüfung | Ergebnis |
 |---|---|
-| Pytest | 228 Fälle bestanden |
+| Pytest | 233 Fälle bestanden |
 | Ruff | bestanden |
 | `mypy --strict` | 87 Quelldateien ohne Befund (Qt-Oberfläche und `app` sind in `pyproject.toml` ausdrücklich ausgenommen) |
 | Offscreen-Smoke `--smoke` und `--smoke-assistant` | bestanden |

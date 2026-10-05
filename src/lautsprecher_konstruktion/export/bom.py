@@ -218,7 +218,8 @@ def write_cutlist_csv(path: str | Path, bundle: DesignBundle) -> None:
         writer = csv.writer(handle, delimiter=";")
         writer.writerow(["Bauteil", "Anzahl", "Länge_mm", "Breite_mm", "Dicke_mm", "Material", "Bemerkung"])
         for panel in bundle.panels:
-            note=("Treiberausschnitt gemäß Trennwand-DXF" if panel.name.startswith("Partition") else
+            note=(panel.note if panel.note else
+                  "Treiberausschnitt gemäß Trennwand-DXF" if panel.name.startswith("Partition") else
                   "Kreisprofil und Treiberausschnitt gemäß Isobarik-Ring-DXF" if panel.name.startswith("Isobarik") else "")
             writer.writerow([
                 panel.name,

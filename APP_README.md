@@ -15,6 +15,8 @@ Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm f
 
 Das **Frontlayout** hat eine interaktive Zeichenfläche: Treiber und Ports lassen sich mit der Maus ziehen (Einrasten auf 5 mm und Mittellinie, abschaltbar) oder mit den Pfeiltasten verschieben (Umschalt = 10 mm); die Ansicht wechselt zwischen Front, Rückwand und Trennwand. **Rückgängig/Wiederholen** (`Strg+Z`, `Strg+Y`) gilt für Hinzufügen, Löschen, Ziehen und Werteingaben; schnelle Folgeänderungen werden zu einem Schritt zusammengefasst.
 
+**Fertigung:** Im Expertenmodus lässt sich die **Gehrungsverbindung** wählen (Seiten, Deckel und Boden mit 45°-Gehrung): die Zuschnittliste führt dann die volle Außenlänge und den Gehrungshinweis, die Bauanleitung enthält den Schritt „Gehrungen sägen und verkleben“. Das Innenvolumen ändert sich nicht; die Zeichnungen zeigen weiterhin die Plattenstärken, nicht die Gehrungsflächen. Zusätzlich liegt jede Zuschnitt-Platte als **DXF** (Ebenen SHEET, PARTS, TEXT) für CNC und Plattensägedienste im Ordner `zuschnittplan` vor.
+
 Qualität: `mypy --strict` ist für alle Rechen-, Export- und Datenpakete grün (die Qt-Oberfläche ist ausdrücklich ausgenommen). Dabei wurden fehlende Vas-Werte als klare Fehlermeldung statt als Programmfehler behandelt und eine fehlerhafte Katalogdatei wird gemeldet statt abzustürzen. Alle Oberflächendateien sind zu mindestens 75 % getestet.
 
 Nicht enthalten und weiter offen: 3D-Kollisions- und Gehrungsprüfung, Messvalidierung mit Prototypen, automatische Auswahl von 3-Wege-Lautsprechern, Windows-Build dieser Version.
