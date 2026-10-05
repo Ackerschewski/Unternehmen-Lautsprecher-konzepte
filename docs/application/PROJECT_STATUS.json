@@ -1,9 +1,26 @@
 {
-  "version": "V-02.05.00",
-  "task_id": "LK-023",
+  "version": "V-02.06.00",
+  "task_id": "LK-024",
   "status": "USER_TEST_REQUIRED",
   "owner": "local integration",
-  "acceptance": ["all 29 catalogued enclosures have a solver and geometry", "front and tapped horns have specific acoustic networks, construction sheets and DXF", "automatic horn selection works for feasible constraints", "Windows test package and draft GitHub update"],
-  "tests": "95 pytest cases, Ruff, Windows PyInstaller build and offscreen smoke passed; horn export and automatic selection tested",
-  "remaining": ["prototype measurement validation", "further T/S completion of catalog records", "full 3D collision and mitre control"]
+  "acceptance": [
+    "cutting plan with kerf, sheet count and waste for all 29 enclosure types",
+    "cabinet weight range and build instructions in the export",
+    "prototype comparison tool (UI and CLI) with port correction",
+    "baffle step compensation option",
+    "reference tests against literature relations",
+    "recent files, autosave recovery, settings, log, help",
+    "single version source"
+  ],
+  "tests": "see BUILD_REPORT_V-02.06.00.md",
+  "remaining": [
+    "prototype measurement validation (K3)",
+    "Windows build and smoke of V-02.06.00 (R1)",
+    "interactive user test (R2)",
+    "owner approval (R3)",
+    "3-way crossover",
+    "undo/redo and drag-and-drop in front layout",
+    "3D collision and mitre check",
+    "mypy strict"
+  ]
 }

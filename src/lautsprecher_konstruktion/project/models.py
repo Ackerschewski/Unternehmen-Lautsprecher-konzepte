@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
@@ -67,6 +68,8 @@ class CrossoverConfig(BaseModel):
     tweeter_impedance_ohm: float = Field(default=8.0, gt=0)
     tweeter_attenuation_db: float = Field(default=0.0, ge=0)
     add_woofer_zobel: bool = False
+    # 0 = off. Otherwise a baffle step compensation of this size (max 6 dB) is added to the woofer branch.
+    baffle_step_compensation_db: float = Field(default=0.0, ge=0, le=6.0)
     round_to_standard_values: bool = False
     woofer_frd: FrequencyResponseData | None = None
     tweeter_frd: FrequencyResponseData | None = None
@@ -88,7 +91,7 @@ class ProjectAccessory(BaseModel):
 class SpeakerProject(BaseModel):
     schema_version: int = 3
     name: str = "Neues Lautsprecherprojekt"
-    revision: str = "V-02.05.00"
+    revision: str = REVISION
     material: str = "Birke Multiplex"
     driver: Driver
     additional_drivers: tuple[Driver, ...] = ()

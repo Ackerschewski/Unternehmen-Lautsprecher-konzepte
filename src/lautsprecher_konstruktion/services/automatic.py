@@ -14,6 +14,7 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel, Field
 
+from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.acoustics.sealed import solve_sealed
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.isobaric import equivalent_driver
@@ -428,7 +429,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                                 if item.id in {"demo:terminal", "thomann:visaton-damping"})
                             project = SpeakerProject(name=request.project_name +
                                 (" · TESTDATEN" if test_data and "TESTDATEN" not in request.project_name else ""),
-                                revision="V-02.05.00", driver=woofer, material=request.material,
+                                revision=REVISION, driver=woofer, material=request.material,
                                 additional_drivers=(tweeter,) if tweeter else (),
                                 tweeter_name=f"{tweeter.manufacturer} {tweeter.model}" if tweeter else "",
                                 enclosure=cfg, crossover=crossover,

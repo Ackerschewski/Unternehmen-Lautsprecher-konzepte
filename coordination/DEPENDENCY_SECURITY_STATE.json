@@ -1,15 +1,17 @@
 {
-  "schema_version": 1,
+  "counts": {
+    "findings": 0,
+    "high_or_critical": 0,
+    "packages": 0
+  },
   "derived": true,
+  "findings": [],
   "generated_by": "tools/dependency_watch.py",
   "inventory": {
-    "manifests": [],
+    "manifests": [
+      "pyproject.toml"
+    ],
     "packages": []
   },
-  "findings": [],
-  "counts": {
-    "packages": 0,
-    "findings": 0,
-    "high_or_critical": 0
-  }
+  "schema_version": 1
 }

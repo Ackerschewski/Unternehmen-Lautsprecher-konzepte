@@ -1,13 +1,13 @@
 {
-  "schema_version": 1,
-  "derived": true,
-  "source_of_truth": "coordination/feedback/*.json",
-  "generated_by": "tools/feedback_control.py",
   "counts": {
-    "total": 0,
-    "needs_triage": 0,
+    "closed": 0,
     "defect_created": 0,
-    "closed": 0
+    "needs_triage": 0,
+    "total": 0
   },
-  "items": []
+  "derived": true,
+  "generated_by": "tools/feedback_control.py",
+  "items": [],
+  "schema_version": 1,
+  "source_of_truth": "coordination/feedback/*.json"
 }

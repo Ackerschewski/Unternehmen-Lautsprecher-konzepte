@@ -166,3 +166,22 @@ def zobel_from_re_le(re_ohm: float, le_h: float) -> tuple[PassiveComponent, Pass
         PassiveComponent("Rz", "resistor", rz, "ohm", "series RC branch", "zobel"),
         PassiveComponent("Cz", "capacitor", cz, "F", "series RC branch", "zobel"),
     )
+
+
+def baffle_step_compensation(baffle_step_hz: float, load_ohm: float,
+                             step_db: float = 6.0) -> tuple[PassiveComponent, PassiveComponent]:
+    """Series inductor with a parallel resistor in the woofer branch.
+
+    The inductor passes low frequencies unattenuated; above the transition the resistor
+    attenuates the woofer by step_db. Half of the step is reached at baffle_step_hz.
+    """
+    _validate(baffle_step_hz, load_ohm)
+    if not 0 < step_db <= 6.0206 + 1e-9:
+        raise ValueError("step_db must be between 0 and 6.02 dB")
+    k = 10.0 ** (step_db / 20.0)
+    resistor = load_ohm * (k - 1.0)
+    inductor = resistor / (2.0 * pi * baffle_step_hz * sqrt(k))
+    return (
+        PassiveComponent("Lbs", "inductor", inductor, "H", "series, parallel zu Rbs", "woofer baffle step"),
+        PassiveComponent("Rbs", "resistor", resistor, "ohm", "parallel zu Lbs", "woofer baffle step"),
+    )

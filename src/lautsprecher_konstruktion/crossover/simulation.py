@@ -73,11 +73,16 @@ def simulate_crossover(
     if "Rz" in parts and "Cz" in parts:
         zobel = parts["Rz"].value_si + 1.0 / (s * parts["Cz"].value_si)
         wz = _parallel(wz, zobel)
+    driver_share = 1.0  # voltage across the driver relative to the node in front of the baffle step network
+    if "Lbs" in parts and "Rbs" in parts:
+        driver_side = wz
+        wz = _parallel(complex(parts["Rbs"].value_si), s * parts["Lbs"].value_si) + driver_side
+        driver_share = driver_side / wz
     if "C1" in parts and parts["C1"].connection == "shunt":
         wz = _parallel(wz, 1.0 / (s * parts["C1"].value_si))
     wl = s * parts["L1"].value_si
     winput = wl + wz
-    wvoltage = wz / winput
+    wvoltage = wz / winput * driver_share
 
     pad_parallel = tload
     if "Rpad-P" in parts:

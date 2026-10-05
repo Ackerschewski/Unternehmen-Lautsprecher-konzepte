@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.baffle import simulate_baffle
+from lautsprecher_konstruktion.acoustics.baffle_step import baffle_step_frequency_hz
 from lautsprecher_konstruktion.acoustics.bandpass import (
     simulate_bandpass,
     simulate_bandpass_series,
@@ -17,6 +18,7 @@ from lautsprecher_konstruktion.acoustics.tapped_horn import simulate_tapped_horn
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse, simulate_vented
 from lautsprecher_konstruktion.crossover.passive import (
     CrossoverDesign,
+    baffle_step_compensation,
     first_order_two_way,
     l_pad,
     second_order_butterworth_two_way,
@@ -199,6 +201,14 @@ def _crossover(project: SpeakerProject) -> tuple[CrossoverDesign | None, list[st
             notes.append("Woofer Zobel added from Re/Le as a starting approximation.")
         else:
             warnings.append("Zobel requested, but woofer Re/Le are incomplete.")
+
+    if cfg.baffle_step_compensation_db > 0:
+        width_m = project.enclosure.external_width_mm / 1000.0
+        f_bs = baffle_step_frequency_hz(width_m)
+        extra.extend(baffle_step_compensation(f_bs, cfg.woofer_impedance_ohm,
+                                              cfg.baffle_step_compensation_db))
+        notes.append(f"Schallwandkorrektur {cfg.baffle_step_compensation_db:.1f} dB um {f_bs:.0f} Hz "
+                     f"(Schallwandbreite {width_m * 1000:.0f} mm, Näherung; Wechselwirkung mit der Weiche messen).")
 
     result = replace(design, components=tuple(extra), notes=tuple(notes))
     return (round_crossover_to_e12(result) if cfg.round_to_standard_values else result), warnings

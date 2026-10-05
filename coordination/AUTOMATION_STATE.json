@@ -5,16 +5,24 @@
   "generated_by": "tools/automation_control.py",
   "health": "READY",
   "task_counts": {
-    "total": 0,
+    "total": 4,
     "runnable": 0,
     "blocked_by_dependency": 0
   },
   "blocked_by_dependency": [],
   "active_by_agent": {
-    "agent_1": [],
-    "agent_2": [],
-    "agent_3": [],
-    "agent_4": [],
+    "agent_1": [
+      "TASK-0023"
+    ],
+    "agent_2": [
+      "TASK-0022"
+    ],
+    "agent_3": [
+      "TASK-0024"
+    ],
+    "agent_4": [
+      "TASK-0021"
+    ],
     "agent_5": []
   },
   "wip_limit_default": 1,

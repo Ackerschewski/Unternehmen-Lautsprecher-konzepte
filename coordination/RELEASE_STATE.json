@@ -58,7 +58,7 @@
     "coordination/DEFECT_STATE.json",
     "coordination/AUTOMATION_STATE.json"
   ],
-  "version": "V-01.03.00",
+  "version": "V-01.07.00",
   "version_consistent": true,
   "version_problem": null
 }

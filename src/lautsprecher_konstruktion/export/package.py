@@ -25,13 +25,24 @@ from lautsprecher_konstruktion.drawings.panel_sheet_svg import (
 )
 from lautsprecher_konstruktion.drawings.tapped_horn_dxf import render_tapped_f1_dxf
 from lautsprecher_konstruktion.drawings.views import render_view_svg
+from lautsprecher_konstruktion.export.assembly_guide import write_assembly_guide
 from lautsprecher_konstruktion.export.bom import (
     build_bom,
     write_bom_csv,
     write_crossover_bom_csv,
     write_cutlist_csv,
 )
+from lautsprecher_konstruktion.export.cutting import (
+    CuttingPlan,
+    CuttingSettings,
+    plan_cutting,
+    render_cutting_svg,
+    summary_lines,
+    write_cutting_csv,
+    write_cutting_pdf,
+)
 from lautsprecher_konstruktion.export.pdf_report import write_pdf_report
+from lautsprecher_konstruktion.export.weight import estimate_weight
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
@@ -81,7 +92,21 @@ def _simulation_files(folder: Path, bundle: DesignBundle) -> None:
             _csv(folder/filename,('Frequenz_Hz',metric),[])
 
 
-def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
+def _cutting_files(folder: Path, bundle: DesignBundle,
+                   settings: CuttingSettings | None) -> CuttingPlan:
+    plan = plan_cutting(bundle, settings)
+    write_cutting_csv(folder/'zuschnittplan.csv', plan)
+    write_cutting_pdf(folder/'zuschnittplan.pdf', plan, bundle.project.name)
+    sheets = folder/'zuschnittplan'; sheets.mkdir(exist_ok=True)
+    for g_index, group in enumerate(plan.groups):
+        for s_index, sheet in enumerate(group.sheets):
+            (sheets/f'platte_{group.thickness_mm:.0f}mm_{sheet.index}.svg').write_text(
+                render_cutting_svg(plan, g_index, s_index), encoding='utf-8')
+    return plan
+
+
+def export_project_package(bundle: DesignBundle, directory: str | Path,
+                           cutting_settings: CuttingSettings | None = None) -> Path:
     geometry_errors=[issue.message for issue in bundle.issues if issue.severity == 'error'
                      and issue.code in {'FRONT_EDGE','FRONT_COLLISION','BACK_WALL','PORT_BACK_WALL','REAR_PORT_BACK_WALL','BRACE_COLLISION','BRACE_SPACE','DRILL_CUTOUT','DUPLICATE_ID','CHAMBER_DEPTH','ISOBARIC_DEPTH','ISOBARIC_WALL','ISOBARIC_COLLISION','ISOBARIC_DRIVER','LINE_DRIVER_TURN','LINE_PORT_HEIGHT','FRONT_HORN_DRIVER','FRONT_HORN_OBSTRUCTION','TAPPED_EXTRA_DRIVER'}]
     if geometry_errors:
@@ -145,6 +170,8 @@ def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
     write_cutlist_csv(manufacturing/'zuschnittliste.csv',bundle)
     write_pdf_report(manufacturing/'fertigungsunterlagen.pdf',bundle,bom)
     _simulation_files(simulation,bundle)
+    cutting_plan = _cutting_files(manufacturing, bundle, cutting_settings)
+    write_assembly_guide(manufacturing, bundle, cutting_plan)
 
     # Retain the V-00.02 flat names for existing downstream users.
     (package/'gehaeuse_zeichnung.svg').write_text(svg,encoding='utf-8')
@@ -176,6 +203,7 @@ def export_project_package(bundle: DesignBundle, directory: str | Path) -> Path:
                         (f'Außen: {bundle.cabinet.width_m*1000:.1f} x '
                         f'{bundle.cabinet.height_m*1000:.1f} x '
                         f'{bundle.cabinet.depth_m*1000:.1f} mm')))
+    summary.extend(('', 'Zuschnitt:', *summary_lines(cutting_plan), estimate_weight(bundle).describe()))
     summary.extend(('', 'Warnungen:', *(f'- {w}' for w in bundle.warnings)))
     if bundle.radiator:
         summary.insert(4,f'Passivmembran-Zusatzmasse: {bundle.radiator.added_mass_kg*1000:.1f} g')

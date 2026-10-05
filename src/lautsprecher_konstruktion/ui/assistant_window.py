@@ -9,7 +9,8 @@ import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from pydantic import ValidationError
-from PySide6.QtCore import QByteArray, Qt, QThread, Signal
+from PySide6.QtCore import QByteArray, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -35,7 +36,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.acoustics.response import sealed_response_db
+from lautsprecher_konstruktion.appdata import (
+    Autosave,
+    RecentProjects,
+    Settings,
+    configure_logging,
+    get_logger,
+    log_file,
+)
 from lautsprecher_konstruktion.drawings.dimension_svg import render_dimension_svg
 from lautsprecher_konstruktion.drawings.internal_dimensions_svg import (
     render_internal_dimensions_svg,
@@ -60,10 +70,16 @@ from lautsprecher_konstruktion.services.automatic import (
     automatic_design,
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
+from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
+from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
+from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import stylesheet
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
+
+LOG = get_logger("ui")
+AUTOSAVE_INTERVAL_MS = 60_000
 
 
 class DesignWorker(QThread):
@@ -100,14 +116,19 @@ def _spin(default: float, minimum: float, maximum: float, suffix: str,
 class AssistantWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.05.00")
+        self.setWindowTitle(f"Lautsprecher Konstruktion {REVISION}")
         self.resize(1500, 920)
         self.library = ComponentLibrary()
         self.designs: tuple[SpeakerDesign, ...] = ()
         self.worker: DesignWorker | None = None
         self.expert_window: MainWindow | None = None
         self._stale = False
-        self.mode = "light"
+        self._unsaved = False
+        self.settings = Settings()
+        self.recent = RecentProjects()
+        self.autosave = Autosave()
+        configure_logging()
+        self.mode = self.settings.get("theme", "light") if self.settings.get("theme") in {"light", "dark"} else "light"
         self.setStyleSheet(stylesheet(self.mode))
 
         root = QWidget()
@@ -137,6 +158,11 @@ class AssistantWindow(QMainWindow):
         self._connect_inputs()
         outer.addWidget(split, 1)
         self.setCentralWidget(root)
+        self._build_menu()
+        self.autosave_timer = QTimer(self)
+        self.autosave_timer.setInterval(AUTOSAVE_INTERVAL_MS)
+        self.autosave_timer.timeout.connect(self._autosave)
+        self.autosave_timer.start()
         self.statusBar().showMessage("Bereit · Bibliothek: Herstellerdaten und gekennzeichnete Testdaten")
 
     def _connect_inputs(self) -> None:
@@ -346,6 +372,8 @@ class AssistantWindow(QMainWindow):
 
         self.bom_view = QTextBrowser()
         self.tabs.addTab(self.bom_view, "Stückliste")
+        self.cutting_panel = CuttingPanel(self.settings)
+        self.tabs.addTab(self.cutting_panel, "Zuschnitt")
         layout.addWidget(self.tabs, 1)
         actions = QHBoxLayout()
         self.save_button = QPushButton("Projekt speichern")
@@ -412,6 +440,7 @@ class AssistantWindow(QMainWindow):
         self.progress.setValue(100 if result.status != "cancelled" else 0)
         self.designs = result.designs
         self._stale = result.status != "ok"
+        self._unsaved = result.status == "ok" and bool(result.designs)
         self.variant_list.clear()
         self.comparison.setRowCount(0)
         if result.status == "ok":
@@ -469,6 +498,7 @@ class AssistantWindow(QMainWindow):
             return
         design = self.designs[index]
         bundle = design.bundle
+        self.cutting_panel.set_bundle(bundle)
         c = bundle.cabinet
         f3 = bundle.sealed.f3_hz if bundle.sealed else (
             bundle.vented_response.f3_hz if bundle.vented_response else None)
@@ -620,6 +650,7 @@ class AssistantWindow(QMainWindow):
             bom, None, None, False, budget_cost(bom))
         self.designs = (design,)
         self._stale = False
+        self._unsaved = True
         self.variant_list.clear()
         self.comparison.setRowCount(0)
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
@@ -633,6 +664,7 @@ class AssistantWindow(QMainWindow):
 
     def _theme(self) -> None:
         self.mode = "dark" if self.mode == "light" else "light"
+        self.settings.set("theme", self.mode)
         self.setStyleSheet(stylesheet(self.mode))
 
     def _demo(self) -> None:
@@ -668,21 +700,39 @@ class AssistantWindow(QMainWindow):
         if filename:
             try:
                 Path(filename).write_text(design.project.model_dump_json(indent=2), encoding="utf-8")
-                self.statusBar().showMessage(f"Projekt gespeichert: {filename}")
             except OSError as exc:
+                LOG.warning("Speichern fehlgeschlagen: %s", exc)
                 QMessageBox.warning(self, "Speichern fehlgeschlagen", str(exc))
+                return
+            self._unsaved = False
+            self.autosave.discard()
+            self.recent.add(filename)
+            self._refresh_recent_menu()
+            self.statusBar().showMessage(f"Projekt gespeichert: {filename}")
 
     def _load(self) -> None:
         filename, _ = QFileDialog.getOpenFileName(self, "Projekt laden", "", "Lautsprecherprojekt (*.json)")
-        if not filename:
-            return
+        if filename:
+            self.open_project_file(filename)
+
+    def open_project_file(self, filename: str | Path, *, remember: bool = True) -> bool:
+        """Load and calculate a saved project; returns False and informs the user on failure."""
+        if not self._confirm_discard():
+            return False
         try:
             project = SpeakerProject.model_validate_json(Path(filename).read_text(encoding="utf-8"))
             bundle = calculate_project(project)
         except (OSError, ValidationError, ValueError) as exc:
+            LOG.warning("Projekt laden fehlgeschlagen (%s): %s", filename, exc)
             QMessageBox.warning(self, "Projekt laden fehlgeschlagen", str(exc))
-            return
+            return False
         self._expert_updated(bundle)
+        if remember:
+            self._unsaved = False
+            self.recent.add(filename)
+            self._refresh_recent_menu()
+        self.statusBar().showMessage(f"Projekt geladen: {filename}")
+        return True
 
     def _export(self) -> None:
         design = self._current()
@@ -691,12 +741,112 @@ class AssistantWindow(QMainWindow):
         folder = QFileDialog.getExistingDirectory(self, "Exportordner wählen")
         if folder:
             try:
-                package = export_project_package(design.bundle, folder)
+                package = export_project_package(design.bundle, folder,
+                    self.cutting_panel.settings(design.project.material))
                 self.statusBar().showMessage(f"Fertigungsunterlagen: {package}")
             except (OSError, ValueError) as exc:
+                LOG.warning("Export fehlgeschlagen: %s", exc)
                 QMessageBox.warning(self, "Export fehlgeschlagen", str(exc))
 
+    # --- menu, help, recovery -------------------------------------------------
+
+    def _action(self, text: str, slot: object, shortcut: str | None = None) -> QAction:
+        action = QAction(text, self)
+        if shortcut:
+            action.setShortcut(QKeySequence(shortcut))
+        action.triggered.connect(slot)
+        return action
+
+    def _build_menu(self) -> None:
+        bar = self.menuBar()
+        file_menu = bar.addMenu("&Datei")
+        file_menu.addAction(self._action("Projekt &laden…", self._load, "Ctrl+O"))
+        self.recent_menu = file_menu.addMenu("&Zuletzt geöffnet")
+        file_menu.addAction(self._action("Projekt &speichern…", self._save, "Ctrl+S"))
+        file_menu.addAction(self._action("Fertigungsunterlagen &exportieren…", self._export, "Ctrl+E"))
+        file_menu.addSeparator()
+        file_menu.addAction(self._action("&Beenden", self.close, "Ctrl+Q"))
+        tools = bar.addMenu("&Werkzeuge")
+        tools.addAction(self._action("&Bibliothek", self._library))
+        tools.addAction(self._action("&Expertenmodus", self._expert))
+        tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
+        tools.addAction(self._action("&Hell / Dunkel", self._theme))
+        help_menu = bar.addMenu("&Hilfe")
+        help_menu.addAction(self._action("&Kurzanleitung und Über…", self._help, "F1"))
+        help_menu.addAction(self._action("&Protokollordner öffnen", self._open_log_folder))
+        self._refresh_recent_menu()
+
+    def _refresh_recent_menu(self) -> None:
+        self.recent_menu.clear()
+        items = self.recent.items()
+        for path in items:
+            self.recent_menu.addAction(self._action(
+                path.name, lambda _=False, target=path: self.open_project_file(target)))
+        if items:
+            self.recent_menu.addSeparator()
+            self.recent_menu.addAction(self._action("Liste leeren", self._clear_recent))
+        self.recent_menu.setEnabled(bool(items))
+
+    def _clear_recent(self) -> None:
+        self.recent.clear()
+        self._refresh_recent_menu()
+
+    def _help(self) -> None:
+        HelpDialog(self).exec()
+
+    def _open_log_folder(self) -> None:
+        folder = log_file().parent
+        folder.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def _prototype(self) -> None:
+        current = self._current()
+        if current is None:
+            QMessageBox.information(self, "Kein Entwurf", "Bitte zuerst einen Entwurf erstellen oder ein Projekt laden.")
+            return
+        PrototypeDialog(current.bundle, self).exec()
+
+    def _autosave(self) -> None:
+        design = self._current()
+        if design is None or not self._unsaved:
+            return
+        try:
+            self.autosave.write(design.project.model_dump_json(indent=2))
+        except OSError as exc:
+            LOG.warning("Autosave fehlgeschlagen: %s", exc)
+
+    def offer_recovery(self) -> bool:
+        """After a crash the newest autosave can be restored; returns True if it was restored."""
+        saved = self.autosave.recoverable()
+        if saved is None:
+            return False
+        answer = QMessageBox.question(self, "Projekt wiederherstellen",
+            "Beim letzten Beenden wurde ein ungespeicherter Entwurf gefunden. Wiederherstellen?")
+        if answer != QMessageBox.StandardButton.Yes:
+            self.autosave.discard()
+            return False
+        if not self.open_project_file(saved, remember=False):
+            return False
+        self._unsaved = True  # restored data is not yet saved to a project file
+        self.autosave.discard()
+        return True
+
+    def _confirm_discard(self) -> bool:
+        if not self._unsaved or self._current() is None:
+            return True
+        answer = QMessageBox.question(self, "Ungespeicherte Änderungen",
+            "Der aktuelle Entwurf ist nicht gespeichert. Trotzdem fortfahren?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        return answer == QMessageBox.StandardButton.Yes
+
     def closeEvent(self, event: object) -> None:
+        # Only a user-initiated close of a visible window asks for confirmation.
+        if self.isVisible() and not self._confirm_discard():
+            event.ignore()
+            return
+        self.autosave_timer.stop()
+        self.autosave.discard()
         if self.worker and self.worker.isRunning():
             self.worker.cancel_event.set()
             self.worker.wait(5000)

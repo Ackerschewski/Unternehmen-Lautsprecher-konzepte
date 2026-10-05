@@ -1,4 +1,34 @@
-# Nutzerhandbuch — V-02.05.00
+# Nutzerhandbuch — V-02.06.00
+
+## Neu in V-02.06.00
+
+### Zuschnitt, Gewicht und Bauanleitung
+
+Der Reiter **Zuschnitt** zeigt, wie alle Teile auf Handelsplatten verteilt werden. Plattenmaß und Sägeschnitt sind einstellbar und werden gespeichert;
+„Standardplatte des Materials“ nutzt 2 500 × 1 250 mm (Birke Multiplex) bzw. 2 440 × 1 220 mm (MDF, Spanplatte). Teile mit verschiedenen Plattendicken
+werden getrennt geplant. Teile, die auf keine Platte passen, werden ausdrücklich gemeldet. Trapez- und Rundteile sind als umschreibendes Rechteck geplant.
+Das Gewicht ist ein Bereich nur für das Plattenmaterial; Chassis, Weiche und Dämmung sind nicht enthalten.
+
+Der Export enthält im Ordner `fertigung`: `zuschnittplan.pdf`, `zuschnittplan.csv`, `zuschnittplan/platte_*.svg`, `bauanleitung.pdf` und `bauanleitung.md`.
+Die Bauanleitung folgt der berechneten Konstruktion (Trennwand, Isobarik-Kammer, Horn, Faltung, Port, Passivmembran) und nennt Kontrollschritte.
+
+### Prototyp vergleichen
+
+Nach dem Bau Impedanz (ZMA) und Frequenzgang (FRD) messen (siehe `MESSPROTOKOLL.md`), dann **Werkzeuge → Prototyp vergleichen** (Assistent) bzw.
+**Prototyp vergleichen…** (Expertenmodus). Der Bericht zeigt RMS-/Maximalabweichung, F3, die Abstimmfrequenz aus dem Impedanzminimum und bei Bassreflex einen
+Vorschlag zur Portlänge. Der Vorschlag setzt voraus, dass der Port wie geplant gebaut wurde; in kleinen Schritten korrigieren und neu messen.
+
+### Schallwandkorrektur
+
+Im Expertenmodus unter **Frequenzweiche → Schallwandkorrektur** (0 = aus, bis 6 dB). Es entstehen Spule `Lbs` und Widerstand `Rbs` im Tieftonzweig.
+Der Übergang liegt bei etwa 115 Hz·m / Schallwandbreite. Die Näherung ist nicht an Messungen validiert; bei Subwoofern ist sie nicht sinnvoll.
+
+### Komfort
+
+- **Datei → Zuletzt geöffnet**, `Strg+O` laden, `Strg+S` speichern, `Strg+E` exportieren, `Strg+Q` beenden, `F1` Hilfe.
+- Bei ungespeicherten Änderungen fragt das Programm vor dem Schließen und vor dem Laden eines anderen Projekts.
+- Alle 60 Sekunden wird ein ungespeicherter Entwurf gesichert; nach einem Absturz bietet das Programm beim Start die Wiederherstellung an.
+- Das Programmprotokoll liegt unter `%LOCALAPPDATA%\LautsprecherKonstruktion\logs`; **Hilfe → Protokollordner öffnen**. Bei Fehlermeldungen die Datei beilegen.
 
 ## Gehäusetypen in V-02.05.00
 

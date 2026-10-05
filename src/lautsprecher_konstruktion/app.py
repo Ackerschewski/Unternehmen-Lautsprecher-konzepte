@@ -5,20 +5,39 @@ import tempfile
 from pathlib import Path
 
 import matplotlib
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtGui import QFont, QFontDatabase
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
+from lautsprecher_konstruktion import REVISION
+from lautsprecher_konstruktion.appdata import configure_logging, get_logger, install_excepthook
 from lautsprecher_konstruktion.export.package import export_project_package
 from lautsprecher_konstruktion.project.models import SpeakerProject
 from lautsprecher_konstruktion.services.design import calculate_project
 from lautsprecher_konstruktion.ui.assistant_window import AssistantWindow
 
 
+class _ErrorRelay(QObject):
+    reported = Signal(str)
+
+    def __init__(self, log_path: Path) -> None:
+        super().__init__()
+        self._log_path = log_path
+        self.reported.connect(self._show)
+
+    def _show(self, text: str) -> None:
+        QMessageBox.critical(None, "Unerwarteter Fehler",
+                             f"{text}\n\nDetails stehen in der Protokolldatei:\n{self._log_path}")
+
+
 def main() -> int:
+    log_path = configure_logging()
+    get_logger().info("Start %s, Protokoll: %s", REVISION, log_path)
     smoke = "--smoke" in sys.argv
     assistant_smoke = "--smoke-assistant" in sys.argv
     app = QApplication([arg for arg in sys.argv if arg not in {"--smoke", "--smoke-assistant"}])
+    relay = _ErrorRelay(log_path)  # shows the dialog on the GUI thread, even for worker-thread errors
+    install_excepthook(relay.reported.emit)
     # Matplotlib ships this open font; it also makes offscreen/packaged Qt builds
     # readable on machines where Qt cannot discover system fonts.
     font_path = Path(matplotlib.get_data_path()) / "fonts" / "ttf" / "DejaVuSans.ttf"
@@ -29,6 +48,8 @@ def main() -> int:
             app.setFont(QFont(families[0], 9))
     window = AssistantWindow()
     window.show()
+    if not (smoke or assistant_smoke):
+        window.offer_recovery()
     if smoke:
         if not window.library.entries("drivers"):
             return 3
@@ -47,6 +68,9 @@ def main() -> int:
                         not window.internal_svg.renderer().isValid() or
                         not window.panel_svg.renderer().isValid() or not design.bom):
                     raise ValueError("Zeichnung oder Stückliste fehlt")
+                plan = window.cutting_panel.plan
+                if plan is None or not plan.feasible or window.cutting_panel.sheet_choice.count() == 0:
+                    raise ValueError("Zuschnittplan fehlt")
                 if not any(not item.is_test_data for item in window.library.entries("drivers")):
                     raise ValueError("Herstellerbibliothek fehlt")
                 project = SpeakerProject.model_validate_json(design.project.model_dump_json())

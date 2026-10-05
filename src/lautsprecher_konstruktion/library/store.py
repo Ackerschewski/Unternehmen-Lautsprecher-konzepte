@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import csv
 import json
-import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -15,6 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
+from lautsprecher_konstruktion.appdata import user_data_dir
 from lautsprecher_konstruktion.drivers.catalog import DriverCatalog
 from lautsprecher_konstruktion.drivers.models import Driver
 
@@ -57,8 +57,7 @@ def _bundled_root() -> Path:
 
 
 def _user_root() -> Path:
-    base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    return base / "LautsprecherKonstruktion" / "library"
+    return user_data_dir() / "library"
 
 
 class ComponentLibrary:

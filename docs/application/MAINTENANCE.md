@@ -54,3 +54,28 @@ Der einfach abgestimmte Bandpass hat zwei Luftfedern `Cf=Vfront/(rho c²)` und `
 ## Prüfungen
 
 `.venv\\Scripts\\python -m pytest` und `-m ruff check src tests`. Die EXE wird lokal mit PyInstaller gebaut. Der offscreen-QT-Test prüft Fensterausbau und den Demo-Workflow; ein interaktiver Sichttest auf dem Zielrechner bleibt sinnvoll.
+
+## Zuschnitt, Gewicht, Bauanleitung (V-02.06.00)
+
+`export/cutting.py` plant mit Guillotineschnitten. Ein Teil belegt Breite+Sägeschnitt × Höhe+Sägeschnitt; die Platte wird um einen Sägeschnitt vergrößert,
+damit das letzte Teil keinen Schnitt braucht. Es werden 4 Sortierungen × 2 Platzierungsregeln × 4 Teilungsregeln durchprobiert; gewählt wird die geringste Plattenzahl,
+bei Gleichstand der größte Restposten auf der letzten Platte. Das Ergebnis ist deterministisch. Teile werden als umschreibende Rechtecke geplant (konservativ).
+Plattenformate (`DEFAULT_STOCK_MM`) sind Planungsannahmen, keine Lieferantendaten. `export/weight.py` multipliziert das Plattenvolumen mit den Richtdichten aus
+`enclosure/materials.py`; für unbekannte Materialien wird kein Gewicht erfunden.
+
+## Prototypvergleich
+
+`validation/prototype.py`: Pegelversatz = Mittelwert (Messung − Simulation) im Vergleichsband. Impedanzmarker: bei Bassreflex Minimum zwischen den zwei auffälligsten Spitzen
+(`scipy.signal.find_peaks`, Prominenz 15 % der Spanne, parabolisch verfeinert), sonst Maximum. Portkorrektur (Bassreflex, isobarisches Bassreflex): `brentq` löst die
+zusätzliche Portlänge δ, bei der das Impedanzminimum des Modells (dichtes Gitter 10–500 Hz, 6 000 Punkte) dem gemessenen entspricht; vorgeschlagene Länge = Planlänge − δ.
+Andere Typen: Näherung Leff·((Fsim/Fmess)²−1). Schwellen stehen als Konstanten am Modulanfang.
+
+## Schallwandstufe
+
+`baffle_step_db` ist ein Hochfrequenz-Shelf 1. Ordnung (Nullstelle f3/√k, Pol f3·√k, k = 10^(Stufe/20)), normiert auf 0 dB im Hochton. Die Weichenkomponenten folgen
+`Rs = R(k−1)`, `L = Rs / (2π f3 √k)`. In `crossover/simulation.py` sitzt das Netzwerk in Reihe vor dem Treiber (nach Tiefpass-Kondensator), wirkt also auf die Filterlast zurück.
+
+## Benutzerdaten und Tests
+
+`LK_USER_DIR` verlegt alle Benutzerdaten; `tests/conftest.py` setzt es pro Test auf ein temporäres Verzeichnis, damit Tests nie echte Einstellungen berühren.
+UI-Tests laufen mit `QT_QPA_PLATFORM=offscreen` (Linux: `libegl1`, `libgl1`).

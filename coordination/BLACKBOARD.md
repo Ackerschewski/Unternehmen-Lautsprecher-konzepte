@@ -1,5 +1,12 @@
 # Blackboard — V-02.00.00
 
+## Task TASK-0024 · Zuschnitt, Bauanleitung, Prototypvergleich / V-02.06.00
+
+- Bearbeitet durch Claude Code auf `claude/modest-bell-guqoxu` · Status: technisch geprüft (Linux/Offscreen), Benutzerprüfung ausstehend.
+- Zuschnittplan mit Sägeschnitt, Gewichtsbereich, Bauanleitung, Prototypvergleich (UI und Kommandozeile), Schallwandkorrektur, Referenztests, Benutzerdaten (Zuletzt geöffnet, Autosave, Protokoll), Hilfe.
+- Gesamtplan zur fertigen Version: `docs/application/PLAN_V-03.00.00.md`. Nicht ausgeführt: Windows-Build, Sichttest, Messvalidierung (NOT_RUN).
+- Die Aufgaben LK-021..023 heißen jetzt TASK-0021..0023, weil das Template-Gate das Schema `TASK-NNNN` verlangt.
+
 ## Task LK-023 · Alle Gehäusetypen / V-02.05.00
 
 - Owner/Arbeitsbereich: lokale Integration · Status: implementiert und technisch geprüft, Benutzerprüfung ausstehend.

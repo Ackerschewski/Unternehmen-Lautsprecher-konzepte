@@ -1,4 +1,4 @@
-# Lautsprecher Konstruktion V-02.05.00
+# Lautsprecher Konstruktion V-02.06.00
 
 Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm fragt nach Typ, maximalen Außenmaßen und Klangprofil. Der Expertenmodus bietet T/S-Eingabe, Frontlayout, Messdatenimport und manuelle Gehäuseparameter.
 
@@ -8,6 +8,18 @@ Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm f
 2. `Lautsprecher-Konstruktion_V-02.05.00.exe` starten; `_internal` muss daneben bleiben.
 3. Entwurf erstellen und Variantenvergleich, Zeichnungen, Simulation und Stückliste prüfen.
 4. Fertigungsunterlagen als PDF, SVG, DXF und CSV exportieren.
+
+## V-02.06.00
+
+**Zuschnitt, Bauanleitung und Prototypvergleich.** Der Export enthält jetzt neben Zeichnungen und Stückliste einen **Zuschnittplan** (CSV, SVG je Platte, PDF): Alle Gehäuseteile einschließlich Streben werden mit Sägeschnitt auf Handelsplatten verteilt (Standard Birke Multiplex 2 500 × 1 250 mm, MDF/Spanplatte 2 440 × 1 220 mm, einstellbar), getrennt nach Plattendicke. Verschnitt, Plattenzahl und nicht passende Teile werden ausgewiesen; Trapez- und Rundteile werden als umschreibendes Rechteck geplant. Dazu kommen ein **Gehäusegewicht** als Bereich (nur Plattenmaterial; Chassis, Weiche und Dämmung sind nicht enthalten, die Dichten sind typische Handelswerte) und eine aus der berechneten Konstruktion abgeleitete **Bauanleitung** (Markdown und PDF) mit Kontrollschritten je Bauform.
+
+Unter **Werkzeuge → Prototyp vergleichen** (und im Expertenmodus) werden gemessene FRD/ZMA-Kurven des gebauten Lautsprechers mit der Simulation verglichen: RMS- und Maximalabweichung, F3, Abstimmfrequenz aus dem Impedanzminimum und – bei Bassreflex – eine Portlängenkorrektur. Das Werkzeug ist auch per Kommandozeile nutzbar (`python -m lautsprecher_konstruktion.validation projekt.json --frd m.frd --zma m.zma`). Es **validiert das Modell nicht**; dafür sind Messungen mehrerer Treiber und Bauformen nötig (siehe `docs/application/MESSPROTOKOLL.md`).
+
+Die **Schallwandkorrektur** (Baffle Step, Näherung 115 Hz·m / Schallwandbreite) ist im Expertenmodus als Weichenoption wählbar (0–6 dB, Spule mit Parallelwiderstand im Tieftonzweig) und erscheint als gestrichelte Kurve im Frequenzgang. Die Modellannahmen sind nicht an Messungen validiert.
+
+Alltagstauglichkeit: Menü mit **Zuletzt geöffnet**, Tastenkürzeln, Ungespeichert-Warnung, **Autosave und Wiederherstellung** nach einem Absturz, gespeicherte Einstellungen (Theme, Plattenmaß, Sägeschnitt), rotierendes **Programmprotokoll** und Hilfe/Über (F1). Referenztests prüfen die Solver gegen Literaturwerte (Small/Thiele-Beziehungen, Butterworth-/Linkwitz-Riley-Eigenschaften). Die Versionsangabe stammt aus einer einzigen Quelle (`lautsprecher_konstruktion.__version__`).
+
+Nicht enthalten und weiter offen: 3-Wege-Weiche, Undo/Redo und Drag-and-drop im Frontlayout, 3D-Kollisions- und Gehrungsprüfung, Messvalidierung mit realen Prototypen, Windows-Build dieser Version.
 
 ## V-02.05.00
 
@@ -65,4 +77,4 @@ Tests: `.venv\Scripts\python -m pytest --basetemp .test_run -p no:cacheprovider`
 
 Die Gehäusemodelle sind lineare Kleinsignal-Näherungen ohne umfassenden Abgleich mit realen Messungen. Portkompression, thermische Effekte, Baffle Step, Raum, gefaltete Ports, vollständige 3D-Kollisionen und Bauteiltoleranzen fehlen. Ein E12-Weichenvorschlag ist ein elektrischer Startwert. Alle Herstellerangaben, Maße und Bohrbilder vor dem Zuschnitt am echten Chassis prüfen.
 
-Weitere Details: `docs/USER_MANUAL.md`, `docs/ARCHITECTURE.md`, `docs/MAINTENANCE.md` und `BUILD_REPORT_V-02.05.00.md`.
+Weitere Details: `docs/application/USER_MANUAL.md`, `docs/application/ARCHITECTURE.md`, `docs/application/MAINTENANCE.md`, `docs/application/VALIDATION.md` und `docs/application/BUILD_REPORT_V-02.06.00.md`. Plan zur fertigen Version: `docs/application/PLAN_V-03.00.00.md`.

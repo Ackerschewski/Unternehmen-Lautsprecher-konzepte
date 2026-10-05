@@ -32,7 +32,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.acoustics.alignment import suggest_alignments
+from lautsprecher_konstruktion.acoustics.baffle_step import baffle_step_db, baffle_step_frequency_hz
 from lautsprecher_konstruktion.acoustics.response import sealed_response_db
 from lautsprecher_konstruktion.crossover.measurements import load_frd, load_zma
 from lautsprecher_konstruktion.drawings.assembly_svg import render_assembly_svg
@@ -48,13 +50,15 @@ from lautsprecher_konstruktion.project.models import (
     SpeakerProject,
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
+from lautsprecher_konstruktion.ui.cutting_panel import stored_cutting_settings
+from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 
 
 class MainWindow(QMainWindow):
     projectCalculated = Signal(object)
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Lautsprecher Konstruktion V-02.05.00 · Expertenmodus")
+        self.setWindowTitle(f"Lautsprecher Konstruktion {REVISION} · Expertenmodus")
         self.resize(1450, 900)
         self._bundle: DesignBundle | None = None
         self._catalog = DriverCatalog()
@@ -131,6 +135,10 @@ class MainWindow(QMainWindow):
         self.export_button.setStyleSheet("font-weight: 600; padding: 8px;")
         self.export_button.clicked.connect(self.export)
         action_row.addWidget(self.export_button)
+        self.prototype_button = QPushButton("Prototyp vergleichen…")
+        self.prototype_button.setStyleSheet("padding: 8px;")
+        self.prototype_button.clicked.connect(self._compare_prototype)
+        action_row.addWidget(self.prototype_button)
         layout.addLayout(action_row)
         return container
 
@@ -337,6 +345,9 @@ class MainWindow(QMainWindow):
         self.tweeter_name = QLineEdit("Tweeter")
         self.tweeter_attenuation = self._spin(0.0, 30.0, 0.0, " dB")
         self.woofer_zobel = QCheckBox("Zobel aus Re/Le ergänzen")
+        self.baffle_step = self._spin(0.0, 6.0, 0.0, " dB", 1)
+        self.baffle_step.setToolTip("0 = aus. Ergänzt eine Spule mit Parallelwiderstand im Tieftonzweig; "
+                                    "Übergang bei ca. 115 Hz·m / Schallwandbreite (Näherung).")
 
         note = QLabel(
             "Die passive Weiche ist ein elektrischer Startentwurf auf Basis der Nennimpedanz. "
@@ -353,6 +364,7 @@ class MainWindow(QMainWindow):
         form.addRow("Tweeter-Impedanz", self.tweeter_impedance)
         form.addRow("Tweeter-Absenkung", self.tweeter_attenuation)
         form.addRow(self.woofer_zobel)
+        form.addRow("Schallwandkorrektur", self.baffle_step)
         for title, key in (("Woofer FRD laden", "woofer_frd"),
                            ("Tweeter FRD laden", "tweeter_frd"),
                            ("Woofer ZMA laden", "woofer_zma"),
@@ -717,7 +729,7 @@ class MainWindow(QMainWindow):
     def _project_from_form(self) -> SpeakerProject:
         return SpeakerProject(
             name=self.project_name.text().strip() or "Lautsprecherprojekt",
-            revision="V-02.05.00",
+            revision=REVISION,
             material=self.material.text().strip() or "Plattenmaterial",
             driver=self._driver_from_form(),
             additional_drivers=() if self.enclosure_type.currentData() in {'horn_front','horn_tapped'} else self._additional_drivers,
@@ -767,6 +779,7 @@ class MainWindow(QMainWindow):
                 tweeter_impedance_ohm=self.tweeter_impedance.value(),
                 tweeter_attenuation_db=self.tweeter_attenuation.value(),
                 add_woofer_zobel=self.woofer_zobel.isChecked(),
+                baffle_step_compensation_db=self.baffle_step.value(),
                 round_to_standard_values=self._round_to_standard,
                 **self._measurements,
             ),
@@ -991,7 +1004,8 @@ class MainWindow(QMainWindow):
                 bundle.target_net_volume_m3,
                 frequencies,
             )
-            axis.semilogx(frequencies, response)
+            axis.semilogx(frequencies, response, label="Gehäuse")
+            self._baffle_step_overlay(axis, bundle, frequencies, response)
             axis.axhline(-3.0, linewidth=0.8)
             axis.set_title("Normierter Kleinsignal-Frequenzgang – geschlossen")
             axis.set_xlabel("Frequenz [Hz]")
@@ -1007,6 +1021,7 @@ class MainWindow(QMainWindow):
                     axis.semilogx(response.frequencies_hz,response.rear_response_db,
                                  label="Rückachse")
                     axis.legend()
+                self._baffle_step_overlay(axis,bundle,response.frequencies_hz,response.response_db)
                 axis.axhline(-3.0,linewidth=0.8)
                 axis.set_title({"bass_reflex":"Bassreflex", "passive_radiator":"Passivmembran",
                                 "bandpass_4":"Bandpass 4. Ordnung",
@@ -1037,6 +1052,17 @@ class MainWindow(QMainWindow):
                     ax.grid(True,which="both",alpha=.25)
         self.canvas.draw()
 
+    @staticmethod
+    def _baffle_step_overlay(axis: object, bundle: DesignBundle, frequencies: np.ndarray,
+                             response_db: np.ndarray) -> None:
+        """Dashed curve with the approximate baffle step for two-way speakers (not for subwoofers)."""
+        if bundle.crossover is None or bundle.baffle_mode is not None:
+            return
+        width_m = bundle.cabinet.width_m
+        axis.semilogx(frequencies, response_db + baffle_step_db(frequencies, width_m), linestyle="--",
+                      label=f"mit Schallwandstufe ≈{baffle_step_frequency_hz(width_m):.0f} Hz (Näherung)")
+        axis.legend(fontsize=8)
+
     def _render_crossover(self,bundle: DesignBundle) -> None:
         self.crossover_figure.clear()
         r=bundle.crossover_response
@@ -1056,6 +1082,13 @@ class MainWindow(QMainWindow):
         imp.grid(True,which="both",alpha=.25)
         self.crossover_canvas.draw()
 
+    def _compare_prototype(self) -> None:
+        if self._bundle is None or self._dirty:
+            QMessageBox.information(self, "Kein aktuelles Ergebnis",
+                                    "Bitte zuerst das Projekt berechnen; der Vergleich nutzt die aktuelle Berechnung.")
+            return
+        PrototypeDialog(self._bundle, self).exec()
+
     def export(self) -> None:
         if self._bundle is None or self._dirty:
             self.calculate()
@@ -1067,7 +1100,8 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            package = export_project_package(self._bundle, directory)
+            package = export_project_package(
+                self._bundle, directory, stored_cutting_settings(self._bundle.project.material))
         except (OSError,ValueError) as exc:
             QMessageBox.critical(self, "Exportfehler", str(exc))
             return
@@ -1216,6 +1250,7 @@ class MainWindow(QMainWindow):
         self.tweeter_name.setText(project.tweeter_name)
         self.tweeter_attenuation.setValue(project.crossover.tweeter_attenuation_db)
         self.woofer_zobel.setChecked(project.crossover.add_woofer_zobel)
+        self.baffle_step.setValue(project.crossover.baffle_step_compensation_db)
         self._refresh_mode_controls()
         self._loading=False
 

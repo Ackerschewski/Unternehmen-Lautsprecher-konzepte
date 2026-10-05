@@ -24,7 +24,13 @@ Umgesetzt: separates Maßblatt mit Außen-/Innenmaßen, Einbaukoordinaten, Aussc
 
 Umgesetzt: zwei isobarische Tandemvarianten mit idealem akustischem Ersatzmodell, Koppelrohr und Montagering, Volumenverdrängung, Kollisionsprüfung, eigenem Ring-DXF, Stückliste und bemaßtem Innenschnitt. Ein zweites Maßblatt enthält die Positionen der Streben und Kammern sowie Platten- und Portmaße. Die gemeinsame Strebenposition beseitigt eine Abweichung zwischen Zeichnung und Prüfung. Herstellerbibliothek um belegte Datensätze von Visaton und Scan-Speak erweitert; fehlende Angaben bleiben leer. Der Assistent bietet nun sechs berechenbare Familien, alle weiteren bleiben als geplant sichtbar.
 
-## Nächste Ausbaustufe — priorisiert
+## V-02.06.00 — Zuschnitt, Bauanleitung, Prototypvergleich
+
+Umgesetzt: Zuschnittplan mit Sägeschnitt (Guillotine-Verfahren, mehrere Heuristiken, deterministisch), Plattenzahl und Verschnitt je Dicke; Gewichtsbereich;
+Bauanleitung je Bauform; Prototypvergleich mit Portkorrektur (UI und Kommandozeile); Schallwandkorrektur; Referenztests; Zuletzt geöffnet, Autosave, Protokoll,
+Einstellungen, Hilfe; einheitliche Versionsquelle. Gesamtplan: `PLAN_V-03.00.00.md`.
+
+## Nächste Ausbaustufe — priorisiert (Stand vor V-02.06.00, teilweise erledigt)
 
 1. Modell gegen Messungen und etablierte Simulationsprogramme für mehrere reale Treiber abgleichen; Leckage-/Portverlustparameter kalibrieren.
 2. Vollständige 3D-Kollisionsprüfung, Faltungen und Port-/Streben-Freiräume, präzise bemaßte Schnittzeichnungen und DXF/CNC-Profilvalidierung.
