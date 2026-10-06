@@ -248,6 +248,7 @@ class AssistantWindow(QMainWindow):
         self.profile.currentIndexChanged.connect(self._sync_profile_cards)
         self.target_curve.curveChanged.connect(self._target_curve_changed)
         self.target_curve.analysisModeChanged.connect(self._update_sound_lab)
+        self.target_curve.frequencySelected.connect(self._update_sound_lab)
         for control in (self.max_width, self.max_height, self.max_depth, self.max_volume,
                         self.budget, self.target_spl, self.target_f3, self.power,
                         self.preferred_size, self.thickness):
@@ -426,6 +427,31 @@ class AssistantWindow(QMainWindow):
         v -= float(np.median(v[reference])) if np.any(reference) else float(np.median(v))
         return f, v
 
+    @staticmethod
+    def _curve_value_at(
+        design: SpeakerDesign, frequency_hz: float
+    ) -> float | None:
+        data = AssistantWindow._sound_curve(design)
+        if data is None:
+            return None
+        f, v = AssistantWindow._relative_curve(data[0], data[1])
+        if not f.size or frequency_hz < f[0] or frequency_hz > f[-1]:
+            return None
+        return float(np.interp(np.log10(frequency_hz), np.log10(f), v))
+
+    @staticmethod
+    def _span_label(values: list[float], variants: int) -> str:
+        if variants < 2 or len(values) < 2:
+            return "keine belastbare Vergleichsvariante"
+        span = max(values)-min(values)
+        if span >= 2.5:
+            level = "stark"
+        elif span >= 0.75:
+            level = "mittel"
+        else:
+            level = "gering"
+        return f"{level} · {span:.1f} dB berechnete Spannweite"
+
     def _update_sound_lab(self, *_args: object) -> None:
         if not hasattr(self, "target_curve"):
             return
@@ -433,6 +459,7 @@ class AssistantWindow(QMainWindow):
         if current is None:
             self.target_curve.set_candidate_curves(())
             self.target_curve.clear_actual()
+            self.target_curve.set_component_influence({})
             self.target_curve.set_influence_summary(
                 "Berechne zuerst Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
             )
@@ -471,6 +498,85 @@ class AssistantWindow(QMainWindow):
             )
         else:
             self.target_curve.clear_actual()
+
+        selected_frequency = self.target_curve.selected_frequency_hz()
+        current_tweeter = current.tweeter.model if current.tweeter else ""
+
+        enclosure_group = [
+            d for d in self.designs
+            if d.woofer.model == current_driver
+            and (d.tweeter.model if d.tweeter else "") == current_tweeter
+        ]
+        enclosure_signatures = {
+            d.project.enclosure.enclosure_type for d in enclosure_group
+        }
+        enclosure_values = [
+            value for d in enclosure_group
+            if (value := self._curve_value_at(d, selected_frequency)) is not None
+        ]
+
+        driver_group = [
+            d for d in self.designs
+            if d.project.enclosure.enclosure_type == current_enclosure
+        ]
+        driver_signatures = {d.woofer.model for d in driver_group}
+        driver_values = [
+            value for d in driver_group
+            if (value := self._curve_value_at(d, selected_frequency)) is not None
+        ]
+
+        crossover_group = [
+            d for d in self.designs
+            if d.woofer.model == current_driver
+            and d.project.enclosure.enclosure_type == current_enclosure
+            and d.bundle.crossover_response is not None
+            and d.bundle.crossover_response.sum_acoustic_db is not None
+        ]
+        crossover_signatures = {
+            (
+                d.project.crossover.topology,
+                round(d.project.crossover.crossover_hz, 1),
+                d.tweeter.model if d.tweeter else "",
+            )
+            for d in crossover_group
+        }
+        crossover_values = [
+            value for d in crossover_group
+            if (value := self._curve_value_at(d, selected_frequency)) is not None
+        ]
+
+        dsp_text = "keine belastbaren Hubdaten"
+        response = current.bundle.vented_response or current.bundle.sealed_response
+        xmax = current.bundle.project.driver.xmax_mm
+        if (
+            response is not None
+            and response.excursion_mm is not None
+            and xmax
+            and response.frequencies_hz[0] <= selected_frequency <= response.frequencies_hz[-1]
+        ):
+            excursion = float(np.interp(
+                np.log10(selected_frequency),
+                np.log10(response.frequencies_hz),
+                response.excursion_mm,
+            ))
+            if excursion > 0:
+                headroom = 20*np.log10(xmax/excursion)
+                dsp_text = (
+                    f"Hubgrenze erreicht ({headroom:.1f} dB Reserve)"
+                    if headroom <= 0
+                    else f"bis ca. +{headroom:.1f} dB Hubreserve"
+                )
+
+        self.target_curve.set_component_influence({
+            "enclosure": self._span_label(
+                enclosure_values, len(enclosure_signatures)
+            ),
+            "driver": self._span_label(driver_values, len(driver_signatures)),
+            "crossover": self._span_label(
+                crossover_values, len(crossover_signatures)
+            ),
+            "dsp": dsp_text,
+        })
 
         notes: list[str] = []
         outside = self.target_curve.outside_envelope()
