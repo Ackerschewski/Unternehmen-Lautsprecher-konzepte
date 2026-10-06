@@ -528,14 +528,26 @@ class AssistantWindow(QMainWindow):
         self.tabs.addTab(self.drawing_tabs, "Zeichnungen")
 
         simulation = QWidget()
+        self.sound_tab = simulation
         sim_layout = QVBoxLayout(simulation)
+        sound_views = QTabWidget()
+        sound_views.setDocumentMode(True)
+
+        self.target_curve = TargetCurveEditor(self.mode)
+        sound_views.addTab(self.target_curve, "Zielkurve")
+
+        technical = QWidget()
+        technical_layout = QVBoxLayout(technical)
         self.more_charts = QCheckBox("Weitere Diagramme (Port, Gruppenlaufzeit)")
         self.more_charts.toggled.connect(self._redraw_simulation)
-        sim_layout.addWidget(self.more_charts)
+        technical_layout.addWidget(self.more_charts)
         self.figure = Figure(figsize=(9, 6), layout="constrained")
         self.canvas = FigureCanvasQTAgg(self.figure)
-        sim_layout.addWidget(self.canvas, 1)
-        self.tabs.addTab(simulation, "Simulation")
+        technical_layout.addWidget(self.canvas, 1)
+        sound_views.addTab(technical, "Technische Simulation")
+
+        sim_layout.addWidget(sound_views, 1)
+        self.tabs.addTab(simulation, "Klang & Simulation")
 
         self.bom_view = QTextBrowser()
         self.tabs.addTab(self.bom_view, "Stückliste")
