@@ -190,7 +190,7 @@ class AssistantWindow(QMainWindow):
         split.addWidget(self._build_results())
         split.setStretchFactor(0, 0)
         split.setStretchFactor(1, 1)
-        split.setSizes([470, 950])
+        split.setSizes([380, 1040])
         self._connect_inputs()
         outer.addWidget(split, 1)
         self.setCentralWidget(root)
@@ -636,7 +636,7 @@ class AssistantWindow(QMainWindow):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         card = QFrame()
         card.setObjectName("card")
-        card.setMinimumWidth(360)
+        card.setMinimumWidth(320)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 12, 20, 16)
         layout.setSpacing(8)
@@ -754,6 +754,9 @@ class AssistantWindow(QMainWindow):
         form3b.addRow("Gehäuseprinzip", self.enclosure)
         form3b.addRow("Chassis / Preis", self.driver_choice)
         form3b.addRow("Gesamtbudget bis", self.budget)
+        library_button = QPushButton("Komponentenbibliothek öffnen")
+        library_button.clicked.connect(self._library)
+        form3b.addRow(library_button)
         layout.addWidget(step3b)
 
         step4 = QGroupBox("4 · Weitere Anforderungen (optional)")
@@ -1384,8 +1387,8 @@ class AssistantWindow(QMainWindow):
         """Collapse the input column so drawings and results get the full width."""
         sizes = self.split.sizes()
         total = sum(sizes) or 1
-        target = 0 if on else max(420, round(total * 0.33))
-        self.wizard_panel.setMinimumWidth(0 if on else 360)
+        target = 0 if on else max(330, round(total * 0.28))
+        self.wizard_panel.setMinimumWidth(0 if on else 320)
 
         def apply(width: int) -> None:
             self.split.setSizes([width, total - width])
