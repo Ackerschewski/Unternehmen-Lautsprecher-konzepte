@@ -50,7 +50,7 @@ def stylesheet(mode: str = "light") -> str:
             color:{t['accent']}; font-weight:600; font-size:12px;}}
         QGroupBox::title {{subcontrol-origin:margin; left:0; padding:0 8px 0 0; color:{t['accent']};}}
         QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox, QTextEdit, QPlainTextEdit, QListWidget, QTextBrowser {{
-            background:{t['background']}; color:{t['textPrimary']}; border:1px solid {t['borderStrong']};
+            background:{t['surfaceElevated']}; color:{t['textPrimary']}; border:1px solid {t['borderStrong']};
             border-radius:{rc}px; padding:6px 12px; selection-background-color:{t['band']};
             selection-color:{t['textPrimary']};
         }}
@@ -78,7 +78,7 @@ def stylesheet(mode: str = "light") -> str:
             border-color:{t['border']};}}
         QCheckBox {{spacing:8px; min-height:24px;}}
         QCheckBox::indicator {{width:18px; height:18px; border:1px solid {t['borderStrong']};
-            border-radius:{RADIUS_BADGE}px; background:{t['background']};}}
+            border-radius:{RADIUS_BADGE}px; background:{t['surface']};}}
         QCheckBox::indicator:checked {{background:{t['accent']}; border-color:{t['accent']};}}
         QCheckBox::indicator:focus {{border:2px solid {t['accent']};}}
         QTabWidget::pane {{border:none; border-top:1px solid {t['border']}; background:{t['background']};}}
@@ -94,7 +94,7 @@ def stylesheet(mode: str = "light") -> str:
         QTableWidget::item:selected, QListWidget::item:selected {{background:{t['band']};
             color:{t['textPrimary']};}}
         QProgressBar {{border:1px solid {t['borderStrong']}; border-radius:{rc}px; text-align:center;
-            background:{t['background']}; color:{t['textPrimary']}; height:18px;}}
+            background:{t['surfaceElevated']}; color:{t['textPrimary']}; height:18px;}}
         QProgressBar::chunk {{background:{t['accent']}; border-radius:{rc - 1}px;}}
         QScrollBar:vertical {{background:transparent; width:10px;}}
         QScrollBar::handle:vertical {{background:{t['border']}; border-radius:5px; min-height:24px;}}
@@ -106,7 +106,7 @@ def stylesheet(mode: str = "light") -> str:
 
 
 def chart_rc(mode: str = "light") -> dict[str, object]:
-    """Matplotlib rcParams: warm paper, fine rules, the area accent for the primary curve."""
+    """Matplotlib rcParams using the current semantic software theme."""
     t = theme(mode)
     return {
         "figure.facecolor": t["surface"], "axes.facecolor": t["surface"], "savefig.facecolor": t["surface"],
