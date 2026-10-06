@@ -980,7 +980,8 @@ class MainWindow(QMainWindow):
         v=(float(np.max(bundle.vented_response.port_velocity_m_s)) if bundle.vented_response and bundle.vented_response.port_velocity_m_s is not None else None)
         tuning=(f"Horn fc {bundle.front_horn.target_cutoff_hz:.0f} Hz" if bundle.front_horn else
                 f"Tapped ¼λ {bundle.tapped_horn.quarter_wave_hz:.1f} Hz" if bundle.tapped_horn else
-                f"Schallweg {(bundle.baffle_path_m or 0)*1000:.0f} mm" if bundle.baffle_mode else
+                (f"Schallweg {bundle.baffle_path_m*1000:.0f} mm" if bundle.baffle_path_m is not None
+                 else "Schallweg n/a (unendliche Schallwand)") if bundle.baffle_mode else
                 f"¼λ {bundle.folded_line.estimated_quarter_wave_hz:.1f} Hz" if bundle.folded_line else
                 f"Rv {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³" if bundle.port_resistance_pa_s_m3 else
                 f"Fb {bundle.project.enclosure.tuning_hz:.1f} Hz" if bundle.port or bundle.radiator else
@@ -1019,7 +1020,8 @@ class MainWindow(QMainWindow):
         if bundle.baffle_mode:
             lines.extend([
                 f"Schallwand B × H × Stärke: {cabinet.width_m*1000:.1f} × {cabinet.height_m*1000:.1f} × {cabinet.panel_thickness_m*1000:.1f} mm",
-                f"Wirksamer Schallweg: {(bundle.baffle_path_m or 0)*1000:.1f} mm",
+                ("Wirksamer Schallweg: n/a (unendliche Schallwand)" if bundle.baffle_path_m is None
+                 else f"Wirksamer Schallweg: {bundle.baffle_path_m*1000:.1f} mm"),
                 f"Seitenflügel: {bundle.baffle_wing_depth_m*1000:.1f} mm",
                 (f"Rückraum mindestens: {bundle.target_net_volume_m3*1000:.1f} l"
                  if bundle.baffle_mode == "infinite_baffle" else "Vorder- und Rückseite offen"),
@@ -1069,7 +1071,7 @@ class MainWindow(QMainWindow):
         if bundle.folded_line:
             lines.extend(["", "INNERE KANALFALTUNG",
                           f"Linienweg: {bundle.folded_line.path_length_m*1000:.1f} mm",
-                          f"Umlenkspalt: {bundle.folded_line.turn_gap_m*1000:.1f} mm",
+                          f"Größter Umlenkspalt: {bundle.folded_line.turn_gap_m*1000:.1f} mm",
                           *(f"Kanal {i+1}: {height*1000:.1f} mm hoch, {area*10000:.1f} cm²"
                             for i,(height,area) in enumerate(zip(bundle.folded_line.channel_heights_m,
                                                                      bundle.folded_line.channel_areas_m2,strict=True)))])
@@ -1087,7 +1089,7 @@ class MainWindow(QMainWindow):
                           f"W1 ab F1-Vorderkante: {horn.driver_depth_from_front_m*1000:.1f} mm",
                           f"Oberer Kanal: {horn.upper_height_m*1000:.1f} mm",
                           f"Unterer Kanal: {horn.lower_height_m*1000:.1f} mm",
-                          f"Umlenkspalt hinten: {horn.turn_gap_m*1000:.1f} mm",
+                          f"Größter Umlenkspalt hinten: {horn.turn_gap_m*1000:.1f} mm",
                           f"Linienweg: {horn.path_length_m*1000:.1f} mm"])
         if bundle.rear_port:
             lines.extend([f"BR2 Rückkammer: Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm",

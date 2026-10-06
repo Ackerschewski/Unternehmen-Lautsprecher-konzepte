@@ -457,7 +457,7 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
     # A front cutout is the mouth only. W1 is mounted horizontally in F1.
     mouth=FrontElement(id='BR1',type='port',surface='front',
         x_m=cabinet.width_m/2,
-        y_m=(cabinet.bottom_thickness_m or t)+horn.lower_height_m/2,
+        y_m=horn.mouth_center_y_m(cabinet),
         width_m=horn.mouth_width_m,height_m=horn.mouth_height_m,
         mounting_depth_m=cabinet.effective_front_thickness_m)
     layout=(mouth,)

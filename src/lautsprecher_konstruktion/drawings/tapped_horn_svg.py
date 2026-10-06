@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from html import escape
-from math import cos, pi, sin
+from math import atan2, cos, degrees, pi, sin
 from textwrap import wrap
 
 import numpy as np
 
+from lautsprecher_konstruktion.enclosure.horn_geometry import SeptumGeometry
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
-def _sep_y(sep, x: float) -> float:
+def _sep_y(sep: SeptumGeometry, x: float) -> float:
     xs = [p[0] for p in sep.points_m]
     ys = [p[1] for p in sep.points_m]
     return float(np.interp(x, xs, ys))
@@ -40,15 +41,19 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
     iy=sy+top_t                                   # inner top
     front=sx+cab.effective_front_thickness_m*1000*scale
     back=sx+(d-(cab.back_thickness_m or cab.panel_thickness_m)*1000)*scale
+    t_m=cab.panel_thickness_m
+    n_runs=len(det.runs)
 
-    def X(x_m: float) -> float:
-        return front+x_m*1000*scale
+    def PX(y_m: float) -> float:                  # stack coordinate (from the back wall) -> x
+        return back-y_m*1000*scale
 
-    def Y(y_m: float) -> float:
-        return iy+y_m*1000*scale
+    def PY(x_m: float) -> float:                  # run coordinate (from the top) -> y
+        return iy+x_m*1000*scale
 
     inner_h=cab.internal_height_m*1000*scale
-    mouth_top=Y(cab.internal_height_m)-horn.mouth_height_m*1000*scale-10*scale
+    mouth_h_px=horn.mouth_height_m*1000*scale+10*scale
+    mouth_y=iy if horn.mouth_at_top else iy+inner_h-mouth_h_px
+    front_mouth_y=(fy+top_t if horn.mouth_at_top else fy+h*scale-top_t-mouth_h_px)
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
         '<style>.title{font:700 30px Arial;fill:#153346}.head{font:700 20px Arial;fill:#153346}'
@@ -62,59 +67,60 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
         '</style><rect width="1600" height="1330" fill="white"/>',
         f'<text x="50" y="50" class="title">{escape(bundle.project.name)} · Tapped-Horn-Fertigung</text>',
         f'<text x="50" y="80" class="text">{escape(bundle.project.revision)} · Maße in mm · '
-        'W1 horizontal in F1, Magnet im oberen Kanal, Membran zum Lauf 2 · Front links</text>',
+        'senkrechte Läufe, Lauf 1 (geschlossenes Ende oben) hinten, W1 auf F1 mit Achse in Tiefenrichtung · Front links</text>',
         '<text x="70" y="130" class="head">Vorderansicht</text>',
         f'<rect x="{fx}" y="{fy}" width="{w*scale:.1f}" height="{h*scale:.1f}" class="panel"/>',
-        f'<rect x="{fx+(w-horn.mouth_width_m*1000)*scale/2:.1f}" '
-        f'y="{fy+(h-(cab.bottom_thickness_m or cab.panel_thickness_m)*1000-10-horn.mouth_height_m*1000)*scale:.1f}" '
+        f'<rect x="{fx+(w-horn.mouth_width_m*1000)*scale/2:.1f}" y="{front_mouth_y:.1f}" '
         f'width="{horn.mouth_width_m*1000*scale:.1f}" '
         f'height="{horn.mouth_height_m*1000*scale:.1f}" class="mouth"/>',
         f'<text x="{fx}" y="{fy+h*scale+27:.1f}" class="text">B {w:.1f} · H {h:.1f}</text>',
-        '<text x="520" y="130" class="head">Seitenschnitt · Lauf 1 … Lauf '+str(len(det.runs))+'</text>',
+        f'<text x="520" y="130" class="head">Seitenschnitt · Lauf 1 … Lauf {n_runs}</text>',
         f'<rect x="{sx}" y="{sy}" width="{d*scale:.1f}" height="{h*scale:.1f}" class="panel"/>',
         f'<rect x="{front:.1f}" y="{iy:.1f}" width="{back-front:.1f}" height="{inner_h:.1f}" class="chan"/>',
-        f'<rect x="{sx:.1f}" y="{mouth_top:.1f}" width="{cab.effective_front_thickness_m*1000*scale:.1f}" '
-        f'height="{horn.mouth_height_m*1000*scale:.1f}" class="mouth"/>',
+        f'<rect x="{sx:.1f}" y="{mouth_y:.1f}" width="{cab.effective_front_thickness_m*1000*scale:.1f}" '
+        f'height="{mouth_h_px:.1f}" class="mouth"/>',
     ]
     for sep in det.septa:
-        up=[(X(x),Y(y)) for x,y in sep.points_m]
-        low=[(x,y+t*scale) for x,y in reversed(up)]
+        up=[(PX(y),PY(x)) for x,y in sep.points_m]
+        low=[(x-t*scale,y) for x,y in reversed(up)]
         parts.append('<polygon points="'+' '.join(f'{x:.1f},{y:.1f}' for x,y in up+low)+'" class="panel"/>')
-        parts.append(f'<text x="{up[-1][0]+3:.1f}" y="{up[-1][1]-3:.1f}" class="tiny">F{sep.index}</text>')
-    # driver in F1: cutout, magnet above (run 1), flange on top
-    f1y=Y(det.septa[0].points_m[0][1])
-    cx=X(horn.driver_depth_from_front_m)
+        parts.append(f'<text x="{up[-1][0]-14:.1f}" y="{up[-1][1]+13:.1f}" class="tiny">F{sep.index}</text>')
+    # driver on the (slightly inclined) F1: cutout, magnet towards run 1 (back)
+    f1=det.septa[0]
+    x_axis=(f1.x1_m+f1.x2_m)/2
+    y_f1=_sep_y(f1,x_axis)
+    cy=PY(x_axis)
     mount=(driver.mounting_depth_m or 0)*1000*scale
-    parts.append(f'<rect x="{cx-cut*scale/2:.1f}" y="{f1y-2:.1f}" width="{cut*scale:.1f}" '
-                 f'height="{t*scale+4:.1f}" fill="white"/>')
-    parts.append(f'<rect x="{cx-outer*scale/2:.1f}" y="{f1y-mount:.1f}" width="{outer*scale:.1f}" '
-                 f'height="{mount:.1f}" class="cut"/>')
-    parts.append(f'<text x="{cx:.1f}" y="{f1y-mount/2:.1f}" text-anchor="middle" class="tiny">W1</text>')
-    # centre line and taps
+    parts.append(f'<rect x="{PX(y_f1)-t*scale-2:.1f}" y="{cy-cut*scale/2:.1f}" width="{t*scale+4:.1f}" '
+                 f'height="{cut*scale:.1f}" fill="white"/>')
+    parts.append(f'<rect x="{PX(y_f1):.1f}" y="{cy-outer*scale/2:.1f}" width="{mount:.1f}" '
+                 f'height="{outer*scale:.1f}" class="cut"/>')
+    parts.append(f'<text x="{PX(y_f1)+mount/2:.1f}" y="{cy+4:.1f}" text-anchor="middle" class="tiny">W1</text>')
+    # centre line through the runs and taps
+    def run_edges(k: int, x: float) -> tuple[float, float]:
+        top_y=0.0 if k == 1 else _sep_y(det.septa[k-2],x)+t_m
+        bot_y=_sep_y(det.septa[k-1],x) if k < n_runs else cab.internal_depth_m
+        return top_y,bot_y
     pts=[]
     for run in det.runs:
         k=run.index
-        top_y=(lambda x,k=k: _sep_y(det.septa[k-2],x)+cab.panel_thickness_m) if k>1 else (lambda x: 0.0)
-        bot_y=(lambda x,k=k: _sep_y(det.septa[k-1],x)) if k<len(det.runs) else (lambda x: cab.internal_height_m)
         for xx in (run.x_start_m,run.x_end_m):
-            pts.append((X(xx),Y((top_y(xx)+bot_y(xx))/2)))
+            lo,hi=run_edges(k,xx)
+            pts.append((PX((lo+hi)/2),PY(xx)))
         xm=(run.x_start_m+run.x_end_m)/2
-        parts.append(f'<text x="{X(xm)-30:.1f}" y="{Y((top_y(xm)+bot_y(xm))/2)-3:.1f}" class="tiny">'
-                     f'L{k} {run.h_start_m*1000:.0f}→{run.h_end_m*1000:.0f}</text>')
+        lo,hi=run_edges(k,xm)
+        parts.append(f'<text x="{PX((lo+hi)/2)-14:.1f}" y="{PY(xm):.1f}" transform="rotate(-90 {PX((lo+hi)/2)-14:.1f} {PY(xm):.1f})" '
+                     f'text-anchor="middle" class="tiny">L{k} {run.h_start_m*1000:.0f}→{run.h_end_m*1000:.0f}</text>')
     parts.append('<polyline points="'+' '.join(f'{x:.1f},{y:.1f}' for x,y in pts)+'" class="path"/>')
-    r1=det.runs[0]
-    y_run1=Y((0.0+_sep_y(det.septa[0],horn.driver_depth_from_front_m))/2)
-    parts.append(f'<circle cx="{cx:.1f}" cy="{y_run1:.1f}" r="4" class="tap"/>'
-                 f'<text x="{cx+6:.1f}" y="{y_run1+14:.1f}" class="tiny">Tap hinten s={horn.rear_tap_s_m*1000:.0f}</text>')
-    r2=det.runs[1]
-    y_run2=Y((_sep_y(det.septa[0],horn.driver_depth_from_front_m)+cab.panel_thickness_m
-              +_sep_y(det.septa[1],horn.driver_depth_from_front_m))/2)
-    parts.append(f'<circle cx="{cx:.1f}" cy="{y_run2:.1f}" r="4" class="tap"/>'
-                 f'<text x="{cx+6:.1f}" y="{y_run2+14:.1f}" class="tiny">Tap vorn s={horn.front_tap_s_m*1000:.0f}</text>')
-    del r1,r2
-    parts.append(f'<text x="{front+4:.1f}" y="{iy+12:.1f}" class="tiny">geschlossenes Ende (s=0)</text>')
+    lo,hi=run_edges(1,x_axis)
+    parts.append(f'<circle cx="{PX((lo+hi)/2):.1f}" cy="{cy:.1f}" r="4" class="tap"/>'
+                 f'<text x="{PX((lo+hi)/2)+6:.1f}" y="{cy-6:.1f}" class="tiny">Tap Magnet s={horn.rear_tap_s_m*1000:.0f}</text>')
+    lo,hi=run_edges(2,x_axis)
+    parts.append(f'<circle cx="{PX((lo+hi)/2):.1f}" cy="{cy:.1f}" r="4" class="tap"/>'
+                 f'<text x="{PX((lo+hi)/2)-6:.1f}" y="{cy+16:.1f}" text-anchor="end" class="tiny">Tap Membran s={horn.front_tap_s_m*1000:.0f}</text>')
+    parts.append(f'<text x="{back-4:.1f}" y="{iy+12:.1f}" text-anchor="end" class="tiny">geschlossenes Ende s=0</text>')
     parts.append(f'<text x="{sx:.1f}" y="{sy+h*scale+20:.1f}" class="small">Mündung {horn.mouth_width_m*1000:.0f}×'
-                 f'{horn.mouth_height_m*1000:.0f} vorn unten</text>')
+                 f'{horn.mouth_height_m*1000:.0f} vorn {"oben" if horn.mouth_at_top else "unten"}</text>')
     parts.append(f'<text x="{sx}" y="{sy+h*scale+43:.1f}" class="text">T {d:.1f} · F1 Länge {baffle_len:.1f} · '
                  f'Umlenkspalte {" / ".join(f"{g*1000:.0f}" for g in det.turn_gaps_m[1:])}</text>')
     # F1 plan
@@ -129,6 +135,7 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
         f'<text x="{px}" y="{py+baffle_len*scale+27:.1f}" class="text">F1 '
         f'{inside_w:.1f} × {baffle_len:.1f} × {t:.1f}</text>',
     ]
+    f1_tilt=degrees(atan2(f1.rise_m,f1.x2_m-f1.x1_m))
     # area law plot
     gx,gy,gw,gh=1050.0,430.0,380.0,190.0
     smax=det.length_m
@@ -157,17 +164,17 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
         f'Y {horn.driver_depth_from_front_m*1000:.1f} · Ausschnitt Ø {cut:.1f} · Flansch Ø {outer:.1f}</text>',
         f'<text x="55" y="868" class="text">Lochkreis Ø {bolt:.1f} · '
         f'{driver.bolt_count or 0} Bohrungen Ø {hole:.1f}; fehlende Herstellermaße am Treiber prüfen</text>',
-        f'<text x="55" y="896" class="text">Kanalhöhen: Lauf 1 {horn.upper_height_m*1000:.1f} (konstant), Mündungslauf '
+        f'<text x="55" y="896" class="text">Kanalhöhen: Lauf 1 {horn.upper_height_m*1000:.1f} am geschlossenen Ende, Mündungslauf '
         f'{horn.lower_height_m*1000:.1f} · Weg {horn.path_length_m*1000:.1f} · '
-        f'c/2L {horn.half_wave_hz:.1f} Hz · ¼λ {horn.quarter_wave_hz:.1f} Hz</text>',
+        f'c/2L {horn.half_wave_hz:.1f} Hz · ¼λ {horn.quarter_wave_hz:.1f} Hz · F1-Neigung {f1_tilt:.1f}°</text>',
         f'<text x="55" y="924" class="text">Mündung BR1: '
         f'{horn.mouth_width_m*1000:.1f} × {horn.mouth_height_m*1000:.1f} '
         f'· Mittelpunkt X {bundle.front_elements[0].x_m*1000:.1f}, '
         f'Y {bundle.front_elements[0].y_m*1000:.1f}</text>',
     ]
-    info=(f'Querschnitt: konstant {det.throat_area_m2*1e4:.0f} cm² bis zum Treiber, dann exponentiell auf '
+    info=(f'Querschnitt: exponentiell von {det.throat_area_m2*1e4:.0f} cm² (geschlossenes Ende) auf '
           f'{det.mouth_area_m2*1e4:.0f} cm² (Flare-fc {horn.cutoff_hz:.1f} Hz); Tap-Abstand '
-          f'{horn.tap_spacing_m*1000:.0f} mm; je Septum {det.facets_per_septum} gerade Teilbrett(er), Abweichung gebaut/Gesetz '
+          f'{horn.tap_spacing_m*1000:.0f} mm; gerade, geneigte Böden (Sehnen), Abweichung gebaut/Gesetz '
           f'max. {det.max_area_deviation*100:.1f} %. Grenzen: ebene Wellen, Tap-Lage nicht optimiert, am Prototyp '
           'bzw. in Hornresp prüfen.')
     row=956
@@ -175,7 +182,7 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="55" y="{row+i*19}" class="small">{escape(line)}</text>')
     row+=len(wrap(info,175))*19+10
     for i,run in enumerate(det.runs):
-        direction='vorn→hinten' if run.x_end_m>run.x_start_m else 'hinten→vorn'
+        direction='oben→unten' if run.x_end_m>run.x_start_m else 'unten→oben'
         parts.append(f'<text x="55" y="{row+i*19}" class="tiny">L{run.index} {direction}: s {run.s_start_m*1000:.0f}–'
                      f'{run.s_end_m*1000:.0f} · Höhe {run.h_start_m*1000:.0f}→{run.h_end_m*1000:.0f} · '
                      f'Fläche {det.width_m*run.h_start_m*1e4:.0f}→{det.width_m*run.h_end_m*1e4:.0f} cm²</text>')

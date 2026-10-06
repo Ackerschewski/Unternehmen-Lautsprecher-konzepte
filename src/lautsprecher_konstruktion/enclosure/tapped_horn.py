@@ -30,8 +30,7 @@ from lautsprecher_konstruktion.enclosure.horn_geometry import (
 )
 from lautsprecher_konstruktion.enclosure.rectangular import CabinetDimensions, CutPanel
 
-TAPPED_RUN_COUNTS = (3, 5, 7)   # odd: the last (front) run leads down to the mouth window
-FACET_COUNTS = (1, 2, 3, 4)
+TAPPED_RUN_COUNTS = (2, 3, 4, 5, 6, 7)   # odd: mouth window at the bottom, even: at the top of the front baffle
 DEVIATION_LIMIT = 0.20
 
 
@@ -54,6 +53,7 @@ class TappedHorn:
     tap_nodes: tuple[int, int] = (0, 0)   # node indices of the taps in details.acoustic_segments
     cutoff_hz: float = 0.0                # exponential flare cutoff of the expanding part
     closed_end_area_m2: float = 0.0
+    mouth_at_top: bool = False
 
     @property
     def half_wave_hz(self) -> float:
@@ -63,28 +63,37 @@ class TappedHorn:
     def tap_spacing_m(self) -> float:
         return self.front_tap_s_m-self.rear_tap_s_m
 
+    def mouth_center_y_m(self, cabinet: CabinetDimensions) -> float:
+        """Height of the mouth window centre above the cabinet bottom."""
+        if self.mouth_at_top:
+            return cabinet.height_m-(cabinet.top_thickness_m or cabinet.panel_thickness_m)-self.lower_height_m/2
+        return (cabinet.bottom_thickness_m or cabinet.panel_thickness_m)+self.lower_height_m/2
 
-def _law_factory(closed_area: float, mouth_area: float):
+
+def _law_factory(width: float, run_extent: float, driver_height: float, mouth_area: float):
+    """Exponential area law through S(x_d) = W*driver_height (magnet clearance) and S(L) = mouth."""
+    s_mag = width*driver_height
+
     def factory(length: float, first_end: float):
-        span = max(length-first_end, 1e-6)
-        rate = log(mouth_area/closed_area)/span
+        x_d = max(first_end-run_extent/2, 0.0)          # driver centre on F1 (middle of F1)
+        rate = log(mouth_area/s_mag)/max(length-x_d, 1e-6)
+        s_0 = s_mag*exp(-rate*x_d)
 
         def area(s: float) -> float:
-            return closed_area if s <= first_end else closed_area*exp(rate*(s-first_end))
+            return s_0*exp(rate*s)
         return area
     return factory
 
 
-def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: int,
-               mouth_area: float):
-    """Geometry for a given mouth area; returns (details, tap data, residual, devs) or None."""
+def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, mouth_area: float):
+    """Fold geometry for a given mouth area: runs, gaps, length, law, built heights and residuals."""
     t, w, d, h = (cabinet.panel_thickness_m, cabinet.internal_width_m,
                   cabinet.internal_height_m, cabinet.internal_depth_m)   # d: run length, h: stack
-    h1 = (driver.mounting_depth_m or 0.0)+0.025
-    closed = w*h1
-    path, gaps, length = trace_path(d, w, t, runs, _law_factory(closed, mouth_area), "tapped", None)
-    area = _law_factory(closed, mouth_area)(length, path[0].s_end_m)
-    grid = [d*j/facets for j in range(facets+1)]
+    h_mag = (driver.mounting_depth_m or 0.0)+0.025
+    factory = _law_factory(w, d, h_mag, mouth_area)
+    path, gaps, length = trace_path(d, w, t, runs, factory, "tapped", None)
+    area = factory(length, path[0].s_end_m)
+    grid = [0.0, d]
 
     def node_h(run: RunGeometry, x: float) -> float:
         lo, hi = sorted((run.x_start_m, run.x_end_m))
@@ -92,44 +101,36 @@ def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: in
         return max(0.012, area(run.s_start_m+abs(xc-run.x_start_m))/w)
 
     ideal = [[node_h(r, x) for x in grid] for r in path]
-    # closure: h1 + sum(runs 2..n) + (n-1) boards = H at every node of the grid
-    residual = []
-    built = [[h1]*(facets+1)]
-    for j in range(facets+1):
-        total = h1+t+sum(ideal[k][j] for k in range(1, runs))+(runs-2)*t
-        residual.append(h-total)
-    for k in range(1, runs):
-        built.append([ideal[k][j]+residual[j]/(runs-1) for j in range(facets+1)])
-    return path, gaps, length, area, grid, built, ideal, residual, h1, closed
+    # closure: sum of run heights + (n-1) boards = stack depth at both ends; spread over all runs
+    residual = [h-(runs-1)*t-sum(ideal[k][j] for k in range(runs)) for j in range(2)]
+    built = [[ideal[k][j]+residual[j]/runs for j in range(2)] for k in range(runs)]
+    return path, gaps, length, area, grid, built, residual, h_mag
 
 
-def _finish(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: int, mouth_area: float):
+def _finish(cabinet: CabinetDimensions, driver: Driver, runs: int, mouth_area: float):
     t, w, d = cabinet.panel_thickness_m, cabinet.internal_width_m, cabinet.internal_height_m
-    path, gaps, length, area, grid, built, _ideal, _res, h1, closed = _candidate(
-        cabinet, driver, runs, facets, mouth_area)
-    if min(min(row) for row in built) < 0.035:
+    path, gaps, length, area, grid, built, _res, h_mag = _candidate(cabinet, driver, runs, mouth_area)
+    facets = 1
+    if min(min(row) for row in built) < 0.03:
         return None
     runs_geo = [replace(r, h_nodes_m=tuple(built[k])) for k, r in enumerate(path)]
-    # septa top-down; F1 (index 1) is flat and carries the driver
     septa = []
-    ys = [h1]*(facets+1)
+    ys = [0.0, 0.0]
     for k in range(1, runs):                       # septum k separates run k and k+1
-        if k > 1:
-            ys = [yp+t+hn for yp, hn in zip(ys, built[k-1], strict=True)]
+        ys = [yp+(t if k > 1 else 0.0)+hn for yp, hn in zip(ys, built[k-1], strict=True)]
         gap = gaps[k]
         x1, x2 = (0.0, d-gap) if k % 2 == 1 else (gap, d)
-        if k == 1:
-            pts = ((x1, h1), (x2, h1))
-        else:
-            mid = [(x, y) for x, y in zip(grid, ys, strict=True) if x1 < x < x2]
-            pts = ((x1, float(np.interp(x1, grid, ys))), *mid, (x2, float(np.interp(x2, grid, ys))))
-        septa.append(SeptumGeometry(k, tuple(pts)))
+        pts = ((x1, float(np.interp(x1, grid, ys))), (x2, float(np.interp(x2, grid, ys))))
+        septa.append(SeptumGeometry(k, pts))
     # driver and taps
     f1 = septa[0]
     f1_length = f1.length_m
     x_d = f1_length/2
-    rear_tap = x_d
-    front_tap = path[1].s_start_m+(path[1].x_start_m-x_d)
+    x_axis = (f1.x2_m-f1.x1_m)/2          # driver centre along the run axis (path coordinate of the rear tap)
+    if float(np.interp(x_axis, grid, built[0])) < h_mag-0.012:
+        return None                       # magnet would not fit into run 1 at the driver position
+    rear_tap = x_axis
+    front_tap = path[1].s_start_m+abs(path[1].x_start_m-x_axis)
     # acoustic segments with nodes at the taps
     segments: list[tuple[float, float]] = []
     tap_nodes = [0, 0]
@@ -167,13 +168,12 @@ def _finish(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: int, 
             worst_dev = max(worst_dev, abs(float(np.interp(x, grid, built[k]))-ideal_h)/ideal_h)
     profile_s = tuple(length*i/60 for i in range(61))
     mouth_built = w*runs_geo[-1].h_end_m
-    exp_len = max(length-path[0].s_end_m, 1e-6)
-    flare = log(mouth_area/closed)/exp_len
+    flare = log(area(length)/area(0.0))/length
     details = HornDetails(
-        "tapped", "Tapped Horn: konstant bis zum Treiber, danach exponentiell", closed, mouth_built,
-        C_AIR*flare/(4*pi), length, w, d, tuple(runs_geo), tuple(septa), tuple(gaps),
-        h1, h1, w*d*h1, tuple(segments), profile_s, tuple(area(s) for s in profile_s),
-        worst_dev, worst_turn, 0.0, 0.0, facets)
+        "tapped", "Tapped Horn: Exponentialgesetz ab geschlossenem Ende, Treiber-Tap bei Magnetmaß",
+        area(0.0), mouth_built, C_AIR*flare/(4*pi), length, w, d, tuple(runs_geo), tuple(septa),
+        tuple(gaps), built[0][0], built[0][1], 0.0, tuple(segments), profile_s,
+        tuple(area(s) for s in profile_s), worst_dev, worst_turn, 0.0, 0.0, facets)
     return details, rear_tap, front_tap, (tap_nodes[0], tap_nodes[1]), f1_length, x_d
 
 
@@ -193,14 +193,13 @@ def design_tapped_horn(cabinet: CabinetDimensions, driver: Driver,
         raise ValueError('Tapped-Horn: Treiber-Lochkreis liegt zu nah an der F1-Kante')
     w = cabinet.internal_width_m
     best = None
+    h_mag = (driver.mounting_depth_m or 0.0)+0.025
+    s_mag = w*h_mag
     for runs in TAPPED_RUN_COUNTS:
-        h1 = (driver.mounting_depth_m or 0.0)+0.025
-        closed = w*h1
-        # mouth area such that the stack closes on average (bisection)
         def mean_residual(mouth: float, runs: int = runs) -> float:
-            r = _candidate(cabinet, driver, runs, 1, mouth)[7]
+            r = _candidate(cabinet, driver, runs, mouth)[6]
             return sum(r)/len(r)
-        lo, hi = closed*1.001, closed*8
+        lo, hi = s_mag*1.001, s_mag*12
         if mean_residual(lo) < 0:
             continue                      # even a straight pipe does not fit this many runs
         if mean_residual(hi) > 0:
@@ -213,18 +212,12 @@ def design_tapped_horn(cabinet: CabinetDimensions, driver: Driver,
                 else:
                     hi = mid
             mouth = (lo+hi)/2
-        result = None
-        for facets in FACET_COUNTS:
-            result = _finish(cabinet, driver, runs, facets, mouth)
-            if result is not None and result[0].max_area_deviation <= 0.06:
-                break
+        result = _finish(cabinet, driver, runs, mouth)
         if result is None or result[0].max_area_deviation > DEVIATION_LIMIT:
             continue
         details = result[0]
-        if min(r.h_start_m for r in details.runs) < 0.035:
-            continue
         half = C_AIR/(2*details.length_m)
-        score = (abs(log(half/target_hz)) if target_hz else abs(runs-6)*0.01)
+        score = (abs(log(half/target_hz)) if target_hz else abs(runs-4)*0.01)
         score += 1.5*max(0.0, details.max_area_deviation-0.08)+max(0.0, 0.9-details.min_turn_area_ratio)
         if best is None or score < best[0]:
             best = (score, result, runs)
@@ -245,7 +238,8 @@ def design_tapped_horn(cabinet: CabinetDimensions, driver: Driver,
         details.runs[0].h_start_m, mouth_run.h_end_m, details.turn_gaps_m[1], f1_length, x_d,
         details.length_m, C_AIR/(4*details.length_m), max(0.0, w-0.02),
         max(0.0, mouth_run.h_end_m-0.02), septa_panels[0], septa_panels, details,
-        rear_tap, front_tap, tap_nodes, details.cutoff_hz, details.throat_area_m2)
+        rear_tap, front_tap, tap_nodes, details.cutoff_hz, details.throat_area_m2,
+        len(details.runs) % 2 == 0)
 
 
 def tapped_baffle_displacement_m3(horn: TappedHorn, driver: Driver) -> float:
