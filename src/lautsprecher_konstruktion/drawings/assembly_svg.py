@@ -7,6 +7,7 @@ from textwrap import wrap
 
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, material_pattern_defs, special_css
 
 
 def _mm(value: float) -> float:
@@ -68,21 +69,9 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" '
         f'height="{1100 if bundle.folded_line else 1020}" '
         f'viewBox="0 0 1200 {1100 if bundle.folded_line else 1020}">',
-        '<defs><pattern id="material" width="8" height="8" patternUnits="userSpaceOnUse" '
-        'patternTransform="rotate(45)"><rect width="8" height="8" fill="#e1e9ed"/>'
-        '<path d="M0 0V8" stroke="#a4b5bf" stroke-width="2"/></pattern></defs>',
-        '<style>.title{font:700 27px sans-serif;fill:#122737}.subtitle{font:14px sans-serif;fill:#426071}'
-        '.label{font:700 19px sans-serif;fill:#122737}.note{font:15px sans-serif;fill:#263c49}'
-        '.small{font:13px sans-serif;fill:#426071}.panel{fill:url(#material);stroke:#1e3949;stroke-width:2}'
-        '.outline{fill:#fff;stroke:#1e3949;stroke-width:2}.flange{fill:#f3f7f9;stroke:#215a77;stroke-width:2}'
-        '.cutout{fill:none;stroke:#177ba5;stroke-width:2.2}.drill{fill:#fff;stroke:#b44b32;stroke-width:1.5}'
-        '.id{font:700 13px sans-serif;fill:#163c52}.dimension{fill:none;stroke:#516877;stroke-width:1.2}'
-        '.dimension-text{font:14px sans-serif;fill:#254253}.component{fill:#dceef7;stroke:#0875a6;stroke-width:2}'
-        '.lining{fill:#f6ecc8;stroke:#b8963a;stroke-width:1;stroke-dasharray:4 3}'
-        '.damper{fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5}.hole{fill:#fff;stroke:#1e3949;stroke-width:2}'
-        '.brace{fill:#d7e6dc;stroke:#3a7555;stroke-width:1.6}.warning{font:700 14px sans-serif;fill:#a12c20}'
-        '</style>',
-        f'<rect width="1200" height="{1100 if bundle.folded_line else 1020}" fill="#fff"/>',
+        material_pattern_defs(),
+        special_css(),
+        f'<rect width="1200" height="{1100 if bundle.folded_line else 1020}" fill="{PAPER}"/>',
         f'<text x="45" y="45" class="title">{escape(bundle.project.name)}</text>',
         f'<text x="45" y="72" class="subtitle">{escape(bundle.project.revision)} · '
         f'{escape(bundle.project.enclosure.enclosure_type)} · '
