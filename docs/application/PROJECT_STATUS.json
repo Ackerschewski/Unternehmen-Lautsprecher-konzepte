@@ -17,7 +17,7 @@
     "mitre joint option and DXF per cutting sheet",
     "sealed-box simulation (excursion, impedance, group delay)"
   ],
-  "tests": "239 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen smoke; see BUILD_REPORT_V-02.07.00.md",
+  "tests": "252 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen smoke; see BUILD_REPORT_V-02.07.00.md",
   "remaining": [
     "prototype measurement validation (K3)",
     "Windows build and smoke of V-02.07.00 (R1)",

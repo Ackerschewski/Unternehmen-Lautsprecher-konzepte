@@ -6,11 +6,11 @@ from PySide6.QtGui import QBrush, QColor, QKeyEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsScene, QGraphicsView
 
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
+from lautsprecher_konstruktion.ui.tokens import STATUS
+from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 
 SNAP_GRID_MM = 5.0
 CENTER_SNAP_MM = 4.0
-COLORS = {"woofer": "#2b7bb9", "subwoofer": "#2b7bb9", "midrange": "#3b9a6b", "tweeter": "#d98b1c",
-          "fullrange": "#7a5bb5", "passive_radiator": "#a24a4a", "port": "#777777", "brace": "#999999"}
 
 
 def snap_position(x_mm: float, y_mm: float, plate_w_mm: float, plate_h_mm: float,
@@ -28,7 +28,7 @@ def snap_position(x_mm: float, y_mm: float, plate_w_mm: float, plate_h_mm: float
 class _ElementItem(QGraphicsItem):
     """Circle (or rectangle) at the element centre; the scene uses millimetres, y pointing down."""
 
-    def __init__(self, index: int, element: FrontElement, plate_h_mm: float) -> None:
+    def __init__(self, index: int, element: FrontElement, plate_h_mm: float, mode: str = "light") -> None:
         super().__init__()
         self.index = index
         self.element = element
@@ -39,9 +39,13 @@ class _ElementItem(QGraphicsItem):
         self._round = outer is not None
         cutout = element.cutout_diameter_m
         self._cut = (cutout * 1000) if (cutout and self._round) else None
-        color = QColor(COLORS.get(element.type, "#555555"))
-        self._pen = QPen(color, 2)
-        self._brush = QBrush(QColor(color.red(), color.green(), color.blue(), 60))
+        t = theme_tokens(mode)
+        self._tokens = t
+        # Type is shown by shape and label; colour only separates ports (dashed) from drivers.
+        self._pen = QPen(QColor(t["textSecondary"]), 2)
+        if element.type == "port":
+            self._pen.setStyle(Qt.PenStyle.DashLine)
+        self._brush = QBrush(QColor(t["surface"]))
         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable | QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
                       | QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         self.setPos(element.x_m * 1000, plate_h_mm - element.y_m * 1000)
@@ -52,15 +56,15 @@ class _ElementItem(QGraphicsItem):
         return QRectF(-self._w / 2 - 2, -self._h / 2 - 2, self._w + 4, self._h + 4)
 
     def paint(self, painter: QPainter, option: object, widget: object = None) -> None:
-        painter.setPen(QPen(QColor("#c02020"), 3) if self.isSelected() else self._pen)
-        painter.setBrush(self._brush)
+        painter.setPen(QPen(QColor(self._tokens["accent"]), 3) if self.isSelected() else self._pen)
+        painter.setBrush(QBrush(QColor(self._tokens["accentSubtle"])) if self.isSelected() else self._brush)
         rect = QRectF(-self._w / 2, -self._h / 2, self._w, self._h)
         painter.drawEllipse(rect) if self._round else painter.drawRect(rect)
         if self._cut:
             painter.setPen(QPen(self._pen.color(), 1, Qt.PenStyle.DashLine))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(QRectF(-self._cut / 2, -self._cut / 2, self._cut, self._cut))
-        painter.setPen(QPen(self._pen.color(), 1))
+        painter.setPen(QPen(QColor(self._tokens["textPrimary"]), 1))
         painter.drawLine(QPointF(-4, 0), QPointF(4, 0))
         painter.drawLine(QPointF(0, -4), QPointF(0, 4))
         font = painter.font()
@@ -91,6 +95,7 @@ class FrontLayoutCanvas(QGraphicsView):
         self._selected = -1
         self._dragging: _ElementItem | None = None
         self.snap_enabled = True
+        self._mode = "light"
         self.scene().selectionChanged.connect(self._scene_selection_changed)
         self._updating = False
 
@@ -107,6 +112,9 @@ class FrontLayoutCanvas(QGraphicsView):
     def set_plate(self, width_mm: float, height_mm: float) -> None:
         self._plate = (width_mm, height_mm)
 
+    def set_mode(self, mode: str) -> None:
+        self._mode = mode
+
     def set_surface(self, surface: str) -> None:
         self._surface = surface
 
@@ -118,17 +126,20 @@ class FrontLayoutCanvas(QGraphicsView):
         scene.clear()
         self._items.clear()
         width, height = self._plate
-        scene.addRect(QRectF(0, 0, width, height), QPen(QColor("#222222"), 2), QBrush(QColor("#f4efe6"))).setZValue(0)
-        grid = QPen(QColor("#d8d2c4"), 0.6)
+        t = theme_tokens(self._mode)
+        self.setBackgroundBrush(QBrush(QColor(t["background"])))
+        scene.addRect(QRectF(0, 0, width, height), QPen(QColor(t["textSecondary"]), 2),
+                      QBrush(QColor(t["surfaceElevated"]))).setZValue(0)
+        grid = QPen(QColor(t["border"]), 0.6)
         for gx in range(0, int(width) + 1, 50):
             scene.addLine(gx, 0, gx, height, grid).setZValue(1)
         for gy in range(0, int(height) + 1, 50):
             scene.addLine(0, gy, width, gy, grid).setZValue(1)
-        scene.addLine(width / 2, 0, width / 2, height, QPen(QColor("#9bb7cc"), 1, Qt.PenStyle.DashLine)).setZValue(1)
+        scene.addLine(width / 2, 0, width / 2, height, QPen(QColor(STATUS["info"]), 1, Qt.PenStyle.DashLine)).setZValue(1)
         for index, element in enumerate(elements):
             if element.surface != self._surface:
                 continue
-            item = _ElementItem(index, element, height)
+            item = _ElementItem(index, element, height, self._mode)
             scene.addItem(item)
             self._items[index] = item
             if index == selected:

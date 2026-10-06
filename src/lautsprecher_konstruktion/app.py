@@ -4,9 +4,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-import matplotlib
 from PySide6.QtCore import QObject, QTimer, Signal
-from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from lautsprecher_konstruktion import REVISION
@@ -15,6 +13,7 @@ from lautsprecher_konstruktion.export.package import export_project_package
 from lautsprecher_konstruktion.project.models import SpeakerProject
 from lautsprecher_konstruktion.services.design import calculate_project
 from lautsprecher_konstruktion.ui.assistant_window import AssistantWindow
+from lautsprecher_konstruktion.ui.fonts import apply_default_font
 
 
 class _ErrorRelay(QObject):
@@ -38,14 +37,7 @@ def main() -> int:
     app = QApplication([arg for arg in sys.argv if arg not in {"--smoke", "--smoke-assistant"}])
     relay = _ErrorRelay(log_path)  # shows the dialog on the GUI thread, even for worker-thread errors
     install_excepthook(relay.reported.emit)
-    # Matplotlib ships this open font; it also makes offscreen/packaged Qt builds
-    # readable on machines where Qt cannot discover system fonts.
-    font_path = Path(matplotlib.get_data_path()) / "fonts" / "ttf" / "DejaVuSans.ttf"
-    font_id = QFontDatabase.addApplicationFont(str(font_path))
-    if font_id >= 0:
-        families = QFontDatabase.applicationFontFamilies(font_id)
-        if families:
-            app.setFont(QFont(families[0], 9))
+    apply_default_font(app)  # bundled Inter; the platform font stays if loading fails
     window = AssistantWindow()
     window.show()
     if not (smoke or assistant_smoke):

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -55,6 +56,9 @@ from lautsprecher_konstruktion.ui.cutting_panel import stored_cutting_settings
 from lautsprecher_konstruktion.ui.history import History
 from lautsprecher_konstruktion.ui.layout_canvas import FrontLayoutCanvas
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
+from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
+from lautsprecher_konstruktion.ui.tokens import STATUS, status_line
+from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 
 
 class MainWindow(QMainWindow):
@@ -88,6 +92,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Bereit")
         for sequence, slot in (("Ctrl+Z", self._undo), ("Ctrl+Y", self._redo), ("Ctrl+Shift+Z", self._redo)):
             QShortcut(QKeySequence(sequence), self, activated=slot)
+        self.mode = "light"
+        self.setStyleSheet(stylesheet(self.mode))
         self._refresh_mode_controls()
         self._load_demo()
         self._connect_dirty_signals()
@@ -97,7 +103,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(container)
 
         title = QLabel("Lautsprecher Konstruktion")
-        title.setStyleSheet("font-size: 22px; font-weight: 650;")
+        title.setObjectName("section")
         layout.addWidget(title)
 
         self.project_name = QLineEdit("Neues Lautsprecherprojekt")
@@ -133,16 +139,14 @@ class MainWindow(QMainWindow):
 
         action_row = QHBoxLayout()
         self.calculate_button = QPushButton("Projekt berechnen")
-        self.calculate_button.setStyleSheet("font-weight: 600; padding: 8px;")
+        self.calculate_button.setObjectName("primary")
         self.calculate_button.clicked.connect(lambda: self.calculate(show_results=True))
         action_row.addWidget(self.calculate_button)
 
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
-        self.export_button.setStyleSheet("font-weight: 600; padding: 8px;")
         self.export_button.clicked.connect(self.export)
         action_row.addWidget(self.export_button)
         self.prototype_button = QPushButton("Prototyp vergleichen…")
-        self.prototype_button.setStyleSheet("padding: 8px;")
         self.prototype_button.clicked.connect(self._compare_prototype)
         action_row.addWidget(self.prototype_button)
         layout.addLayout(action_row)
@@ -370,30 +374,36 @@ class MainWindow(QMainWindow):
             "Für die Endabstimmung werden reale Impedanz- und Frequenzgangmessungen benötigt."
         )
         note.setWordWrap(True)
-        note.setStyleSheet("color: #a66; padding: 6px;")
+        note.setObjectName("caption")
 
         form.addRow(self.crossover_enabled)
         form.addRow("Wege", self.crossover_ways)
         form.addRow("Topologie", self.crossover_topology)
         form.addRow("Trennfrequenz (unten)", self.crossover_frequency)
-        form.addRow("Obere Trennfrequenz (3-Wege)", self.upper_frequency)
-        form.addRow("Mitteltöner-Impedanz (3-Wege)", self.mid_impedance)
-        form.addRow("Mitteltöner-Absenkung (3-Wege)", self.mid_attenuation)
+        form.addRow("Obere Trennfrequenz", self.upper_frequency)
+        form.addRow("Mitteltöner-Impedanz", self.mid_impedance)
+        form.addRow("Mitteltöner-Absenkung", self.mid_attenuation)
         form.addRow("Woofer-Impedanz", self.woofer_impedance)
         form.addRow("Tweeter", self.tweeter_name)
         form.addRow("Tweeter-Impedanz", self.tweeter_impedance)
         form.addRow("Tweeter-Absenkung", self.tweeter_attenuation)
         form.addRow(self.woofer_zobel)
         form.addRow("Schallwandkorrektur", self.baffle_step)
+        self._three_way_rows: list[QWidget] = [self.upper_frequency, self.mid_impedance, self.mid_attenuation]
         for title, key in (("Woofer FRD laden", "woofer_frd"),
-                           ("Mitteltöner FRD laden (3-Wege)", "mid_frd"),
+                           ("Mitteltöner FRD laden", "mid_frd"),
                            ("Tweeter FRD laden", "tweeter_frd"),
                            ("Woofer ZMA laden", "woofer_zma"),
-                           ("Mitteltöner ZMA laden (3-Wege)", "mid_zma"),
+                           ("Mitteltöner ZMA laden", "mid_zma"),
                            ("Tweeter ZMA laden", "tweeter_zma")):
             button = QPushButton(title)
             button.clicked.connect(lambda _=False, item=key: self._load_measurement(item))
             form.addRow(button)
+            if key.startswith("mid"):
+                self._three_way_rows.append(button)
+        self._crossover_form = form
+        self.crossover_ways.currentIndexChanged.connect(self._sync_three_way_rows)
+        self._sync_three_way_rows()
         self.measurement_status = QLabel("Keine Messdaten geladen")
         self.measurement_status.setWordWrap(True)
         form.addRow(self.measurement_status)
@@ -655,15 +665,17 @@ class MainWindow(QMainWindow):
         outer=QVBoxLayout(container)
         self.kpis=QLabel("Vb · Fb/Qtc · F3 · Außenmaße · Auslenkung · Port · Warnungen")
         self.kpis.setWordWrap(True)
-        self.kpis.setStyleSheet("font-weight: 600; padding: 10px; background: #17394d; color: #ffffff;")
+        self.kpis.setObjectName("kpi")
         outer.addWidget(self.kpis)
-        self.revision_state=QLabel("Bereit")
-        self.revision_state.setStyleSheet("padding: 7px; background: #e5f1e9; color: #173d2a; font-weight: 600;")
+        self.revision_state=QLabel()
+        self.revision_state.setObjectName("statusLine")
+        self._set_revision("info","Bereit")
         outer.addWidget(self.revision_state)
         tabs = QTabWidget()
         self.output_tabs=tabs
 
         self.summary = QTextEdit()
+        self.summary.setObjectName("mono")  # technical values in JetBrains Mono
         self.summary.setReadOnly(True)
         tabs.addTab(self.summary, "Ergebnis")
 
@@ -716,12 +728,33 @@ class MainWindow(QMainWindow):
                     continue
                 getattr(control,signal).connect(self._mark_dirty)
 
+    def _sync_three_way_rows(self, *_: object) -> None:
+        """Progressive disclosure: midrange fields only appear for a three-way crossover."""
+        visible = self.crossover_ways.currentData() == 3
+        for widget in self._three_way_rows:
+            self._crossover_form.setRowVisible(widget, visible)
+
+    def _set_revision(self, role: str, text: str) -> None:
+        self.revision_state.setProperty("role", role)
+        self.revision_state.setText(status_line(role, text))
+        self.revision_state.style().unpolish(self.revision_state)
+        self.revision_state.style().polish(self.revision_state)
+
+    def set_mode(self, mode: str) -> None:
+        """Apply light or dark appearance and redraw the charts."""
+        self.mode = mode
+        self.setStyleSheet(stylesheet(mode))
+        self.layout_canvas.set_mode(mode)
+        self._refresh_canvas()
+        if self._bundle is not None:
+            self._render_response(self._bundle)
+            self._render_crossover(self._bundle)
+
     def _mark_dirty(self, *_: object) -> None:
         if self._loading:
             return
         self._dirty=True
-        self.revision_state.setText("● Eingaben geändert – Projekt berechnen, um neue Ergebnisse zu sehen")
-        self.revision_state.setStyleSheet("padding: 7px; background: #fff0d6; color: #603700; font-weight: 600;")
+        self._set_revision("warning","Eingaben geändert – Projekt berechnen, um neue Ergebnisse zu sehen")
         self.calculate_button.setText("Änderungen berechnen ●")
         self.export_button.setEnabled(False)
         self.statusBar().showMessage("Eingaben geändert – Ergebnisse sind noch vom letzten Rechenlauf")
@@ -968,8 +1001,7 @@ class MainWindow(QMainWindow):
         self.calculate_button.setText("Projekt berechnen")
         self.export_button.setEnabled(True)
         stamp=datetime.now(tz=UTC).astimezone().strftime("%H:%M:%S")
-        self.revision_state.setText(f"✓ Berechnung #{self._run_count} um {stamp} · {self._change_note}")
-        self.revision_state.setStyleSheet("padding: 7px; background: #e4f2e8; color: #17452a; font-weight: 600;")
+        self._set_revision("success",f"Berechnung #{self._run_count} um {stamp} · {self._change_note}")
         if show_results:
             self.output_tabs.setCurrentWidget(self.summary)
         self.statusBar().showMessage(f"Berechnung #{self._run_count} abgeschlossen: {self._change_note}")
@@ -1111,7 +1143,12 @@ class MainWindow(QMainWindow):
         self.svg_preview.load(QByteArray(svg.encode("utf-8")))
 
     def _render_response(self, bundle: DesignBundle) -> None:
+        with matplotlib.rc_context(chart_rc(self.mode)):
+            self._draw_response(bundle)
+
+    def _draw_response(self, bundle: DesignBundle) -> None:
         self.figure.clear()
+        self.figure.set_facecolor(theme_tokens(self.mode)["surface"])
         axis = self.figure.add_subplot(111 if bundle.sealed is not None and bundle.front_horn is None else 221)
         if bundle.sealed is not None and bundle.front_horn is None:
             frequencies = np.geomspace(10.0, 500.0, 400)
@@ -1127,7 +1164,6 @@ class MainWindow(QMainWindow):
             axis.set_xlabel("Frequenz [Hz]")
             axis.set_ylabel("Pegel [dB]")
             axis.set_ylim(-30, 5)
-            axis.grid(True, which="both", alpha=0.25)
         else:
             response=bundle.vented_response
             if response is not None:
@@ -1161,11 +1197,11 @@ class MainWindow(QMainWindow):
                     else:
                         ax.semilogx(response.frequencies_hz,values)
                         if index==2 and bundle.project.driver.xmax_mm:
-                            ax.axhline(bundle.project.driver.xmax_mm,color="red",linestyle="--",label="Xmax")
+                            ax.axhline(bundle.project.driver.xmax_mm,color=STATUS["danger"],linestyle="--",label="Xmax");ax.legend()
                         if index==3 and bundle.port is not None:
-                            ax.axhline(17,color="orange",linestyle="--",label="Richtwert 17 m/s")
+                            ax.axhline(17,color=STATUS["warning"],linestyle="--",label="Richtwert 17 m/s");ax.legend()
                     ax.set_title(title);ax.set_xlabel("Hz");ax.set_ylabel(unit)
-                    ax.grid(True,which="both",alpha=.25)
+                    
         self.canvas.draw()
 
     @staticmethod
@@ -1180,7 +1216,12 @@ class MainWindow(QMainWindow):
         axis.legend(fontsize=8)
 
     def _render_crossover(self,bundle: DesignBundle) -> None:
+        with matplotlib.rc_context(chart_rc(self.mode)):
+            self._draw_crossover(bundle)
+
+    def _draw_crossover(self,bundle: DesignBundle) -> None:
         self.crossover_figure.clear()
+        self.crossover_figure.set_facecolor(theme_tokens(self.mode)["surface"])
         r=bundle.crossover_response
         if r is None:
             self.crossover_canvas.draw();return
@@ -1195,11 +1236,11 @@ class MainWindow(QMainWindow):
                 ax.semilogx(r.frequencies_hz,r.midrange_acoustic_db,label="Mitteltöner FRD")
             ax.semilogx(r.frequencies_hz,r.tweeter_acoustic_db,label="Tweeter FRD")
             ax.semilogx(r.frequencies_hz,r.sum_acoustic_db,label="Summe"+("" if r.phase_complete else " (ohne Phase)"))
-        ax.set_ylabel("Pegel [dB]");ax.set_xlabel("Frequenz [Hz]");ax.grid(True,which="both",alpha=.25);ax.legend()
+        ax.set_ylabel("Pegel [dB]");ax.set_xlabel("Frequenz [Hz]");ax.legend()
         imp=self.crossover_figure.add_subplot(212)
         imp.semilogx(r.frequencies_hz,abs(r.total_impedance))
         imp.set_ylabel("Gesamtimpedanz [Ohm]");imp.set_xlabel("Frequenz [Hz]")
-        imp.grid(True,which="both",alpha=.25)
+        
         self.crossover_canvas.draw()
 
     def _compare_prototype(self) -> None:

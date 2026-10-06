@@ -11,6 +11,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Ruff failed' }
 & $python -m PyInstaller --noconfirm --clean --onedir --windowed `
     --name 'Lautsprecher-Konstruktion_V-02.07.00' --paths 'src' `
     --add-data 'data/library;data/library' `
+    --add-data 'data/fonts;data/fonts' `
     --hidden-import 'matplotlib.backends.backend_qtagg' `
     'src/lautsprecher_konstruktion/app.py'
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }

@@ -43,6 +43,7 @@ Konstruktionsassistent für Lautsprecherentwürfe mit Berechnung, Zeichnungen, Z
 |---|---|
 | Python | {sys.version.split()[0]} ({platform.system()}) |
 | PySide6 | {pyside_version} |
+| Marke | Ackerschewski_code |
 | Datenordner | `{user_data_dir()}` |
 | Protokolldatei | `{log_file()}` |
 

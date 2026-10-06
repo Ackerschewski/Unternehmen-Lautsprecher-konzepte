@@ -11,6 +11,8 @@ Windows-Konstruktionsassistent für Lautsprecherentwürfe. Der Startbildschirm f
 
 ## V-02.07.00
 
+**Neues Design.** Die Oberfläche folgt dem Ackerschewski_code Design System: Akzentfarbe Orange `#F27216`, Schriften Inter / Source Serif 4 / JetBrains Mono, gleichwertige Themes System/Hell/Dunkel (Menü Ansicht), Status mit Symbol und Text, ruhigere Gliederung (6 statt 9 Reiter, zwei Standard-Diagramme). Details und Abweichungen: `docs/DESIGN_SYSTEM.md`.
+
 **Mehrwege und Bedienkomfort.** Der Expertenmodus berechnet jetzt eine **passive 3-Wege-Weiche** (1. Ordnung, Butterworth 2. Ordnung, Linkwitz-Riley 2. Ordnung) mit Tiefpass für den Woofer, Bandpass für den Mitteltöner und Hochpass für den Hochtöner. Optional kommen Zobel, Schallwandkorrektur und L-Pads für Mittel- und Hochtöner dazu. Die Simulation löst jeden Zweig als exakte Kettenschaltung gegen die komplexe Last (gemessene ZMA, falls geladen); die Wechselwirkung der beiden Mittelton-Abschnitte ist damit sichtbar. Schaltplan, Stückliste, Weichen-CSV und Export kennen die dritte Weg. Die Bauteilwerte sind elektrische Startwerte; Schallzentren, Laufzeit und Treiberpegel sind am Prototyp zu messen. Der Assistent wählt weiterhin keine 3-Wege-Lautsprecher automatisch.
 
 Das **Frontlayout** hat eine interaktive Zeichenfläche: Treiber und Ports lassen sich mit der Maus ziehen (Einrasten auf 5 mm und Mittellinie, abschaltbar) oder mit den Pfeiltasten verschieben (Umschalt = 10 mm); die Ansicht wechselt zwischen Front, Rückwand und Trennwand. **Rückgängig/Wiederholen** (`Strg+Z`, `Strg+Y`) gilt für Hinzufügen, Löschen, Ziehen und Werteingaben; schnelle Folgeänderungen werden zu einem Schritt zusammengefasst.

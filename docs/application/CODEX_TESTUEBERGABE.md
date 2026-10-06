@@ -16,7 +16,7 @@ export QT_QPA_PLATFORM=offscreen LK_USER_DIR=/tmp/lk-test
 ```bash
 .venv/bin/ruff check src tests
 .venv/bin/mypy
-.venv/bin/python -m pytest -p no:cacheprovider        # 239 Fälle
+.venv/bin/python -m pytest -p no:cacheprovider        # 252 Fälle
 .venv/bin/python -m lautsprecher_konstruktion.app --smoke
 .venv/bin/python -m lautsprecher_konstruktion.app --smoke-assistant
 python tools/validate_project.py && python tools/automation_control.py check

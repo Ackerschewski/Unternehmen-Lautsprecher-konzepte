@@ -5,13 +5,15 @@ from html import escape
 from pathlib import Path
 from threading import Event
 
+import matplotlib
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from pydantic import ValidationError
 from PySide6.QtCore import QByteArray, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
+from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -75,7 +77,15 @@ from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
-from lautsprecher_konstruktion.ui.theme import stylesheet
+from lautsprecher_konstruktion.ui.theme import (
+    LABELS,
+    PREFERENCES,
+    chart_rc,
+    resolve_mode,
+    stylesheet,
+)
+from lautsprecher_konstruktion.ui.tokens import STATUS, status_line
+from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
 
 LOG = get_logger("ui")
@@ -128,7 +138,9 @@ class AssistantWindow(QMainWindow):
         self.recent = RecentProjects()
         self.autosave = Autosave()
         configure_logging()
-        self.mode = self.settings.get("theme", "light") if self.settings.get("theme") in {"light", "dark"} else "light"
+        stored = self.settings.get("theme", "system")
+        self.preference = stored if stored in PREFERENCES else "system"
+        self.mode = resolve_mode(self.preference)
         self.setStyleSheet(stylesheet(self.mode))
 
         root = QWidget()
@@ -144,8 +156,7 @@ class AssistantWindow(QMainWindow):
         subtitle.setObjectName("subtitle")
         headings.addWidget(subtitle)
         head.addLayout(headings, 1)
-        for label, method in (("Bibliothek", self._library),
-                              ("Expertenmodus", self._expert), ("Hell / Dunkel", self._theme)):
+        for label, method in (("Bibliothek", self._library), ("Expertenmodus", self._expert)):
             button = QPushButton(label)
             button.clicked.connect(method)
             head.addWidget(button)
@@ -164,6 +175,9 @@ class AssistantWindow(QMainWindow):
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start()
         self.statusBar().showMessage("Bereit · Bibliothek: Herstellerdaten und gekennzeichnete Testdaten")
+        brand = QLabel("Ackerschewski_code")  # subtle branding in the footer, no logo
+        brand.setObjectName("brand")
+        self.statusBar().addPermanentWidget(brand)
 
     def _connect_inputs(self) -> None:
         for control in (self.project_name, self.manufacturer):
@@ -177,16 +191,24 @@ class AssistantWindow(QMainWindow):
             control.valueChanged.connect(self._mark_stale)
         self.options.toggled.connect(self._mark_stale)
 
+    def _set_state(self, role: str, text: str) -> None:
+        """Status line with glyph and text (colour is never the only signal) and a role-coloured edge."""
+        self.state.setProperty("role", role)
+        self.state.setText(status_line(role, text))
+        self.state.style().unpolish(self.state)
+        self.state.style().polish(self.state)
+
     def _mark_stale(self, *_args: object) -> None:
         if self.designs:
             self._stale = True
             self.save_button.setEnabled(False)
             self.export_button.setEnabled(False)
-            self.state.setText("Eingaben geändert · Entwurf erneut erstellen, um aktuelle Ergebnisse zu erhalten.")
+            self._set_state("warning", "Eingaben geändert · Entwurf erneut erstellen, um aktuelle Ergebnisse zu erhalten.")
 
     def _build_wizard(self) -> QWidget:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         card = QFrame()
         card.setObjectName("card")
         layout = QVBoxLayout(card)
@@ -331,9 +353,11 @@ class AssistantWindow(QMainWindow):
     def _build_results(self) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
-        self.state = QLabel("Wähle Typ, Bauraum und Klangprofil. Dann klicke auf „Entwurf erstellen“.")
+        self.state = QLabel()
+        self.state.setObjectName("statusLine")
         self.state.setWordWrap(True)
         layout.addWidget(self.state)
+        self._set_state("info", "Wähle Typ, Bauraum und Klangprofil. Dann klicke auf „Entwurf erstellen“.")
         self.tabs = QTabWidget()
 
         overview = QWidget()
@@ -357,12 +381,14 @@ class AssistantWindow(QMainWindow):
         self.comparison.cellClicked.connect(lambda row, _column: self.variant_list.setCurrentRow(row))
         self.tabs.addTab(self.comparison, "Variantenvergleich")
 
+        self.drawing_tabs = QTabWidget()
+        self.drawing_tabs.setDocumentMode(True)
         self.svg = ZoomableSvgView()
-        self.tabs.addTab(self.svg, "Gesamtzeichnung")
+        self.drawing_tabs.addTab(self.svg, "Gesamtzeichnung")
         self.dimension_svg = ZoomableSvgView()
-        self.tabs.addTab(self.dimension_svg, "Maßblatt")
+        self.drawing_tabs.addTab(self.dimension_svg, "Maßblatt")
         self.internal_svg = ZoomableSvgView()
-        self.tabs.addTab(self.internal_svg, "Innenaufbau")
+        self.drawing_tabs.addTab(self.internal_svg, "Innenaufbau")
         panel = QWidget()
         panel_layout = QVBoxLayout(panel)
         self.panel_choice = QComboBox()
@@ -370,11 +396,18 @@ class AssistantWindow(QMainWindow):
         panel_layout.addWidget(self.panel_choice)
         self.panel_svg = ZoomableSvgView()
         panel_layout.addWidget(self.panel_svg, 1)
-        self.tabs.addTab(panel, "Einzelteilplan")
+        self.drawing_tabs.addTab(panel, "Einzelteilplan")
+        self.tabs.addTab(self.drawing_tabs, "Zeichnungen")
 
+        simulation = QWidget()
+        sim_layout = QVBoxLayout(simulation)
+        self.more_charts = QCheckBox("Weitere Diagramme (Port, Gruppenlaufzeit)")
+        self.more_charts.toggled.connect(self._redraw_simulation)
+        sim_layout.addWidget(self.more_charts)
         self.figure = Figure(figsize=(9, 6), layout="constrained")
         self.canvas = FigureCanvasQTAgg(self.figure)
-        self.tabs.addTab(self.canvas, "Simulation")
+        sim_layout.addWidget(self.canvas, 1)
+        self.tabs.addTab(simulation, "Simulation")
 
         self.bom_view = QTextBrowser()
         self.tabs.addTab(self.bom_view, "Stückliste")
@@ -387,6 +420,7 @@ class AssistantWindow(QMainWindow):
         self.load_button = QPushButton("Projekt laden")
         self.load_button.clicked.connect(self._load)
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
+        self.export_button.setObjectName("primary")
         self.export_button.clicked.connect(self._export)
         for button in (self.save_button, self.load_button, self.export_button):
             actions.addWidget(button)
@@ -432,7 +466,7 @@ class AssistantWindow(QMainWindow):
         self.cancel_button.setEnabled(True)
         self.progress.setValue(0)
         self.progress_label.setText("Varianten werden berechnet…")
-        self.state.setText("Komponenten werden geprüft und Gehäusevarianten simuliert…")
+        self._set_state("info", "Komponenten werden geprüft und Gehäusevarianten simuliert…")
         self.worker.start()
 
     def _cancel(self) -> None:
@@ -451,7 +485,7 @@ class AssistantWindow(QMainWindow):
         self.comparison.setRowCount(0)
         if result.status == "ok":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
-            self.state.setText(f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
+            self._set_state("success", f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
             self.comparison.setRowCount(len(result.designs))
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
@@ -477,7 +511,7 @@ class AssistantWindow(QMainWindow):
             self.variant_list.setCurrentRow(0)
         elif result.status == "impossible":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
-            self.state.setText("Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich.")
+            self._set_state("danger", "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. Änderungsvorschläge stehen unter „Entwürfe“.")
             reasons = "".join(f"<li>{escape(item)}</li>" for item in result.rejection_reasons)
             changes = "".join(f"<li>{escape(item)}</li>" for item in result.suggested_constraint_changes)
             self.details.setHtml(f"<h2>Nicht machbar</h2><b>Gründe</b><ul>{reasons}</ul>"
@@ -486,14 +520,14 @@ class AssistantWindow(QMainWindow):
             self.export_button.setEnabled(False)
         else:
             self.progress_label.setText("Berechnung abgebrochen")
-            self.state.setText("Berechnung abgebrochen")
+            self._set_state("warning", "Berechnung abgebrochen")
         self.statusBar().showMessage(self.state.text())
 
     def _failed(self, message: str) -> None:
         self.create_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
         self.progress_label.setText("Berechnung fehlgeschlagen")
-        self.state.setText(message)
+        self._set_state("danger", f"{message} Nächster Schritt: Vorgaben prüfen oder die Protokolldatei (Hilfe) ansehen.")
 
     def _current(self) -> SpeakerDesign | None:
         index = self.variant_list.currentRow()
@@ -578,46 +612,7 @@ class AssistantWindow(QMainWindow):
              if planned_total is not None else "<p>Budgetansatz nicht vollständig belegbar.</p>")+
             "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
             "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
-        self.figure.clear()
-        ax = self.figure.add_subplot(221)
-        r = bundle.vented_response or bundle.sealed_response
-        if r is not None:
-            ax.semilogx(r.frequencies_hz, r.response_db, color="#1769b3", linewidth=2)
-            ax.set_xlim(10, 500)
-        else:
-            frequencies = np.geomspace(10, 500, 400)
-            ax.semilogx(frequencies, sealed_response_db(bundle.acoustic_driver,
-                bundle.target_net_volume_m3, frequencies), color="#1769b3", linewidth=2)
-            ax.set_xlim(10, 500)
-        ax.set_title("Tiefton · relativ")
-        ax.set_xlabel("Frequenz [Hz]")
-        ax.set_ylabel("Pegel [dB]")
-        ax.grid(True, which="both", alpha=.25)
-        for position, title, ylabel, values, limit in (
-            (222, "Membranauslenkung", "mm",
-             r.excursion_mm if r is not None else None,
-             bundle.project.driver.xmax_mm),
-            (223, "Port / Passivmembran", "m/s",
-             r.port_velocity_m_s if r is not None else None,
-             17 if bundle.port else None),
-            (224, "Gruppenlaufzeit", "ms",
-             r.group_delay_ms if r is not None else None, None),
-        ):
-            subplot = self.figure.add_subplot(position)
-            subplot.set_title(title)
-            subplot.set_xlabel("Frequenz [Hz]")
-            subplot.set_ylabel(ylabel)
-            subplot.set_xlim(10, 500)
-            if values is None:
-                subplot.text(.5, .5, "Kein Port in diesem Gehäuse" if (bundle.sealed is not None and position == 223)
-                             else "Mess-/Treiberwerte fehlen", ha="center", va="center",
-                             transform=subplot.transAxes, color="#52627a")
-            else:
-                subplot.semilogx(r.frequencies_hz, values, color="#1769b3", linewidth=1.8)
-                if limit is not None:
-                    subplot.axhline(limit, color="#c94436", linestyle="--", linewidth=1)
-            subplot.grid(True, which="both", alpha=.25)
-        self.canvas.draw_idle()
+        self._redraw_simulation()
         status = (f"{registry.get(design.project.enclosure.enclosure_type).label} · "
             f"{c.width_m*1000:.0f}×{c.height_m*1000:.0f}×{c.depth_m*1000:.0f} mm · "
             f"F3 {f3:.1f} Hz · " if f3 else "F3 nicht berechenbar · ")
@@ -628,7 +623,57 @@ class AssistantWindow(QMainWindow):
         status += f"Hinweise {len(bundle.warnings)} · Geometriefehler {len(geometry_errors)}"
         if geometry_errors:
             status += " · Export gesperrt: " + geometry_errors[0]
-        self.state.setText("Eingaben geändert · Entwurf erneut erstellen." if self._stale else status)
+        if self._stale:
+            self._set_state("warning", "Eingaben geändert · Entwurf erneut erstellen.")
+        else:
+            self._set_state("danger" if geometry_errors else "warning" if bundle.warnings else "success", status)
+
+    def _redraw_simulation(self, *_args: object) -> None:
+        """Default: frequency response and excursion (two charts); the others on request."""
+        design = self._current()
+        if design is None:
+            return
+        bundle = design.bundle
+        r = bundle.vented_response or bundle.sealed_response
+        tokens = theme_tokens(self.mode)
+        with matplotlib.rc_context(chart_rc(self.mode)):
+            self.figure.clear()
+            self.figure.set_facecolor(tokens["surface"])
+            wide = self.more_charts.isChecked()
+            panels = [("Tiefton · relativ", "Pegel [dB]", None, None),
+                      ("Membranauslenkung", "mm", r.excursion_mm if r is not None else None,
+                       (bundle.project.driver.xmax_mm, "Xmax"))]
+            if wide:
+                panels += [("Port / Passivmembran", "m/s", r.port_velocity_m_s if r is not None else None,
+                            (17.0, "Richtwert 17 m/s") if bundle.port else None),
+                           ("Gruppenlaufzeit", "ms", r.group_delay_ms if r is not None else None, None)]
+            for index, (title, ylabel, values, limit) in enumerate(panels, start=1):
+                ax = self.figure.add_subplot(2, 2, index) if wide else self.figure.add_subplot(1, 2, index)
+                ax.set_title(title)
+                ax.set_xlabel("Frequenz [Hz]")
+                ax.set_ylabel(ylabel)
+                ax.set_xlim(10, 500)
+                if index == 1:
+                    if r is not None:
+                        ax.semilogx(r.frequencies_hz, r.response_db, linewidth=2)
+                    else:
+                        frequencies = np.geomspace(10, 500, 400)
+                        ax.semilogx(frequencies, sealed_response_db(bundle.acoustic_driver,
+                            bundle.target_net_volume_m3, frequencies), linewidth=2)
+                    ax.axhline(-3.0, color=tokens["textSecondary"], linestyle=":", linewidth=1)
+                    ax.text(0.99, 0.04, "−3 dB", transform=ax.transAxes, ha="right", fontsize=9,
+                            color=tokens["textSecondary"])
+                elif values is None:
+                    note = ("Kein Port in diesem Gehäuse" if (bundle.sealed is not None and title.startswith("Port"))
+                            else "Mess-/Treiberwerte fehlen")
+                    ax.text(.5, .5, note, ha="center", va="center", transform=ax.transAxes,
+                            color=tokens["textSecondary"])
+                elif r is not None:
+                    ax.semilogx(r.frequencies_hz, values, linewidth=1.8)
+                    if limit is not None and limit[0] is not None:
+                        ax.axhline(limit[0], color=STATUS["danger"], linestyle="--", linewidth=1.2, label=limit[1])
+                        ax.legend(loc="upper right")
+        self.canvas.draw_idle()
 
     def _show_panel_sheet(self, index: int) -> None:
         current = self._current()
@@ -642,6 +687,7 @@ class AssistantWindow(QMainWindow):
     def _expert(self) -> None:
         if self.expert_window is None:
             self.expert_window = MainWindow()
+            self.expert_window.set_mode(self.mode)
             self.expert_window.projectCalculated.connect(self._expert_updated)
         current = self._current()
         if current:
@@ -663,16 +709,28 @@ class AssistantWindow(QMainWindow):
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)
-        self.state.setText("Expertenentwurf übernommen")
+        self._set_state("info", "Expertenentwurf übernommen")
 
     def _library(self) -> None:
         dialog = LibraryDialog(self.library, self)
         dialog.exec()
 
-    def _theme(self) -> None:
-        self.mode = "dark" if self.mode == "light" else "light"
-        self.settings.set("theme", self.mode)
+    def set_preference(self, preference: str) -> None:
+        """System, Hell or Dunkel; applied immediately to all windows and charts."""
+        if preference not in PREFERENCES:
+            raise ValueError(f"unknown appearance: {preference}")
+        self.preference = preference
+        self.settings.set("theme", preference)
+        self.mode = resolve_mode(preference)
+        self._apply_appearance()
+
+    def _apply_appearance(self) -> None:
         self.setStyleSheet(stylesheet(self.mode))
+        if self.expert_window is not None:
+            self.expert_window.set_mode(self.mode)
+        if hasattr(self, "appearance_actions"):
+            self.appearance_actions[self.preference].setChecked(True)
+        self._redraw_simulation()
 
     def _demo(self) -> None:
         choice = self.demo_choice.currentIndex()
@@ -777,7 +835,16 @@ class AssistantWindow(QMainWindow):
         tools.addAction(self._action("&Bibliothek", self._library))
         tools.addAction(self._action("&Expertenmodus", self._expert))
         tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
-        tools.addAction(self._action("&Hell / Dunkel", self._theme))
+        view = bar.addMenu("&Ansicht")
+        group = QActionGroup(self)
+        self.appearance_actions: dict[str, QAction] = {}
+        for preference in PREFERENCES:
+            action = QAction(f"Design: {LABELS[preference]}", self, checkable=True)
+            action.setChecked(preference == self.preference)
+            action.triggered.connect(lambda _=False, value=preference: self.set_preference(value))
+            group.addAction(action)
+            view.addAction(action)
+            self.appearance_actions[preference] = action
         help_menu = bar.addMenu("&Hilfe")
         help_menu.addAction(self._action("&Kurzanleitung und Über…", self._help, "F1"))
         help_menu.addAction(self._action("&Protokollordner öffnen", self._open_log_folder))
