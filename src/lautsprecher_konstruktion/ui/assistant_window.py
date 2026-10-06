@@ -595,6 +595,7 @@ class AssistantWindow(QMainWindow):
         self.recommendation_summary.setText(
             "Nach der Berechnung stehen hier die wichtigsten Gründe für die Empfehlung."
         )
+        self.empty_guide.setText(self._empty_guide_default)
         self.empty_guide.setVisible(True)
         if hasattr(self, "preview"):
             self.preview.set_bundle(None)
@@ -858,13 +859,14 @@ class AssistantWindow(QMainWindow):
         overview = QWidget()
         ov = QVBoxLayout(overview)
         ov.setContentsMargins(0, 8, 0, 0)
-        self.empty_guide = QLabel(
+        self._empty_guide_default = (
             "<h2>Dein Lautsprecher entsteht in drei Schritten</h2>"
             "<p><b>1.</b> Bauart wählen &nbsp; <b>2.</b> Bauraum festlegen &nbsp; "
             "<b>3.</b> Klangziel wählen oder Zielkurve formen.</p>"
             "<p>Nach der Berechnung erscheint hier der empfohlene Entwurf mit "
             "Visualisierung, Kennwerten und nachvollziehbarer Begründung.</p>"
         )
+        self.empty_guide = QLabel(self._empty_guide_default)
         self.empty_guide.setWordWrap(True)
         self.empty_guide.setObjectName("emptyState")
         ov.addWidget(self.empty_guide)
@@ -1108,6 +1110,12 @@ class AssistantWindow(QMainWindow):
         self.progress.setValue(0)
         self.progress.setVisible(True)
         self.progress_label.setText("Varianten werden berechnet… 0 %")
+        self.empty_guide.setVisible(True)
+        self.empty_guide.setText(
+            "<h2>Entwurf wird berechnet</h2>"
+            "<p>Chassis und Gehäusefamilien werden geprüft. Danach folgen Geometrie, "
+            "akustische Grenzen und Variantenvergleich.</p>"
+        )
         self._set_state("info", "Komponenten werden geprüft und Gehäusevarianten simuliert…")
         self.worker.start()
 
@@ -1122,6 +1130,15 @@ class AssistantWindow(QMainWindow):
     def _progress(self, value: int) -> None:
         self.progress.setValue(value)
         self.progress_label.setText(f"Varianten werden berechnet… {value} %")
+        if value < 30:
+            step = "Chassis und Gehäusefamilien werden geprüft."
+        elif value < 70:
+            step = "Geometrie und akustische Varianten werden simuliert."
+        else:
+            step = "Grenzen, Kosten und Empfehlungen werden verglichen."
+        self.empty_guide.setText(
+            f"<h2>Entwurf wird berechnet · {value} %</h2><p>{step}</p>"
+        )
 
     def _cancel(self) -> None:
         if self.worker:
@@ -1204,6 +1221,11 @@ class AssistantWindow(QMainWindow):
         self.progress.setVisible(False)
         self._clear_results()
         self.progress_label.setText("Berechnung fehlgeschlagen")
+        self.empty_guide.setText(
+            "<h2>Berechnung konnte nicht abgeschlossen werden</h2>"
+            "<p>Prüfe die zuletzt geänderten Vorgaben. Technische Details stehen in der "
+            "Statusmeldung und im Protokoll unter Hilfe.</p>"
+        )
         self._set_state("danger", f"{message} Nächster Schritt: Vorgaben prüfen oder die Protokolldatei (Hilfe) ansehen.")
 
     def _current(self) -> SpeakerDesign | None:
