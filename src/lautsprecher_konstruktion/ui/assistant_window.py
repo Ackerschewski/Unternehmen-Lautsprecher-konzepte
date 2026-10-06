@@ -236,6 +236,8 @@ class AssistantWindow(QMainWindow):
         for control in (self.speaker_type, self.enclosure, self.profile, self.ways,
                         self.active_mode, self.material, self.driver_choice):
             control.currentIndexChanged.connect(self._mark_stale)
+        self.design_method.currentIndexChanged.connect(self._design_method_changed)
+        self.target_curve.curveChanged.connect(self._target_curve_changed)
         for control in (self.max_width, self.max_height, self.max_depth, self.max_volume,
                         self.budget, self.target_spl, self.target_f3, self.power,
                         self.preferred_size, self.thickness):
