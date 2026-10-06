@@ -1,10 +1,12 @@
 """Folded tapped horn: constant-width path, driver on a flat septum, both cone sides loaded.
 
-Layout (side view, front on the left): the path starts at a closed end at the front
-of the top run (run 1), runs to the rear, turns, and so on; the last run ends at the
-mouth in the front baffle (bottom). The driver sits horizontally in the first septum
-F1: its magnet side loads run 1 at the *rear tap*, its cone side loads run 2 at the
-*front tap*; between the taps the path is the U-turn around the end of F1. The
+Layout (side view, front on the left): the runs are VERTICAL (length = inner height) and
+stacked along the depth, run 1 (closed end at the top) at the back, the last run at the
+front baffle. The driver sits on the vertical first septum F1 with its axis along the
+depth: its magnet side loads run 1 at the *rear tap*, its cone side loads run 2 at the
+*front tap*; between the taps the path is the U-turn around the lower end of F1 (about
+twice the run length), which is what a tall folded tapped horn needs for a large tap
+spacing. The mouth is a window in the front baffle at the lower end of the last run. The
 cross-section is constant (run 1) up to the driver and then expands exponentially to
 the mouth. Following Danley/Kolbrek the path should be about one half wavelength at
 the design frequency (c/2L) and at least a quarter wavelength at the cutoff.
@@ -28,7 +30,7 @@ from lautsprecher_konstruktion.enclosure.horn_geometry import (
 )
 from lautsprecher_konstruktion.enclosure.rectangular import CabinetDimensions, CutPanel
 
-TAPPED_RUN_COUNTS = (4, 6, 8)   # even: the last run ends at the front baffle
+TAPPED_RUN_COUNTS = (3, 5, 7)   # odd: the last (front) run leads down to the mouth window
 FACET_COUNTS = (1, 2, 3, 4)
 DEVIATION_LIMIT = 0.20
 
@@ -39,7 +41,7 @@ class TappedHorn:
     lower_height_m: float            # mouth channel height (last run, at the mouth)
     turn_gap_m: float                # turn gap at the rear end of F1
     baffle_length_m: float           # F1 length
-    driver_depth_from_front_m: float
+    driver_depth_from_front_m: float   # driver centre measured along F1 from the closed (top) end
     path_length_m: float
     quarter_wave_hz: float
     mouth_width_m: float
@@ -77,7 +79,7 @@ def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: in
                mouth_area: float):
     """Geometry for a given mouth area; returns (details, tap data, residual, devs) or None."""
     t, w, d, h = (cabinet.panel_thickness_m, cabinet.internal_width_m,
-                  cabinet.internal_depth_m, cabinet.internal_height_m)
+                  cabinet.internal_height_m, cabinet.internal_depth_m)   # d: run length, h: stack
     h1 = (driver.mounting_depth_m or 0.0)+0.025
     closed = w*h1
     path, gaps, length = trace_path(d, w, t, runs, _law_factory(closed, mouth_area), "tapped", None)
@@ -102,8 +104,7 @@ def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: in
 
 
 def _finish(cabinet: CabinetDimensions, driver: Driver, runs: int, facets: int, mouth_area: float):
-    t, w, d, h = (cabinet.panel_thickness_m, cabinet.internal_width_m,
-                  cabinet.internal_depth_m, cabinet.internal_height_m)
+    t, w, d = cabinet.panel_thickness_m, cabinet.internal_width_m, cabinet.internal_height_m
     path, gaps, length, area, grid, built, _ideal, _res, h1, closed = _candidate(
         cabinet, driver, runs, facets, mouth_area)
     if min(min(row) for row in built) < 0.035:
@@ -184,13 +185,13 @@ def design_tapped_horn(cabinet: CabinetDimensions, driver: Driver,
     if diameter is None or cutout is None:
         raise ValueError('Tapped-Horn benötigt Außen- und Ausschnittdurchmesser des Treibers')
     gap=max(0.035,min(0.07,cabinet.internal_height_m*0.08))
-    length=cabinet.internal_depth_m-gap
+    length=cabinet.internal_height_m-gap
     if length<diameter+0.02 or cabinet.internal_width_m<diameter+0.02:
         raise ValueError('Tapped-Horn: F1 zu kurz oder schmal für Treiber und 10 mm Randabstand')
     bolt_span=(driver.bolt_circle_diameter_m or 0)+(driver.bolt_hole_diameter_m or 0)
     if bolt_span and (bolt_span+0.02>length or bolt_span+0.02>cabinet.internal_width_m):
         raise ValueError('Tapped-Horn: Treiber-Lochkreis liegt zu nah an der F1-Kante')
-    w, h = cabinet.internal_width_m, cabinet.internal_height_m
+    w = cabinet.internal_width_m
     best = None
     for runs in TAPPED_RUN_COUNTS:
         h1 = (driver.mounting_depth_m or 0.0)+0.025
@@ -228,8 +229,8 @@ def design_tapped_horn(cabinet: CabinetDimensions, driver: Driver,
         if best is None or score < best[0]:
             best = (score, result, runs)
     if best is None:
-        raise ValueError('Tapped-Horn: Kanalhöhe reicht für Magnet, Treiberbaffle und Hornläufe nicht; '
-                         'Höhe/Tiefe vergrößern')
+        raise ValueError('Tapped-Horn: Tiefe reicht für Magnet, Treiber-Septum und Hornläufe nicht; '
+                         'Tiefe oder Höhe vergrößern')
     details, rear_tap, front_tap, tap_nodes, f1_length, x_d = best[1]
     septa_panels = tuple(
         CutPanel(('Tapped-Horn F1 mit Treiberausschnitt' if s.index == 1 else

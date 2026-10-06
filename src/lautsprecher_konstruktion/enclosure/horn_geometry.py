@@ -233,8 +233,8 @@ def trace_path(depth: float, width: float, t: float, runs: int, factory: AreaFac
                gap_limits: tuple[float, float] = (0.03, 0.45)) -> tuple[list[RunGeometry], list[float], float]:
     """Centre-line path of a constant-width fold; returns runs, gaps (index k-1) and length.
 
-    ``mode`` is "rear" (run 1 starts at the throat gap at the rear, mouth at the
-    front) or "tapped" (run 1 starts at the closed front end).
+    ``depth`` is the run extent, ``mode`` is "rear" (run 1 starts at the throat gap
+    at the rear, mouth at the front) or "tapped" (run 1 starts at the closed end x=0).
     """
     gmin, gmax = gap_limits[0], gap_limits[1]*depth
     n = runs
@@ -252,7 +252,7 @@ def trace_path(depth: float, width: float, t: float, runs: int, factory: AreaFac
                 start = 0.0 if k == 1 else xs[-1][1]
                 forward = k % 2 == 1
             if k == n:
-                end = 0.0
+                end = depth if forward else 0.0
             elif forward:
                 end = depth-gaps[k]/2
             else:
