@@ -11,6 +11,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, dimension_css
 
 
 def _mm(value: float) -> float:
@@ -84,14 +85,9 @@ def render_dimension_svg(bundle: DesignBundle) -> str:
     back = tuple(e for e in bundle.front_elements if e.surface == 'back')
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:#193448}.label{font:700 18px sans-serif;fill:#193448}'
-        '.text{font:15px sans-serif;fill:#284455}.small{font:13px sans-serif;fill:#496373}'
-        '.dimtext{font:13px sans-serif;fill:#254a60}.id{font:700 14px sans-serif;fill:#153d59}'
-        '.outline{fill:white;stroke:#193448;stroke-width:2}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
-        '.flange{fill:#edf4f7;stroke:#39718f;stroke-width:1.5}.cut{fill:none;stroke:#007fa5;stroke-width:2}'
-        '.hole{fill:white;stroke:#bf503a;stroke-width:1.4}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.5}'
-        '.rule{stroke:#c8d6dd;stroke-width:1}</style>',
-        f'<rect width="1200" height="{sheet_height}" fill="white"/>',
+        dimension_css(),
+        f'<rect width="1200" height="{sheet_height}" fill="{PAPER}"/>',
+        '<text x="1155" y="43" text-anchor="end" class="brand">ACK STUDIO · SOFTWARE</text>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Maßblatt</text>',
         f'<text x="45" y="70" class="text">{escape(bundle.project.revision)} · Alle Maße in mm · Bezug: linke untere Außenecke der jeweiligen Ansicht</text>',
         f'<text x="{fx:.1f}" y="{sy-16:.1f}" class="label">Frontansicht</text>',
