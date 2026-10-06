@@ -85,6 +85,7 @@ from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.motion import animate_value
+from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
@@ -179,10 +180,6 @@ class AssistantWindow(QMainWindow):
         self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
         self.focus_button.toggled.connect(self.set_focus_mode)
         head.addWidget(self.focus_button)
-        for label, method in (("Bibliothek", self._library), ("Expertenmodus", self._expert)):
-            button = QPushButton(label)
-            button.clicked.connect(method)
-            head.addWidget(button)
         outer.addLayout(head)
 
         self.split = split = QSplitter(Qt.Orientation.Horizontal)
