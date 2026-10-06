@@ -86,6 +86,7 @@ from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.motion import animate_value
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
+from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
 from lautsprecher_konstruktion.ui.tokens import DEFAULT_AREA, set_area, status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
