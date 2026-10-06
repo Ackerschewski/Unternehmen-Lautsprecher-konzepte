@@ -230,8 +230,8 @@ def _target_curve_fit(
     """Score the response shape against the user target in the evidence-backed range.
 
     Absolute level is intentionally removed around 80–120 Hz; this compares response
-    shape, not an arbitrary SPL reference. The current enclosure simulations are only
-    trusted up to 500 Hz for this purpose.
+    shape, not an arbitrary SPL reference. max_hz limits the trusted source range:
+    enclosure-only simulations use 500 Hz; FRD-backed crossover sums may use 20 kHz.
     """
     data = np.asarray(points, dtype=float)
     frequencies = np.asarray(frequencies_hz, dtype=float)
@@ -239,6 +239,11 @@ def _target_curve_fit(
     if data.ndim != 2 or data.shape[0] < 2 or data.shape[1] != 2:
         return None
     if np.any(data[:, 0] <= 0):
+        return None
+    finite = np.isfinite(frequencies) & np.isfinite(response) & (frequencies > 0)
+    frequencies = frequencies[finite]
+    response = response[finite]
+    if frequencies.size < 8:
         return None
     low = max(20.0, float(np.min(data[:, 0])))
     high = min(max_hz, float(np.max(data[:, 0])), float(np.max(frequencies)))
