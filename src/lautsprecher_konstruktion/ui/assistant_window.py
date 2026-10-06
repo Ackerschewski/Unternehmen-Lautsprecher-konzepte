@@ -847,9 +847,15 @@ class AssistantWindow(QMainWindow):
         """Default: frequency response and excursion (two charts); the others on request."""
         design = self._current()
         if design is None:
+            if hasattr(self, "target_curve"):
+                self.target_curve.clear_actual()
             return
         bundle = design.bundle
         r = bundle.vented_response or bundle.sealed_response
+        if r is not None:
+            self.target_curve.set_actual_curve(r.frequencies_hz, r.response_db)
+        else:
+            self.target_curve.clear_actual()
         tokens = theme_tokens(self.mode)
         with matplotlib.rc_context(chart_rc(self.mode)):
             self.figure.clear()
