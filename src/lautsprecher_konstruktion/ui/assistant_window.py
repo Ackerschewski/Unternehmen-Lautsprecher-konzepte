@@ -766,7 +766,7 @@ class AssistantWindow(QMainWindow):
                          "fließen nicht ein.</p>")
             names = {"bass": "Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
                 "port": "Portreserve", "delay": "Gruppenlaufzeit", "flatness": "Linearität",
-                "cost": "Budgetreserve"}
+                "cost": "Budgetreserve", "target_curve": "Nähe zur Zielkurve"}
             for metric in design.breakdown:
                 lines.append(f"<p><b>{names.get(metric.name, metric.name)}</b> "
                     f"{metric.value:.0f}/100 "
