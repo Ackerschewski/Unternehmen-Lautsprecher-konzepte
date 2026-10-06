@@ -6,6 +6,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, special_css
 
 
 def render_baffle_svg(bundle: DesignBundle) -> str:
@@ -20,12 +21,8 @@ def render_baffle_svg(bundle: DesignBundle) -> str:
     fw,fh = w*scale,h*scale
     lines = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1040" viewBox="0 0 1500 1040">',
-        '<style>.title{font:700 30px Arial;fill:#183647}.head{font:700 20px Arial;fill:#183647}'
-        '.text{font:16px Arial;fill:#244253}.small{font:14px Arial;fill:#426171}'
-        '.wall{fill:#e1ebef;stroke:#24475a;stroke-width:2}.cut{fill:#fff;stroke:#087fa3;stroke-width:2}'
-        '.flange{fill:none;stroke:#3d7990;stroke-dasharray:5 4;stroke-width:1.5}'
-        '.hole{fill:#fff;stroke:#b74a36;stroke-width:1.5}.rule{stroke:#b9cbd4;stroke-width:1}'
-        '</style><rect width="1500" height="1040" fill="white"/>',
+        special_css(),
+        f'<rect width="1500" height="1040" fill="{PAPER}"/>',
         f'<text x="60" y="50" class="title">{escape(bundle.project.name)} · Schallwand-Fertigungsblatt</text>',
         f'<text x="60" y="81" class="text">{escape(bundle.project.revision)} · '
         f'{escape(mode)} · alle Maße in mm · X/Y ab linker unterer Ecke</text>',
@@ -62,10 +59,7 @@ def render_baffle_svg(bundle: DesignBundle) -> str:
     plan_scale = min(430/w, 270/max(wing+t,driver_depth+t,1.0))
     plan_w = w*plan_scale
     pt = max(9.0,t*plan_scale)
-    lines.append('<style>.air{fill:#fbf3d6;stroke:#b8963a;stroke-width:1.2;stroke-dasharray:6 4}'
-                 '.wallhatch{fill:#cdd8de;stroke:#24475a;stroke-width:1.5}'
-                 '.path{fill:none;stroke:#b74a36;stroke-width:2;stroke-dasharray:7 4}'
-                 '.part{fill:#dceef7;stroke:#0875a6;stroke-width:1.5}.dimline{fill:none;stroke:#516877;stroke-width:1.2}</style>')
+
     if mode == "infinite_baffle":
         # Schematic only: the room behind the wall is not part of the cut list and not to scale.
         lines.append(f'<rect x="{px-60:.1f}" y="{py:.1f}" width="60" height="{pt:.1f}" class="wallhatch"/>')
