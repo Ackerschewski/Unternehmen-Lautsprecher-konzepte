@@ -246,6 +246,7 @@ class AssistantWindow(QMainWindow):
         self.speaker_type.currentTextChanged.connect(self._sync_speaker_cards)
         self.profile.currentIndexChanged.connect(self._sync_profile_cards)
         self.target_curve.curveChanged.connect(self._target_curve_changed)
+        self.target_curve.analysisModeChanged.connect(self._update_sound_lab)
         for control in (self.max_width, self.max_height, self.max_depth, self.max_volume,
                         self.budget, self.target_spl, self.target_f3, self.power,
                         self.preferred_size, self.thickness):
@@ -356,6 +357,7 @@ class AssistantWindow(QMainWindow):
         self._mark_stale()
 
     def _target_curve_changed(self) -> None:
+        self._update_sound_lab()
         if self.design_method.currentData() != "target_curve":
             return
         self._mark_stale()
@@ -364,6 +366,178 @@ class AssistantWindow(QMainWindow):
                 "info",
                 "Zielkurve geändert · Randbedingungen prüfen und passenden Entwurf berechnen.",
             )
+
+    @staticmethod
+    def _sound_curve(
+        design: SpeakerDesign,
+    ) -> tuple[np.ndarray, np.ndarray, str] | None:
+        crossover = design.bundle.crossover_response
+        if crossover is not None and crossover.sum_acoustic_db is not None:
+            return (
+                np.asarray(crossover.frequencies_hz, dtype=float),
+                np.asarray(crossover.sum_acoustic_db, dtype=float),
+                "Ist · FRD/Weichensumme",
+            )
+        response = design.bundle.vented_response or design.bundle.sealed_response
+        if response is None:
+            return None
+        return (
+            np.asarray(response.frequencies_hz, dtype=float),
+            np.asarray(response.response_db, dtype=float),
+            "Ist · Gehäuse-/Tieftonsimulation",
+        )
+
+    @staticmethod
+    def _relative_curve(
+        frequencies: np.ndarray, levels: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        valid = np.isfinite(frequencies) & np.isfinite(levels) & (frequencies > 0)
+        f = frequencies[valid]
+        v = levels[valid].astype(float, copy=True)
+        if not f.size:
+            return f, v
+        reference = (f >= 80.0) & (f <= 120.0)
+        v -= float(np.median(v[reference])) if np.any(reference) else float(np.median(v))
+        return f, v
+
+    def _update_sound_lab(self, *_args: object) -> None:
+        if not hasattr(self, "target_curve"):
+            return
+        current = self._current()
+        if current is None:
+            self.target_curve.set_candidate_curves(())
+            self.target_curve.clear_actual()
+            self.target_curve.set_influence_summary(
+                "Berechne zuerst Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
+            )
+            return
+
+        mode = self.target_curve.analysis_mode()
+        current_enclosure = current.project.enclosure.enclosure_type
+        current_driver = current.woofer.model
+
+        candidates = list(self.designs)
+        if mode == "enclosure":
+            candidates = [d for d in candidates if d.woofer.model == current_driver]
+        elif mode == "driver":
+            candidates = [
+                d for d in candidates
+                if d.project.enclosure.enclosure_type == current_enclosure
+            ]
+        elif mode == "crossover":
+            candidates = [
+                d for d in candidates
+                if d.bundle.crossover_response is not None
+                and d.bundle.crossover_response.sum_acoustic_db is not None
+            ]
+
+        curves: list[tuple[np.ndarray, np.ndarray]] = []
+        for design in candidates:
+            data = self._sound_curve(design)
+            if data is not None:
+                curves.append((data[0], data[1]))
+        self.target_curve.set_candidate_curves(curves)
+
+        current_curve = self._sound_curve(current)
+        if current_curve is not None:
+            self.target_curve.set_actual_curve(
+                current_curve[0], current_curve[1], label=current_curve[2]
+            )
+        else:
+            self.target_curve.clear_actual()
+
+        notes: list[str] = []
+        outside = self.target_curve.outside_envelope()
+        if outside is not None:
+            notes.append(
+                f"Ziel bei {outside[0]:.0f} Hz liegt etwa {outside[1]:.1f} dB außerhalb "
+                "der aktuell berechneten Variantenhülle."
+            )
+
+        if mode == "crossover" and not candidates:
+            notes.append(
+                "Für eine belastbare Weichen-/Fullrange-Aussage fehlen FRD-Daten. "
+                "Vorhandene T/S-Daten reichen dafür absichtlich nicht."
+            )
+        elif mode == "dsp":
+            response = current.bundle.vented_response or current.bundle.sealed_response
+            xmax = current.bundle.project.driver.xmax_mm
+            if response is not None and response.excursion_mm is not None and xmax:
+                margins: list[tuple[float, float]] = []
+                rf = np.asarray(response.frequencies_hz, dtype=float)
+                ex = np.asarray(response.excursion_mm, dtype=float)
+                for frequency, target_db in self.target_curve.points():
+                    if frequency < rf[0] or frequency > rf[-1] or target_db <= 0:
+                        continue
+                    excursion = float(np.interp(np.log10(frequency), np.log10(rf), ex))
+                    if excursion > 0:
+                        headroom_db = 20*np.log10(xmax/excursion)
+                        margins.append((frequency, headroom_db-target_db))
+                if margins:
+                    frequency, margin = min(margins, key=lambda item: item[1])
+                    if margin < 0:
+                        notes.append(
+                            f"DSP-Anhebung bei {frequency:.0f} Hz überschreitet die berechnete "
+                            f"Hubreserve um etwa {-margin:.1f} dB. Gehäuse/Chassis ändern statt nur boosten."
+                        )
+                    else:
+                        notes.append(
+                            f"Tiefton-DSP bleibt in den geprüften Punkten mindestens {margin:.1f} dB "
+                            "unter der berechneten Xmax-Grenze."
+                        )
+            else:
+                notes.append("DSP-Headroom ist ohne belastbare Hubdaten nicht quantifizierbar.")
+
+        if mode in {"overall", "enclosure", "driver", "influence"} and current_curve is not None:
+            cf, cv = self._relative_curve(current_curve[0], current_curve[1])
+            best: tuple[float, int, float, float] | None = None
+            targets = self.target_curve.points()
+            for alt_index, alternative in enumerate(self.designs):
+                if alternative is current:
+                    continue
+                if mode == "enclosure" and alternative.woofer.model != current_driver:
+                    continue
+                if mode == "driver" and (
+                    alternative.project.enclosure.enclosure_type != current_enclosure
+                ):
+                    continue
+                alt_curve = self._sound_curve(alternative)
+                if alt_curve is None:
+                    continue
+                af, av = self._relative_curve(alt_curve[0], alt_curve[1])
+                for frequency, target_db in targets:
+                    if (
+                        not cf.size or not af.size
+                        or frequency < cf[0] or frequency > cf[-1]
+                        or frequency < af[0] or frequency > af[-1]
+                    ):
+                        continue
+                    current_db = float(np.interp(np.log10(frequency), np.log10(cf), cv))
+                    alternative_db = float(np.interp(np.log10(frequency), np.log10(af), av))
+                    improvement = abs(current_db-target_db)-abs(alternative_db-target_db)
+                    if improvement > 1.0 and (best is None or improvement > best[0]):
+                        best = (improvement, alt_index, frequency, alternative_db)
+            if best is not None:
+                improvement, alt_index, frequency, _alternative_db = best
+                alternative = self.designs[alt_index]
+                enclosure = registry.get(
+                    alternative.project.enclosure.enclosure_type
+                ).label
+                change = (
+                    f"anderes Gehäuse ({enclosure})"
+                    if alternative.woofer.model == current_driver
+                    else f"anderes Chassis ({alternative.woofer.model})"
+                )
+                notes.append(
+                    f"Bei {frequency:.0f} Hz liegt {alternative.label} rund {improvement:.1f} dB "
+                    f"näher am Ziel – hier wäre {change} die bessere Richtung."
+                )
+
+        if not notes:
+            notes.append(
+                f"{len(curves)} berechnete Kurve(n) bilden die aktuell belegbare Vergleichsbasis."
+            )
+        self.target_curve.set_influence_summary(" ".join(notes))
 
     def _set_state(self, role: str, text: str) -> None:
         """Status line with glyph and text (colour is never the only signal) and a role-coloured edge."""
@@ -878,7 +1052,9 @@ class AssistantWindow(QMainWindow):
             preferred_driver=self.driver_choice.currentData(),
             material=self.material.currentText() if optional else "Birke Multiplex",
             target_curve_points=(self.target_curve.points()
-                if self.design_method.currentData() == "target_curve" else None))
+                if self.design_method.currentData() == "target_curve" else None),
+            target_curve_preset=self.target_curve.preset_id(),
+            target_curve_mode=self.target_curve.analysis_mode())
 
     def create_design(self) -> None:
         if self.worker and self.worker.isRunning():
