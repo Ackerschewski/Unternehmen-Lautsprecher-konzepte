@@ -6,6 +6,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.folded_line import STUFFING_LABELS
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import ACCENT, CONSTRUCTION, PAPER, internal_css
 
 
 def _mm(value: float) -> float:
@@ -45,14 +46,9 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     sheet_height = max(1100, int(row+31+len(bundle.panels)*28+85))
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:#193448}.sub{font:15px sans-serif;fill:#496373}'
-        '.head{font:700 18px sans-serif;fill:#193448}.text{font:15px sans-serif;fill:#284455}'
-        '.dimtext{font:13px sans-serif;fill:#254a60}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
-        '.outline{fill:white;stroke:#193448;stroke-width:2}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.5}'
-        '.feature{fill:#c5e7f5;stroke:#16749a;stroke-width:1.5}.rule{stroke:#c8d6dd;stroke-width:1}'
-        '.lining{fill:#f6ecc8;stroke:#b8963a;stroke-width:1;stroke-dasharray:4 3}'
-        '.damper{fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5}.hole{fill:#fff;stroke:#34576a;stroke-width:1.5}'
-        f'</style><rect width="1200" height="{sheet_height}" fill="white"/>',
+        internal_css(),
+        f'<rect width="1200" height="{sheet_height}" fill="{PAPER}"/>',
+        '<text x="1155" y="43" text-anchor="end" class="brand">ACK STUDIO · SOFTWARE</text>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau</text>',
         f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Tiefe ab Innenseite Front · Querschnitt schematisch · gestrichelt: Schallweg der Linie</text>',
         f'<text x="{x}" y="{y-17}" class="head">Seitenschnitt und Tiefenpositionen</text>',
@@ -79,7 +75,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
                 x0 = front+(magnet+8 if index == 0 else 0)
                 opacity = {'light': .25, 'medium': .45, 'heavy': .65}[level]
                 parts.append(f'<rect x="{x0:.1f}" y="{top:.1f}" width="{back-x0:.1f}" '
-                             f'height="{_mm(channel_h)*scale:.1f}" fill="#d9b45a" '
+                             f'height="{_mm(channel_h)*scale:.1f}" fill="{CONSTRUCTION}" '
                              f'fill-opacity="{opacity}" class="stuffing"/>')
             top += _mm(channel_h)*scale+wall
         yy = y+tt
