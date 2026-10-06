@@ -287,11 +287,54 @@ class AssistantWindow(QMainWindow):
             )
 
     def _result_tab_changed(self, index: int) -> None:
-        drawing_index = self.tabs.indexOf(self.drawing_tabs)
-        on_drawings = index == drawing_index
+        on_drawings = self.tabs.tabText(index) == "Zeichnungen"
         self.focus_button.setVisible(on_drawings)
-        if not on_drawings and self.focus_button.isChecked():
+        if on_drawings and self.drawing_mode.currentData() == "read":
+            if not self.focus_button.isChecked():
+                self.focus_button.setChecked(True)
+            self._drawing_view_changed(self.drawing_tabs.currentIndex())
+        elif not on_drawings and self.focus_button.isChecked():
             self.focus_button.setChecked(False)
+
+    def _toggle_details(self, on: bool) -> None:
+        self.details.setVisible(on)
+        self.details_toggle.setText(
+            "Technische Details schließen" if on else "Warum empfohlen? · Technische Details"
+        )
+
+    def _select_variant_from_card(self, index: int) -> None:
+        self.variant_list.setCurrentRow(index)
+        self.variant_cards.select(index)
+
+    def _toggle_technical_table(self, on: bool) -> None:
+        self.comparison.setVisible(on)
+        if on:
+            self._apply_column_choice()
+
+    def _drawing_mode_changed(self, _index: int = 0) -> None:
+        read_mode = self.drawing_mode.currentData() == "read"
+        self.drawing_hint.setText(
+            "Lesemodus: Ansicht füllt die Breite; ideal zum Prüfen und Lesen."
+            if read_mode else
+            "Druckblatt: vollständiges Seitenlayout für PDF-/Exportkontrolle."
+        )
+        if read_mode and self.tabs.tabText(self.tabs.currentIndex()) == "Zeichnungen":
+            if not self.focus_button.isChecked():
+                self.focus_button.setChecked(True)
+        self._drawing_view_changed(self.drawing_tabs.currentIndex())
+
+    def _drawing_view_changed(self, _index: int = 0) -> None:
+        view = self.drawing_tabs.currentWidget()
+        if isinstance(view, ZoomableSvgView):
+            if self.drawing_mode.currentData() == "read":
+                view.fit_width()
+            else:
+                view.fit()
+        elif view is not None and hasattr(self, "panel_svg"):
+            if self.drawing_mode.currentData() == "read":
+                self.panel_svg.fit_width()
+            else:
+                self.panel_svg.fit()
 
     def _design_method_changed(self, _index: int = 0) -> None:
         target_mode = self.design_method.currentData() == "target_curve"
