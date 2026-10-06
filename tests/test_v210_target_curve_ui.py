@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
 import pytest
 from PySide6.QtWidgets import QApplication
 
@@ -71,8 +72,8 @@ def test_drawing_css_uses_one_ack_studio_palette() -> None:
 
 
 def test_target_curve_fit_prefers_matching_response_shape() -> None:
-    frequencies = __import__("numpy").geomspace(20.0, 500.0, 200)
-    flat = __import__("numpy").zeros_like(frequencies)
+    frequencies = np.geomspace(20.0, 500.0, 200)
+    flat = np.zeros_like(frequencies)
     neutral = ((20.0, 0.0), (80.0, 0.0), (500.0, 0.0))
     bass_lift = ((20.0, 6.0), (50.0, 4.0), (100.0, 0.0), (500.0, 0.0))
 
