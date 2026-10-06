@@ -148,7 +148,7 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     parts.append(f'<text x="{gx}" y="{gy+gh+18}" class="dimtext">0 = Hals</text>'
                  f'<text x="{gx+gw}" y="{gy+gh+18}" text-anchor="end" class="dimtext">s = {horn.length_m*1000:.0f} mm</text>')
     parts.append(f'<text x="{gx+6}" y="{gy+12}" class="dimtext">S max {amax/1.05*1e4:.0f} cm²</text>')
-    parts.append(f'<text x="{gx}" y="{gy+gh+38}" class="dimtext" fill="#16749a">blau: Gesetz · orange: gebaute Kanalflächen</text>')
+    parts.append(f'<text x="{gx}" y="{gy+gh+38}" class="dimtext">Akzent: Horn-Gesetz · Ocker: gebaute Kanalflächen</text>')
     # info block
     ix, iy = 730.0, 130.0
     parts.append(f'<text x="{ix}" y="{iy}" class="head">Horn-Daten</text>')
