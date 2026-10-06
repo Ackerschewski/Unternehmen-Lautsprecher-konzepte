@@ -305,6 +305,22 @@ class AssistantWindow(QMainWindow):
         self.project_name.setPlaceholderText("Projektname")
         layout.addWidget(self.project_name)
 
+        method_box = QGroupBox("Entwurfsweg")
+        method_form = self._form(method_box)
+        self.design_method = QComboBox()
+        self.design_method.addItem("Klassisch konfigurieren", "classic")
+        self.design_method.addItem("Über Zielkurve konfigurieren", "target_curve")
+        method_form.addRow("Methode", self.design_method)
+        self.method_hint = QLabel(
+            "Klassisch: Typ, Bauraum und Klangprofil vorgeben. "
+            "Zielkurve: gewünschten Verlauf unter „Klang & Simulation“ formen; "
+            "der Solver bevorzugt Varianten, die im berechenbaren Bereich dazu passen."
+        )
+        self.method_hint.setWordWrap(True)
+        self.method_hint.setObjectName("caption")
+        method_form.addRow(self.method_hint)
+        layout.addWidget(method_box)
+
         step1 = QGroupBox("1 · Was möchtest du bauen?")
         form1 = self._form(step1)
         self.speaker_type = QComboBox()
