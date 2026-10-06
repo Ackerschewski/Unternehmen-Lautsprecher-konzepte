@@ -76,6 +76,7 @@ class TargetCurveEditor(QWidget):
         self._envelope_frequencies: np.ndarray | None = None
         self._envelope_low: np.ndarray | None = None
         self._envelope_high: np.ndarray | None = None
+        self._candidate_curves: list[tuple[np.ndarray, np.ndarray]] = []
         self._undo: list[np.ndarray] = []
         self._drag_index: int | None = None
         self._syncing = False
@@ -292,6 +293,7 @@ class TargetCurveEditor(QWidget):
             f, v = self._normalise(f, v)
             if f.size >= 8:
                 prepared.append((f, v))
+        self._candidate_curves = prepared[:4]
         if not prepared:
             self._envelope_frequencies = self._envelope_low = self._envelope_high = None
             self._draw()
@@ -299,6 +301,7 @@ class TargetCurveEditor(QWidget):
         low_bound = max(20.0, min(float(f[0]) for f, _ in prepared))
         high_bound = min(20000.0, max(float(f[-1]) for f, _ in prepared))
         if high_bound <= low_bound:
+            self._candidate_curves = []
             self._envelope_frequencies = self._envelope_low = self._envelope_high = None
             self._draw()
             return
@@ -482,6 +485,17 @@ class TargetCurveEditor(QWidget):
             ax.set_ylabel("relativer Zielpegel [dB]")
             ax.set_title("Fullrange-Zielkurve")
             ax.axhline(0.0, color=t["borderStrong"], linewidth=1.0, linestyle=":")
+
+            for curve_index, (candidate_f, candidate_db) in enumerate(self._candidate_curves):
+                ax.semilogx(
+                    candidate_f,
+                    candidate_db,
+                    linewidth=1.0,
+                    alpha=0.38,
+                    color=t["borderStrong"],
+                    label="berechnete Alternativen" if curve_index == 0 else None,
+                    zorder=-0.5,
+                )
 
             if (
                 self._envelope_frequencies is not None
