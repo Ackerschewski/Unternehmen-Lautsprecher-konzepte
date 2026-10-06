@@ -64,6 +64,7 @@ def _mix(a: str, b: str, share: float) -> str:
 
 
 DARK_BACKGROUND: Final = "#11161d"
+DARK_PAPER: Final = DARK_BACKGROUND  # compatibility alias for existing tests/settings
 DARK_SURFACE: Final = "#151c25"
 DARK_PANEL: Final = "#1b2530"
 DARK_BAND: Final = "#223141"
