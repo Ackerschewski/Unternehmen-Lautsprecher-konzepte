@@ -350,29 +350,44 @@ class AssistantWindow(QMainWindow):
         self.project_name.setPlaceholderText("Projektname")
         layout.addWidget(self.project_name)
 
-        method_box = QGroupBox("Entwurfsweg")
-        method_form = self._form(method_box)
+        method_box = QGroupBox("Wie möchtest du starten?")
+        method_layout = QVBoxLayout(method_box)
+        method_layout.setContentsMargins(0, 12, 0, 0)
         self.design_method = QComboBox()
         self.design_method.addItem("Klassisch konfigurieren", "classic")
         self.design_method.addItem("Über Zielkurve konfigurieren", "target_curve")
-        method_form.addRow("Methode", self.design_method)
-        self.method_hint = QLabel(
-            "Klassisch: Typ, Bauraum und Klangprofil vorgeben. "
-            "Zielkurve: gewünschten Verlauf unter „Klang & Simulation“ formen; "
-            "der Solver bevorzugt Varianten, die im berechenbaren Bereich dazu passen."
-        )
-        self.method_hint.setWordWrap(True)
-        self.method_hint.setObjectName("caption")
-        method_form.addRow(self.method_hint)
+        self.design_method.setVisible(False)
+        self.method_cards = ChoiceGrid((
+            ("classic", "Klassisch", "Typ · Bauraum · Klangprofil"),
+            ("target_curve", "Zielkurve", "Klang formen · passenden Entwurf suchen"),
+        ), columns=1)
+        self.method_cards.set_value("classic")
+        self.method_cards.valueChanged.connect(self._set_design_method_value)
+        method_layout.addWidget(self.method_cards)
         layout.addWidget(method_box)
 
         step1 = QGroupBox("1 · Was möchtest du bauen?")
-        form1 = self._form(step1)
+        step1_layout = QVBoxLayout(step1)
+        step1_layout.setContentsMargins(0, 12, 0, 0)
         self.speaker_type = QComboBox()
         for name in SPEAKER_TYPES:
             self.speaker_type.addItem(name)
         self.speaker_type.setCurrentText("Regallautsprecher")
-        form1.addRow("Typ", self.speaker_type)
+        self.speaker_cards = ChoiceGrid((
+            ("Regallautsprecher", "Regal", "kompakt · wohnraumtauglich"),
+            ("Standlautsprecher", "Stand", "mehr Volumen · mehr Tiefgang"),
+            ("Subwoofer", "Subwoofer", "Tiefton und Pegel"),
+            ("Desktop-Lautsprecher", "Desktop", "Nahfeld · kompakt"),
+            ("Studio-Monitor", "Monitor", "präzise · kontrolliert"),
+            ("Custom", "Custom", "freie Vorgaben"),
+        ))
+        self.speaker_cards.set_value("Regallautsprecher")
+        self.speaker_cards.valueChanged.connect(self._set_speaker_type_value)
+        step1_layout.addWidget(self.speaker_cards)
+        exact_type = QWidget()
+        exact_form = self._form(exact_type)
+        exact_form.addRow("Weitere / genaue Bauart", self.speaker_type)
+        step1_layout.addWidget(exact_type)
         self.enclosure = QComboBox()
         self.enclosure.addItem("Automatisch wählen", "auto")
         for entry in registry.all():
@@ -412,14 +427,28 @@ class AssistantWindow(QMainWindow):
         hint = QLabel("Die tatsächlichen Maße werden innerhalb dieser Grenzen gewählt. 0 l = ohne Volumengrenze.")
         hint.setWordWrap(True)
         form2.addRow(hint)
+        self.dimension_preview = DimensionPreview(self.mode)
+        form2.addRow(self.dimension_preview)
         layout.addWidget(step2)
 
         step3 = QGroupBox("3 · Gewünschter Klang")
-        form3 = self._form(step3)
+        step3_layout = QVBoxLayout(step3)
+        step3_layout.setContentsMargins(0, 12, 0, 0)
         self.profile = QComboBox()
         for item in PROFILES.values():
             self.profile.addItem(item.label, item.id)
-        form3.addRow("Klangprofil", self.profile)
+        self.profile.setVisible(False)
+        self.profile_cards = ChoiceGrid((
+            ("neutral", "Neutral", "ausgewogen · universell"),
+            ("deep_bass", "Tiefbass", "tiefer · voller"),
+            ("punch", "Punch", "Kickbass · Dynamik"),
+            ("compact", "Kompakt", "kleiner vor maximalem Tiefgang"),
+            ("precise", "Studio", "präzise · geringe Verzögerung"),
+            ("max_spl", "Max SPL", "Pegel · Reserve"),
+        ))
+        self.profile_cards.set_value("neutral")
+        self.profile_cards.valueChanged.connect(self._set_profile_value)
+        step3_layout.addWidget(self.profile_cards)
         layout.addWidget(step3)
 
         step3b = QGroupBox("Gehäuse, Chassis und Kosten")
