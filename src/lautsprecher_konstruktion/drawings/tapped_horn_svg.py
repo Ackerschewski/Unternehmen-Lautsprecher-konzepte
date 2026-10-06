@@ -187,7 +187,7 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
             hx=inside_w/2+bolt*cos(angle)/2
             hy=horn.driver_depth_from_front_m*1000+bolt*sin(angle)/2
             parts.append(f'<circle cx="{px+hx*scale:.1f}" cy="{py+hy*scale:.1f}" '
-                         f'r="{max(2,hole*scale/2):.1f}" fill="white" stroke="#ba593b"/>')
+                         f'r="{max(2,hole*scale/2):.1f}" class="hole"/>')
             parts.append(f'<text x="{55+(i%4)*375}" y="{row+(i//4)*21}" class="small">'
                          f'Bohrung {i+1}: X {hx:.1f} Y {hy:.1f}</text>')
     parts.append('</svg>')
