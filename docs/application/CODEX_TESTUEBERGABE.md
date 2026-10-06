@@ -16,7 +16,7 @@ export QT_QPA_PLATFORM=offscreen LK_USER_DIR=/tmp/lk-test
 ```bash
 .venv/bin/ruff check src tests
 .venv/bin/mypy
-.venv/bin/python -m pytest -p no:cacheprovider        # 252 Fälle
+.venv/bin/python -m pytest -p no:cacheprovider        # 248 Fälle
 .venv/bin/python -m lautsprecher_konstruktion.app --smoke
 .venv/bin/python -m lautsprecher_konstruktion.app --smoke-assistant
 python tools/validate_project.py && python tools/automation_control.py check
@@ -24,7 +24,7 @@ python tools/validate_project.py && python tools/automation_control.py check
 
 ## Manuelle Prüfungen (Bildschirm nötig; auf Windows 10/11 ausführen, wenn möglich)
 
-1. **Start:** `python -m lautsprecher_konstruktion.app`. Fenster, Menü (Datei/Werkzeuge/Hilfe), Hell/Dunkel, F1-Hilfe.
+1. **Start:** `python -m lautsprecher_konstruktion.app`. Fenster, Menü (Datei/Werkzeuge/Hilfe), F1-Hilfe. Design nach ACK Studio (Papierweiß, Senfgelb, Serifentitel), siehe `docs/DESIGN_SYSTEM.md`.
 2. **Assistent:** Demo „Kompakter 2-Wege-Regallautsprecher“ einsetzen → „Entwurf erstellen“ (Button muss ohne Scrollen sichtbar sein). Alle Reiter durchgehen: Entwürfe, Variantenvergleich, Gesamtzeichnung, Maßblatt, Innenaufbau, Einzelteilplan, Simulation, Stückliste, Zuschnitt. Zoom/Einpassen testen.
 3. **Geschlossenes Gehäuse:** Demo „Geschlossener Subwoofer“ → Simulation zeigt Pegel, Auslenkung, Gruppenlaufzeit (Port-Diagramm: „Kein Port“).
 4. **Export:** „Fertigungsunterlagen exportieren“. Prüfen: `fertigung/` (PDF, CSV, `zuschnittplan.*`, `bauanleitung.*`), `zeichnungen/` (SVG/DXF öffnen), `zuschnittplan/platte_*.svg|dxf`, `simulation/*.csv`.

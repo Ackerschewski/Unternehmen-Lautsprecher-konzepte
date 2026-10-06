@@ -11,7 +11,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from pydantic import ValidationError
 from PySide6.QtCore import QByteArray, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
+from PySide6.QtGui import QAction, QDesktopServices, QFont, QKeySequence
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -77,14 +77,8 @@ from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
-from lautsprecher_konstruktion.ui.theme import (
-    LABELS,
-    PREFERENCES,
-    chart_rc,
-    resolve_mode,
-    stylesheet,
-)
-from lautsprecher_konstruktion.ui.tokens import STATUS, status_line
+from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
+from lautsprecher_konstruktion.ui.tokens import DEFAULT_AREA, set_area, status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
 
@@ -138,9 +132,11 @@ class AssistantWindow(QMainWindow):
         self.recent = RecentProjects()
         self.autosave = Autosave()
         configure_logging()
-        stored = self.settings.get("theme", "system")
-        self.preference = stored if stored in PREFERENCES else "system"
-        self.mode = resolve_mode(self.preference)
+        try:
+            set_area(str(self.settings.get("area", DEFAULT_AREA)))  # area accent of the design package
+        except ValueError:
+            set_area(DEFAULT_AREA)
+        self.mode = "light"  # the design package defines one light theme
         self.setStyleSheet(stylesheet(self.mode))
 
         root = QWidget()
@@ -151,6 +147,9 @@ class AssistantWindow(QMainWindow):
         headings = QVBoxLayout()
         title = QLabel("Lautsprecher Konstruktion")
         title.setObjectName("title")
+        title_font = title.font()
+        title_font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 97)  # tight display tracking
+        title.setFont(title_font)
         headings.addWidget(title)
         subtitle = QLabel("Aus Wunschmaßen wird ein nachvollziehbarer Lautsprecherentwurf.")
         subtitle.setObjectName("subtitle")
@@ -671,7 +670,7 @@ class AssistantWindow(QMainWindow):
                 elif r is not None:
                     ax.semilogx(r.frequencies_hz, values, linewidth=1.8)
                     if limit is not None and limit[0] is not None:
-                        ax.axhline(limit[0], color=STATUS["danger"], linestyle="--", linewidth=1.2, label=limit[1])
+                        ax.axhline(limit[0], color=tokens["textPrimary"], linestyle="--", linewidth=1.2, label=limit[1])
                         ax.legend(loc="upper right")
         self.canvas.draw_idle()
 
@@ -714,23 +713,6 @@ class AssistantWindow(QMainWindow):
     def _library(self) -> None:
         dialog = LibraryDialog(self.library, self)
         dialog.exec()
-
-    def set_preference(self, preference: str) -> None:
-        """System, Hell or Dunkel; applied immediately to all windows and charts."""
-        if preference not in PREFERENCES:
-            raise ValueError(f"unknown appearance: {preference}")
-        self.preference = preference
-        self.settings.set("theme", preference)
-        self.mode = resolve_mode(preference)
-        self._apply_appearance()
-
-    def _apply_appearance(self) -> None:
-        self.setStyleSheet(stylesheet(self.mode))
-        if self.expert_window is not None:
-            self.expert_window.set_mode(self.mode)
-        if hasattr(self, "appearance_actions"):
-            self.appearance_actions[self.preference].setChecked(True)
-        self._redraw_simulation()
 
     def _demo(self) -> None:
         choice = self.demo_choice.currentIndex()
@@ -835,16 +817,6 @@ class AssistantWindow(QMainWindow):
         tools.addAction(self._action("&Bibliothek", self._library))
         tools.addAction(self._action("&Expertenmodus", self._expert))
         tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
-        view = bar.addMenu("&Ansicht")
-        group = QActionGroup(self)
-        self.appearance_actions: dict[str, QAction] = {}
-        for preference in PREFERENCES:
-            action = QAction(f"Design: {LABELS[preference]}", self, checkable=True)
-            action.setChecked(preference == self.preference)
-            action.triggered.connect(lambda _=False, value=preference: self.set_preference(value))
-            group.addAction(action)
-            view.addAction(action)
-            self.appearance_actions[preference] = action
         help_menu = bar.addMenu("&Hilfe")
         help_menu.addAction(self._action("&Kurzanleitung und Über…", self._help, "F1"))
         help_menu.addAction(self._action("&Protokollordner öffnen", self._open_log_folder))

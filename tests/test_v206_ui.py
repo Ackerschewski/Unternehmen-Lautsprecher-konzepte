@@ -35,7 +35,7 @@ def test_window_title_and_menu_structure(app: QApplication) -> None:
     window = AssistantWindow()
     assert REVISION in window.windowTitle()
     titles = [action.text().replace("&", "") for action in window.menuBar().actions()]
-    assert titles == ["Datei", "Werkzeuge", "Ansicht", "Hilfe"]
+    assert titles == ["Datei", "Werkzeuge", "Hilfe"]
     assert not window.recent_menu.isEnabled()
 
 
@@ -125,18 +125,6 @@ def test_recovery_offer_restore_and_decline(
     assert window.designs and window._unsaved
     assert RecentProjects().items() == []  # a restored session is not a saved file
     assert window.offer_recovery() is False  # nothing left to restore
-
-
-def test_theme_preference_is_persisted_and_applied(app: QApplication) -> None:
-    first = AssistantWindow()
-    assert first.preference == "system" and first.mode == "light"  # offscreen reports no colour scheme
-    first.set_preference("dark")
-    second = AssistantWindow()
-    assert second.preference == "dark" and second.mode == "dark"
-    assert "#121212" in second.styleSheet()
-    assert second.appearance_actions["dark"].isChecked()
-    with pytest.raises(ValueError):
-        second.set_preference("neon")
 
 
 def test_help_and_about_dialogs(app: QApplication) -> None:

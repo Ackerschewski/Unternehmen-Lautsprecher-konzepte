@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "name": "ACK Studio",
+    "version": "1.0.0",
+    "sourceVersion": "Website V19",
+    "sourceCommit": "e7af46b19a22bd95a69610c3eb4e7421a3ee793d",
+    "status": "prototype-derived"
+  },
+  "color": {
+    "paper": "#fbfaf7",
+    "ink": "#282723",
+    "muted": "#65615d",
+    "line": "#e2ddd5",
+    "onAccent": "#ffffff"
+  },
+  "themes": {
+    "jewelry": {
+      "label": "Schmuck",
+      "accent": "#471b28",
+      "panel": "#f5ecee",
+      "band": "#f1e5e8"
+    },
+    "apparel": {
+      "label": "Klamotten",
+      "accent": "#293b30",
+      "panel": "#eef2ec",
+      "band": "#e7ede4"
+    },
+    "construction": {
+      "label": "Konstruktion",
+      "accent": "#735419",
+      "panel": "#f7f1e4",
+      "band": "#f0e7d0"
+    },
+    "software": {
+      "label": "Software",
+      "accent": "#172d46",
+      "panel": "#edf2f7",
+      "band": "#e4edf5"
+    }
+  },
+  "font": {
+    "body": "Inter, Arial, sans-serif",
+    "display": "\"Cormorant Garamond\", Georgia, serif"
+  },
+  "space": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "6": "24px",
+    "8": "32px",
+    "12": "48px",
+    "16": "64px",
+    "20": "80px"
+  },
+  "radius": {
+    "control": "8px",
+    "card": "14px"
+  },
+  "motion": {
+    "fast": "200ms",
+    "reveal": "450ms",
+    "theme": "600ms",
+    "ease": "cubic-bezier(.22,1,.36,1)",
+    "autoplayMs": 6500
+  },
+  "layout": {
+    "contentMax": "1280px",
+    "touchTarget": "44px",
+    "mobileBreakpoint": "600px",
+    "tabletBreakpoint": "900px"
+  }
+}

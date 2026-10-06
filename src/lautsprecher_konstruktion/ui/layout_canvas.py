@@ -6,7 +6,6 @@ from PySide6.QtGui import QBrush, QColor, QKeyEvent, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsScene, QGraphicsView
 
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
-from lautsprecher_konstruktion.ui.tokens import STATUS
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 
 SNAP_GRID_MM = 5.0
@@ -135,7 +134,7 @@ class FrontLayoutCanvas(QGraphicsView):
             scene.addLine(gx, 0, gx, height, grid).setZValue(1)
         for gy in range(0, int(height) + 1, 50):
             scene.addLine(0, gy, width, gy, grid).setZValue(1)
-        scene.addLine(width / 2, 0, width / 2, height, QPen(QColor(STATUS["info"]), 1, Qt.PenStyle.DashLine)).setZValue(1)
+        scene.addLine(width / 2, 0, width / 2, height, QPen(QColor(t["accent"]), 1, Qt.PenStyle.DashLine)).setZValue(1)
         for index, element in enumerate(elements):
             if element.surface != self._surface:
                 continue

@@ -10,7 +10,7 @@ Basis ist V-02.06.00 (Zuschnitt, Bauanleitung, Prototypvergleich, Benutzerdaten)
 
 | Prüfung | Ergebnis |
 |---|---|
-| Pytest | 252 Fälle bestanden |
+| Pytest | 248 Fälle bestanden |
 | Ruff | bestanden |
 | `mypy --strict` | 87 Quelldateien ohne Befund (Qt-Oberfläche und `app` sind in `pyproject.toml` ausdrücklich ausgenommen) |
 | Offscreen-Smoke `--smoke` und `--smoke-assistant` | bestanden |

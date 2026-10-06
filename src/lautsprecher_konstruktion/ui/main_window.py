@@ -57,7 +57,7 @@ from lautsprecher_konstruktion.ui.history import History
 from lautsprecher_konstruktion.ui.layout_canvas import FrontLayoutCanvas
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
-from lautsprecher_konstruktion.ui.tokens import STATUS, status_line
+from lautsprecher_konstruktion.ui.tokens import status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 
 
@@ -675,7 +675,6 @@ class MainWindow(QMainWindow):
         self.output_tabs=tabs
 
         self.summary = QTextEdit()
-        self.summary.setObjectName("mono")  # technical values in JetBrains Mono
         self.summary.setReadOnly(True)
         tabs.addTab(self.summary, "Ergebnis")
 
@@ -741,7 +740,7 @@ class MainWindow(QMainWindow):
         self.revision_state.style().polish(self.revision_state)
 
     def set_mode(self, mode: str) -> None:
-        """Apply light or dark appearance and redraw the charts."""
+        """Apply the appearance and redraw the charts."""
         self.mode = mode
         self.setStyleSheet(stylesheet(mode))
         self.layout_canvas.set_mode(mode)
@@ -1197,9 +1196,9 @@ class MainWindow(QMainWindow):
                     else:
                         ax.semilogx(response.frequencies_hz,values)
                         if index==2 and bundle.project.driver.xmax_mm:
-                            ax.axhline(bundle.project.driver.xmax_mm,color=STATUS["danger"],linestyle="--",label="Xmax");ax.legend()
+                            ax.axhline(bundle.project.driver.xmax_mm,color=theme_tokens(self.mode)["textPrimary"],linestyle="--",label="Xmax");ax.legend()
                         if index==3 and bundle.port is not None:
-                            ax.axhline(17,color=STATUS["warning"],linestyle="--",label="Richtwert 17 m/s");ax.legend()
+                            ax.axhline(17,color=theme_tokens(self.mode)["textPrimary"],linestyle=":",label="Richtwert 17 m/s");ax.legend()
                     ax.set_title(title);ax.set_xlabel("Hz");ax.set_ylabel(unit)
                     
         self.canvas.draw()

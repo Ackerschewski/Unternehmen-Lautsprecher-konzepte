@@ -1,4 +1,4 @@
-"""Bundled UI fonts (Inter, Source Serif 4, JetBrains Mono; SIL Open Font License)."""
+"""Bundled fonts: Inter (text and controls) and Cormorant Garamond (large titles); SIL Open Font License."""
 from __future__ import annotations
 
 import sys
