@@ -228,6 +228,8 @@ class AssistantWindow(QMainWindow):
             self.expert_window.set_mode(mode)
         if hasattr(self, "target_curve"):
             self.target_curve.set_mode(mode)
+        if hasattr(self, "preview"):
+            self.preview.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
@@ -300,6 +302,8 @@ class AssistantWindow(QMainWindow):
         self.variant_list.setVisible(False)
         self.comparison.setRowCount(0)
         self.details.clear()
+        if hasattr(self, "preview"):
+            self.preview.set_bundle(None)
         self.kpi_row.setVisible(False)
         empty = QByteArray(b"<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>")
         for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
@@ -759,6 +763,7 @@ class AssistantWindow(QMainWindow):
             return
         design = self.designs[index]
         bundle = design.bundle
+        self.preview.set_bundle(bundle)
         self.cutting_panel.set_bundle(bundle)
         c = bundle.cabinet
         f3 = bundle.sealed.f3_hz if bundle.sealed else (
