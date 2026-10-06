@@ -634,23 +634,55 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
     designs.sort(key=lambda item: (-item.score,
         item.bundle.cabinet.width_m*item.bundle.cabinet.height_m*item.bundle.cabinet.depth_m,
         item.woofer.model, item.project.enclosure.enclosure_type))
-    unique: list[SpeakerDesign] = [designs[0]]
-    for item in designs[1:]:
-        if item.project.enclosure.enclosure_type != unique[0].project.enclosure.enclosure_type:
-            unique.append(item)
-            break
-    for item in designs[1:]:
-        signature = (item.woofer.model, item.project.enclosure.enclosure_type)
-        if signature not in {(d.woofer.model, d.project.enclosure.enclosure_type) for d in unique}:
-            unique.append(item)
-        if len(unique) == 3:
-            break
-    labels = (
-        ("A · Beste Zielkurven-Näherung", "B · Alternative", "C · Alternative")
-        if request.target_curve_points
-        else ("A · Favorit", "B · Alternative", "C · Alternative")
+
+    def key(item: SpeakerDesign) -> tuple[object, ...]:
+        cab = item.bundle.cabinet
+        return (
+            item.woofer.model,
+            item.tweeter.model if item.tweeter else "",
+            item.project.enclosure.enclosure_type,
+            round(cab.width_m, 4),
+            round(cab.height_m, 4),
+            round(cab.depth_m, 4),
+        )
+
+    def outer_volume(item: SpeakerDesign) -> float:
+        cab = item.bundle.cabinet
+        return cab.width_m*cab.height_m*cab.depth_m
+
+    def design_f3(item: SpeakerDesign) -> float:
+        bundle = item.bundle
+        value = bundle.sealed.f3_hz if bundle.sealed else (
+            bundle.vented_response.f3_hz if bundle.vented_response else None
+        )
+        return float(value) if value is not None else float("inf")
+
+    selected: list[tuple[str, SpeakerDesign]] = []
+    used: set[tuple[object, ...]] = set()
+
+    def add(label: str, candidates: list[SpeakerDesign]) -> None:
+        for item in candidates:
+            signature = key(item)
+            if signature not in used:
+                selected.append((label, item))
+                used.add(signature)
+                return
+
+    add(
+        "A · Beste Zielkurven-Näherung" if request.target_curve_points else "A · Empfehlung",
+        designs,
     )
-    return AutomaticDesignResult("ok", tuple(SpeakerDesign(labels[i], d.project, d.bundle,
-        d.woofer, d.tweeter, d.score, d.breakdown, d.reasons, d.bom, d.price,
-        d.spl_limit_db, d.provisional_crossover, d.total_price_eur)
-        for i, d in enumerate(unique)), (), (), tested)
+    add("B · Kompakter", sorted(designs, key=lambda item: (outer_volume(item), -item.score)))
+    add("C · Mehr Tiefbass", sorted(designs, key=lambda item: (design_f3(item), -item.score)))
+    priced = [item for item in designs if item.total_price_eur is not None]
+    if priced:
+        add("D · Günstiger", sorted(priced, key=lambda item: (item.total_price_eur or float("inf"), -item.score)))
+    if len(selected) < 4:
+        add("D · Alternative", designs)
+
+    return AutomaticDesignResult("ok", tuple(
+        SpeakerDesign(label, d.project, d.bundle, d.woofer, d.tweeter, d.score,
+            d.breakdown, d.reasons, d.bom, d.price, d.spl_limit_db,
+            d.provisional_crossover, d.total_price_eur)
+        for label, d in selected
+    ), (), (), tested)
