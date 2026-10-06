@@ -84,8 +84,8 @@ class CabinetPreview(QWidget):
         painter.drawLine(front.topRight(), front.topRight() + QPointF(perspective_x, perspective_y))
         painter.drawLine(front.bottomRight(), front.bottomRight() + QPointF(perspective_x, perspective_y))
         painter.drawLine(
-            front.topRight() + front.topRight().__class__(perspective_x, perspective_y),
-            front.bottomRight() + front.bottomRight().__class__(perspective_x, perspective_y),
+            front.topRight() + QPointF(perspective_x, perspective_y),
+            front.bottomRight() + QPointF(perspective_x, perspective_y),
         )
 
         for element in self.bundle.front_elements:
