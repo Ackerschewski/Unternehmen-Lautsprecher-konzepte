@@ -574,89 +574,138 @@ class AssistantWindow(QMainWindow):
     def _build_results(self) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
         self.state = QLabel()
         self.state.setObjectName("statusLine")
         self.state.setWordWrap(True)
         layout.addWidget(self.state)
-        self._set_state("info", "Wähle Typ, Bauraum und Klangprofil. Dann klicke auf „Entwurf erstellen“.")
-        self.tabs = QTabWidget()
+        self._set_state(
+            "info",
+            "Starte links mit Bauart, Bauraum und Klang – oder forme direkt eine Zielkurve.",
+        )
 
+        self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+
+        # PLANEN – visualization first, technical detail on demand.
         overview = QWidget()
         ov = QVBoxLayout(overview)
+        ov.setContentsMargins(0, 8, 0, 0)
+        self.empty_guide = QLabel(
+            "<h2>Dein Lautsprecher entsteht in drei Schritten</h2>"
+            "<p><b>1.</b> Bauart wählen &nbsp; <b>2.</b> Bauraum festlegen &nbsp; "
+            "<b>3.</b> Klangziel wählen oder Zielkurve formen.</p>"
+            "<p>Nach der Berechnung erscheint hier der empfohlene Entwurf mit "
+            "Visualisierung, Kennwerten und nachvollziehbarer Begründung.</p>"
+        )
+        self.empty_guide.setWordWrap(True)
+        self.empty_guide.setObjectName("emptyState")
+        ov.addWidget(self.empty_guide)
+
+        # Hidden selector keeps the established selection API and project logic.
+        self.variant_list = QListWidget()
+        self.variant_list.setVisible(False)
+        self.variant_list.currentRowChanged.connect(self._select_variant)
+
+        result_body = QWidget()
+        result_layout = QHBoxLayout(result_body)
+        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.setSpacing(16)
+
+        self.preview = CabinetPreview(self.mode)
+        result_layout.addWidget(self.preview, 7)
+
+        side = QFrame()
+        side.setObjectName("resultSidebar")
+        side_layout = QVBoxLayout(side)
+        side_layout.setContentsMargins(14, 14, 14, 14)
+        side_layout.setSpacing(8)
+        self.selected_title = QLabel("Noch kein Entwurf")
+        self.selected_title.setObjectName("section")
+        self.selected_title.setWordWrap(True)
+        side_layout.addWidget(self.selected_title)
+
         self.kpi_row = QWidget()
-        kpi_layout = QHBoxLayout(self.kpi_row)
+        kpi_layout = QVBoxLayout(self.kpi_row)
         kpi_layout.setContentsMargins(0, 0, 0, 0)
+        kpi_layout.setSpacing(6)
         self.kpis: dict[str, QLabel] = {}
         for key in ("Maße", "Tiefbass F3", "Preisstatus", "Datenqualität", "Prüfstatus"):
             label = QLabel()
             label.setObjectName("kpi")
             label.setWordWrap(True)
-            kpi_layout.addWidget(label, 1)
+            kpi_layout.addWidget(label)
             self.kpis[key] = label
         self.kpi_row.setVisible(False)
-        ov.addWidget(self.kpi_row)
-        self.variant_list = QListWidget()
-        self.variant_list.setVisible(False)
-        self.variant_list.setMaximumHeight(125)
-        self.variant_list.currentRowChanged.connect(self._select_variant)
-        ov.addWidget(self.variant_list)
+        side_layout.addWidget(self.kpi_row)
 
-        result_body = QWidget()
-        result_layout = QHBoxLayout(result_body)
-        result_layout.setContentsMargins(0, 0, 0, 0)
-        result_layout.setSpacing(14)
-        self.preview = CabinetPreview(self.mode)
-        result_layout.addWidget(self.preview, 5)
+        self.recommendation_summary = QLabel(
+            "Nach der Berechnung stehen hier die wichtigsten Gründe für die Empfehlung."
+        )
+        self.recommendation_summary.setObjectName("recommendation")
+        self.recommendation_summary.setWordWrap(True)
+        side_layout.addWidget(self.recommendation_summary)
+
+        self.details_toggle = QPushButton("Warum empfohlen? · Technische Details")
+        self.details_toggle.setCheckable(True)
+        self.details_toggle.toggled.connect(self._toggle_details)
+        side_layout.addWidget(self.details_toggle)
         self.details = QTextBrowser()
-        result_layout.addWidget(self.details, 6)
-        ov.addWidget(result_body, 1)
-        self.tabs.addTab(overview, "Entwürfe")
+        self.details.setVisible(False)
+        self.details.setMinimumHeight(150)
+        side_layout.addWidget(self.details, 1)
+        result_layout.addWidget(side, 4)
 
+        ov.addWidget(result_body, 1)
+        self.tabs.addTab(overview, "Planen")
+
+        # VARIANTEN – cards first, full engineering table only on request.
+        compare = QWidget()
+        compare_layout = QVBoxLayout(compare)
+        compare_layout.setContentsMargins(0, 8, 0, 0)
+        compare_intro = QLabel(
+            "Vergleiche die wichtigsten Trade-offs zuerst. Die vollständige technische "
+            "Tabelle ist optional."
+        )
+        compare_intro.setObjectName("caption")
+        compare_intro.setWordWrap(True)
+        compare_layout.addWidget(compare_intro)
+        self.variant_cards = VariantCards()
+        self.variant_cards.selected.connect(self._select_variant_from_card)
+        compare_layout.addWidget(self.variant_cards)
+
+        self.all_columns = QCheckBox("Alle technischen Daten anzeigen")
+        self.all_columns.toggled.connect(self._toggle_technical_table)
+        compare_layout.addWidget(self.all_columns)
         self.comparison = QTableWidget()
         self.comparison.setColumnCount(11)
-        self.comparison.setHorizontalHeaderLabels(("Variante", "Gehäuse", "B × H × T [mm]",
-            "Netto [l]", "F3 [Hz]", "Bewertung", "Chassiswahl", "Chassis [€]",
-            "Gesamt inkl. Reserve [€]", "Budget frei [€]", "Hinweise"))
+        self.comparison.setHorizontalHeaderLabels((
+            "Variante", "Gehäuse", "B × H × T [mm]", "Netto [l]", "F3 [Hz]",
+            "Bewertung", "Chassiswahl", "Chassis [€]", "Gesamt inkl. Reserve [€]",
+            "Budget frei [€]", "Hinweise",
+        ))
         self.comparison.setAlternatingRowColors(True)
         self.comparison.setWordWrap(True)
         self.comparison.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.comparison.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.comparison.cellClicked.connect(lambda row, _column: self.variant_list.setCurrentRow(row))
-        compare = QWidget()
-        compare_layout = QVBoxLayout(compare)
-        self.all_columns = QCheckBox("Alle Spalten anzeigen")
-        self.all_columns.toggled.connect(self._apply_column_choice)
-        compare_layout.addWidget(self.all_columns)
+        self.comparison.cellClicked.connect(
+            lambda row, _column: self.variant_list.setCurrentRow(row)
+        )
+        self.comparison.setVisible(False)
         compare_layout.addWidget(self.comparison, 1)
-        self.tabs.addTab(compare, "Variantenvergleich")
+        self.tabs.addTab(compare, "Varianten")
 
-        self.drawing_tabs = QTabWidget()
-        self.drawing_tabs.setDocumentMode(True)
-        self.svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.svg, "Gesamtzeichnung")
-        self.dimension_svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.dimension_svg, "Maßblatt")
-        self.internal_svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.internal_svg, "Innenaufbau")
-        panel = QWidget()
-        panel_layout = QVBoxLayout(panel)
-        self.panel_choice = QComboBox()
-        self.panel_choice.currentIndexChanged.connect(self._show_panel_sheet)
-        panel_layout.addWidget(self.panel_choice)
-        self.panel_svg = ZoomableSvgView()
-        panel_layout.addWidget(self.panel_svg, 1)
-        self.drawing_tabs.addTab(panel, "Einzelteilplan")
-        self.tabs.addTab(self.drawing_tabs, "Zeichnungen")
-
+        # KLANG – target-first workflow plus detailed technical charts.
         simulation = QWidget()
         self.sound_tab = simulation
         sim_layout = QVBoxLayout(simulation)
+        sim_layout.setContentsMargins(0, 8, 0, 0)
         sound_views = QTabWidget()
         sound_views.setDocumentMode(True)
-
         self.target_curve = TargetCurveEditor(self.mode)
         sound_views.addTab(self.target_curve, "Zielkurve")
-
         technical = QWidget()
         technical_layout = QVBoxLayout(technical)
         self.more_charts = QCheckBox("Weitere Diagramme (Port, Gruppenlaufzeit)")
@@ -666,29 +715,86 @@ class AssistantWindow(QMainWindow):
         self.canvas = FigureCanvasQTAgg(self.figure)
         technical_layout.addWidget(self.canvas, 1)
         sound_views.addTab(technical, "Technische Simulation")
-
         sim_layout.addWidget(sound_views, 1)
         self.tabs.addTab(simulation, "Klang & Simulation")
 
+        # ZEICHNUNGEN – explicit screen reading vs. print-sheet mode.
+        drawing_root = QWidget()
+        drawing_layout = QVBoxLayout(drawing_root)
+        drawing_layout.setContentsMargins(0, 8, 0, 0)
+        drawing_bar = QHBoxLayout()
+        drawing_bar.addWidget(QLabel("Darstellung"))
+        self.drawing_mode = QComboBox()
+        self.drawing_mode.addItem("Lesemodus · groß und direkt lesbar", "read")
+        self.drawing_mode.addItem("Druckblatt · Seitenlayout prüfen", "print")
+        self.drawing_mode.currentIndexChanged.connect(self._drawing_mode_changed)
+        drawing_bar.addWidget(self.drawing_mode)
+        self.drawing_hint = QLabel("Lesemodus nutzt automatisch die verfügbare Breite.")
+        self.drawing_hint.setObjectName("caption")
+        drawing_bar.addWidget(self.drawing_hint, 1)
+        drawing_layout.addLayout(drawing_bar)
+
+        self.drawing_tabs = QTabWidget()
+        self.drawing_tabs.setDocumentMode(True)
+        self.drawing_tabs.currentChanged.connect(self._drawing_view_changed)
+        self.svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.svg, "Übersicht")
+        self.dimension_svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.dimension_svg, "Maße")
+        self.internal_svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.internal_svg, "Innenaufbau")
+        panel = QWidget()
+        panel_layout = QVBoxLayout(panel)
+        self.panel_choice = QComboBox()
+        self.panel_choice.currentIndexChanged.connect(self._show_panel_sheet)
+        panel_layout.addWidget(self.panel_choice)
+        self.panel_svg = ZoomableSvgView()
+        panel_layout.addWidget(self.panel_svg, 1)
+        self.drawing_tabs.addTab(panel, "Einzelteile")
+        drawing_layout.addWidget(self.drawing_tabs, 1)
+        self.tabs.addTab(drawing_root, "Zeichnungen")
+
+        # FERTIGUNG – BOM, cutting and export live in one contextual workspace.
+        manufacturing = QWidget()
+        manufacturing_layout = QVBoxLayout(manufacturing)
+        manufacturing_layout.setContentsMargins(0, 8, 0, 0)
+        self.manufacturing_tabs = QTabWidget()
+        self.manufacturing_tabs.setDocumentMode(True)
         self.bom_view = QTextBrowser()
-        self.tabs.addTab(self.bom_view, "Stückliste")
+        self.manufacturing_tabs.addTab(self.bom_view, "Stückliste")
         self.cutting_panel = CuttingPanel(self.settings)
-        self.tabs.addTab(self.cutting_panel, "Zuschnitt")
-        self.tabs.currentChanged.connect(self._result_tab_changed)
-        layout.addWidget(self.tabs, 1)
-        actions = QHBoxLayout()
-        self.save_button = QPushButton("Projekt speichern")
-        self.save_button.clicked.connect(self._save)
-        self.save_button.setVisible(False)  # Datei-Menü + Ctrl+S
-        self.load_button = QPushButton("Projekt laden")
-        self.load_button.clicked.connect(self._load)
-        self.load_button.setVisible(False)  # Datei-Menü + Ctrl+O
+        self.manufacturing_tabs.addTab(self.cutting_panel, "Zuschnitt")
+        export_page = QWidget()
+        export_layout = QVBoxLayout(export_page)
+        export_title = QLabel("Fertigungsunterlagen")
+        export_title.setObjectName("section")
+        export_layout.addWidget(export_title)
+        export_info = QLabel(
+            "Exportiert die geprüften Zeichnungen, DXF/PDF, Stückliste und weitere "
+            "Fertigungsdaten des aktuell ausgewählten Entwurfs."
+        )
+        export_info.setWordWrap(True)
+        export_info.setObjectName("caption")
+        export_layout.addWidget(export_info)
+        export_layout.addStretch(1)
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
         self.export_button.setObjectName("primary")
         self.export_button.clicked.connect(self._export)
-        actions.addStretch(1)
-        actions.addWidget(self.export_button)
-        layout.addLayout(actions)
+        export_layout.addWidget(self.export_button)
+        self.manufacturing_tabs.addTab(export_page, "Export")
+        manufacturing_layout.addWidget(self.manufacturing_tabs, 1)
+        self.tabs.addTab(manufacturing, "Fertigung")
+
+        self.tabs.currentChanged.connect(self._result_tab_changed)
+        layout.addWidget(self.tabs, 1)
+
+        # File operations remain available through menu/shortcuts and autosave.
+        self.save_button = QPushButton("Projekt speichern")
+        self.save_button.clicked.connect(self._save)
+        self.save_button.setVisible(False)
+        self.load_button = QPushButton("Projekt laden")
+        self.load_button.clicked.connect(self._load)
+        self.load_button.setVisible(False)
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
         return container
