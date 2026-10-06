@@ -271,6 +271,8 @@ class AssistantWindow(QMainWindow):
         self.cutting_panel.set_bundle(None)
         self.figure.clear()
         self.canvas.draw_idle()
+        if hasattr(self, "target_curve"):
+            self.target_curve.clear_actual()
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
 
