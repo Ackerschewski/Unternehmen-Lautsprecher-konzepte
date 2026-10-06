@@ -61,6 +61,7 @@ class AutomaticDesignRequest(BaseModel):
     preferred_driver: str | None = None
     panel_thickness_m: float = Field(default=0.018, gt=0)
     material: str = "Birke Multiplex"
+    target_curve_points: tuple[tuple[float, float], ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -247,6 +248,33 @@ def _score(bundle: DesignBundle, request: AutomaticDesignRequest,
         level = response.response_db[band]
         ripple = float(np.percentile(level, 90)-np.percentile(level, 10))
         add("flatness", 100*(1-ripple/12), f"Pegelspanne {ripple:.1f} dB ({band_label} Hz)")
+    curve_response = bundle.vented_response or bundle.sealed_response
+    if request.target_curve_points and curve_response is not None:
+        points = np.asarray(request.target_curve_points, dtype=float)
+        frequencies = np.asarray(curve_response.frequencies_hz, dtype=float)
+        response_db = np.asarray(curve_response.response_db, dtype=float)
+        if points.ndim == 2 and points.shape[0] >= 2 and points.shape[1] == 2:
+            low = max(20.0, float(np.min(points[:, 0])))
+            high = min(500.0, float(np.max(points[:, 0])), float(np.max(frequencies)))
+            mask = (frequencies >= low) & (frequencies <= high)
+            if int(np.count_nonzero(mask)) >= 8:
+                selected_f = frequencies[mask]
+                target_db = np.interp(
+                    np.log10(selected_f), np.log10(points[:, 0]), points[:, 1]
+                )
+                actual_db = response_db[mask].copy()
+                reference = (selected_f >= 80.0) & (selected_f <= 120.0)
+                if not np.any(reference):
+                    reference = np.ones_like(selected_f, dtype=bool)
+                actual_db -= float(np.median(actual_db[reference]))
+                target_db -= float(np.median(target_db[reference]))
+                rms = float(np.sqrt(np.mean(np.square(actual_db-target_db))))
+                metrics.append(ScoreMetric(
+                    "target_curve", _clamp(100*(1-rms/12.0)), 5.0,
+                    f"Zielkurve 20–{high:.0f} Hz: RMS-Abweichung {rms:.1f} dB; "
+                    "oberhalb des berechenbaren Bereichs nicht bewertet",
+                ))
+
     if total_price is not None and request.budget:
         add("cost", 100*(1-total_price/request.budget),
             f"Gesamtkalkulation inkl. 15 % Reserve {total_price:.2f}/{request.budget:.2f} EUR")
