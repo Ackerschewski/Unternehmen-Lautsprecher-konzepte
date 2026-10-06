@@ -174,6 +174,7 @@ class AssistantWindow(QMainWindow):
         head.addLayout(headings, 1)
         self.focus_button = QPushButton("Zeichnungsmodus")
         self.focus_button.setCheckable(True)
+        self.focus_button.setVisible(False)
         self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
         self.focus_button.toggled.connect(self.set_focus_mode)
         head.addWidget(self.focus_button)
@@ -245,6 +246,13 @@ class AssistantWindow(QMainWindow):
                         self.preferred_size, self.thickness):
             control.valueChanged.connect(self._mark_stale)
         self.options.toggled.connect(self._mark_stale)
+
+    def _result_tab_changed(self, index: int) -> None:
+        drawing_index = self.tabs.indexOf(self.drawing_tabs)
+        on_drawings = index == drawing_index
+        self.focus_button.setVisible(on_drawings)
+        if not on_drawings and self.focus_button.isChecked():
+            self.focus_button.setChecked(False)
 
     def _design_method_changed(self, _index: int = 0) -> None:
         target_mode = self.design_method.currentData() == "target_curve"
@@ -588,17 +596,20 @@ class AssistantWindow(QMainWindow):
         self.tabs.addTab(self.bom_view, "Stückliste")
         self.cutting_panel = CuttingPanel(self.settings)
         self.tabs.addTab(self.cutting_panel, "Zuschnitt")
+        self.tabs.currentChanged.connect(self._result_tab_changed)
         layout.addWidget(self.tabs, 1)
         actions = QHBoxLayout()
         self.save_button = QPushButton("Projekt speichern")
         self.save_button.clicked.connect(self._save)
+        self.save_button.setVisible(False)  # Datei-Menü + Ctrl+S
         self.load_button = QPushButton("Projekt laden")
         self.load_button.clicked.connect(self._load)
+        self.load_button.setVisible(False)  # Datei-Menü + Ctrl+O
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
         self.export_button.setObjectName("primary")
         self.export_button.clicked.connect(self._export)
-        for button in (self.save_button, self.load_button, self.export_button):
-            actions.addWidget(button)
+        actions.addStretch(1)
+        actions.addWidget(self.export_button)
         layout.addLayout(actions)
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
