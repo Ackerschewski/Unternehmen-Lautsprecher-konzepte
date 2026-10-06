@@ -6,6 +6,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import CONSTRUCTION, CONSTRUCTION_FILL, PAPER, master_css
 
 
 def _text(x: float, y: float, value: str, css: str = "text") -> str:
@@ -80,7 +81,7 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
     if bundle.damping is not None:
         lining = bundle.damping.thickness_m*1000*scale
         parts.append(f'<rect x="{x+width-bw-lining:.1f}" y="{y+top:.1f}" width="{lining:.1f}" '
-                     f'height="{height-top-bottom:.1f}" style="fill:#f6ecc8;stroke:#b8963a;stroke-dasharray:4 3"/>')
+                     f'height="{height-top-bottom:.1f}" style="fill:{CONSTRUCTION_FILL};stroke:{CONSTRUCTION};stroke-dasharray:4 3"/>')
         parts.append(_text(x+width-bw-lining-66,y+height-bottom-8,
                            f"Dämmung {bundle.damping.thickness_m*1000:.0f}","small"))
     if bundle.folded_line is not None:
@@ -159,7 +160,7 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
                 pad = 6.0
                 pad_x = x+fw if element.surface == "front" else x+width-bw-pad
                 parts.append(f'<rect x="{pad_x:.1f}" y="{cy-radius:.1f}" width="{pad:.1f}" '
-                             f'height="{2*radius:.1f}" style="fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5"/>')
+                             f'height="{2*radius:.1f}" style="fill:{CONSTRUCTION_FILL};stroke:{CONSTRUCTION};stroke-width:1.5"/>')
         else:
             parts.append(f'<path d="M{start:.1f} {cy-radius:.1f}L{end:.1f} '
                          f'{cy-radius*.55:.1f}L{end:.1f} {cy+radius*.55:.1f}'
@@ -214,19 +215,9 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
     sheet_h = int(internals_y+220)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="{sheet_h}" '
              f'viewBox="0 0 1800 {sheet_h}">',
-             '<style>.title{font:700 35px Arial;fill:#102c3e}.head{font:700 22px Arial;fill:#163b50}'
-             '.text{font:17px Arial;fill:#1b394a}.small{font:15px Arial;fill:#405c6b}'
-             '.callout{font:700 16px Arial;fill:#0f536f}.dimlabel{font:16px Arial;fill:#28495a}'
-             '.outline{fill:#fff;stroke:#163549;stroke-width:2.4}'
-             '.material{fill:#dce6e8;stroke:#254b5e;stroke-width:1.4}'
-             '.brace{fill:#c6dccd;stroke:#2c6742;stroke-width:1.4;fill-opacity:.6}'
-             '.component{fill:#dceef7;stroke:#0874a2;stroke-width:1.6}'
-             '.flange{fill:none;stroke:#56869b;stroke-width:1.5;stroke-dasharray:6 4}'
-             '.cut{fill:none;stroke:#087ea8;stroke-width:2}.hole{fill:#fff;stroke:#ad3c2c;stroke-width:2}'
-             '.axis{stroke:#9eb3bf;stroke-width:1;stroke-dasharray:5 5}'
-             '.dim{stroke:#526d7a;stroke-width:1.3}.rule{stroke:#c6d6dc;stroke-width:1}'
-             '.box{fill:#eef3f5;stroke:#527081;stroke-width:1.5}</style>',
-             f'<rect width="1800" height="{sheet_h}" fill="white"/>',
+             master_css(),
+             f'<rect width="1800" height="{sheet_h}" fill="{PAPER}"/>',
+             '<text x="1745" y="57" text-anchor="end" class="brand">ACK STUDIO · SOFTWARE</text>',
              _text(58,57,bundle.project.name,"title"),
              _text(60,88,f"Gesamt-Fertigungszeichnung · {bundle.project.revision} · Maße in mm · "
                    "Bezug je Fläche: linke untere Außenecke","text"),
@@ -240,7 +231,7 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
              _text(60,730,f"Außen {w:.1f} × {h:.1f} × {d:.1f} · Innen "
                    f"{cab.internal_width_m*1000:.1f} × {cab.internal_height_m*1000:.1f} × "
                    f"{cab.internal_depth_m*1000:.1f} · Platte {cab.panel_thickness_m*1000:.1f}","head"),
-             _text(60,760,"Linien: Blau = Ausschnitt/Chassis, Rot = bekannte Bohrung, "
+             _text(60,760,"Linien: Akzent = Ausschnitt/Chassis, Burgunder = bekannte Bohrung, "
                    "gestrichelt = Flansch/Bezugsachse. Zeichnung nicht als Bohrschablone skalieren.","small"),
              _line(55,790,1745,790,"rule"),
              _text(60,face_rows_y,"Einbauteile und Fräsmaße","head"),
