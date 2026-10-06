@@ -10,6 +10,7 @@ import numpy as np
 
 from lautsprecher_konstruktion.enclosure.horn_geometry import SeptumGeometry
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, special_css
 
 
 def _sep_y(sep: SeptumGeometry, x: float) -> float:
@@ -56,15 +57,8 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
     front_mouth_y=(fy+top_t if horn.mouth_at_top else fy+h*scale-top_t-mouth_h_px)
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
-        '<style>.title{font:700 30px Arial;fill:#153346}.head{font:700 20px Arial;fill:#153346}'
-        '.text{font:16px Arial;fill:#27485b}.small{font:14px Arial;fill:#50697a}.tiny{font:12px Arial;fill:#254a60}'
-        '.panel{fill:#dce8ed;stroke:#264c60;stroke-width:2}.cut{fill:#f2fbfd;stroke:#067ba0;stroke-width:2}'
-        '.dim{stroke:#526f80;stroke-width:1.5;fill:none}.rule{stroke:#a8c0ca;stroke-width:1}'
-        '.chan{fill:#eef7fb}.mouth{fill:#d9efd9;stroke:#2f7d32;stroke-width:1.5}'
-        '.path{fill:none;stroke:#16749a;stroke-width:1.6;stroke-dasharray:7 5}'
-        '.law{fill:none;stroke:#16749a;stroke-width:2}.built{fill:none;stroke:#c05a1c;stroke-width:2}'
-        '.axis{stroke:#6d8795;stroke-width:1;fill:none}.tap{fill:#c0392b;stroke:none}'
-        '</style><rect width="1600" height="1330" fill="white"/>',
+        special_css(),
+        f'<rect width="1600" height="1330" fill="{PAPER}"/>',
         f'<text x="50" y="50" class="title">{escape(bundle.project.name)} · Tapped-Horn-Fertigung</text>',
         f'<text x="50" y="80" class="text">{escape(bundle.project.revision)} · Maße in mm · '
         'senkrechte Läufe, Lauf 1 (geschlossenes Ende oben) hinten, W1 auf F1 mit Achse in Tiefenrichtung · Front links</text>',
