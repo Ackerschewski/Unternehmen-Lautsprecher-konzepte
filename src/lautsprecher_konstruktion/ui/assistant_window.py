@@ -64,6 +64,7 @@ from lautsprecher_konstruktion.drawings.panel_sheet_svg import (
     panel_sheet_surfaces,
     render_panel_sheet_svg,
 )
+from lautsprecher_konstruktion.drawings.views import render_view_svg
 from lautsprecher_konstruktion.enclosure.registry import registry
 from lautsprecher_konstruktion.export.bom import build_bom, priced_subtotal
 from lautsprecher_konstruktion.export.package import export_project_package
@@ -315,13 +316,35 @@ class AssistantWindow(QMainWindow):
     def _drawing_mode_changed(self, _index: int = 0) -> None:
         read_mode = self.drawing_mode.currentData() == "read"
         self.drawing_hint.setText(
-            "Lesemodus: Ansicht füllt die Breite; ideal zum Prüfen und Lesen."
+            "Lesemodus: Front, Seite und Schnitt werden als bildschirmoptimierte Einzelansichten gezeigt."
             if read_mode else
-            "Druckblatt: vollständiges Seitenlayout für PDF-/Exportkontrolle."
+            "Druckblatt: Gesamt-, Maß- und Innenblatt im vollständigen Seitenlayout."
         )
+        labels = (
+            ("Front", "Seite", "Schnitt", "Einzelteile")
+            if read_mode else
+            ("Gesamtblatt", "Maßblatt", "Innenblatt", "Einzelteilblatt")
+        )
+        for index, label in enumerate(labels):
+            self.drawing_tabs.setTabText(index, label)
+        current = self._current()
+        if current is not None:
+            self._load_drawing_views(current.bundle)
         if read_mode and self.tabs.tabText(self.tabs.currentIndex()) == "Zeichnungen":
             if not self.focus_button.isChecked():
                 self.focus_button.setChecked(True)
+        self._drawing_view_changed(self.drawing_tabs.currentIndex())
+
+    def _load_drawing_views(self, bundle: DesignBundle) -> None:
+        if self.drawing_mode.currentData() == "read":
+            self.svg.load(QByteArray(render_view_svg(bundle, "front").encode("utf-8")))
+            self.dimension_svg.load(QByteArray(render_view_svg(bundle, "side").encode("utf-8")))
+            self.internal_svg.load(QByteArray(render_view_svg(bundle, "section").encode("utf-8")))
+        else:
+            self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
+            self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
+            self.internal_svg.load(QByteArray(render_internal_dimensions_svg(bundle).encode("utf-8")))
+        self._show_panel_sheet(self.panel_choice.currentIndex())
         self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
     def _drawing_view_changed(self, _index: int = 0) -> None:
@@ -974,11 +997,11 @@ class AssistantWindow(QMainWindow):
         self.drawing_tabs.setDocumentMode(True)
         self.drawing_tabs.currentChanged.connect(self._drawing_view_changed)
         self.svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.svg, "Übersicht")
+        self.drawing_tabs.addTab(self.svg, "Front")
         self.dimension_svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.dimension_svg, "Maße")
+        self.drawing_tabs.addTab(self.dimension_svg, "Seite")
         self.internal_svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.internal_svg, "Innenaufbau")
+        self.drawing_tabs.addTab(self.internal_svg, "Schnitt")
         panel = QWidget()
         panel_layout = QVBoxLayout(panel)
         self.panel_choice = QComboBox()
@@ -1257,16 +1280,14 @@ class AssistantWindow(QMainWindow):
             f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine Hinweise"))
         self.kpi_row.setVisible(True)
         self.comparison.selectRow(index)
-        self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
-        self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
-        self.internal_svg.load(QByteArray(render_internal_dimensions_svg(bundle).encode("utf-8")))
         self.panel_choice.blockSignals(True)
         self.panel_choice.clear()
         for surface in panel_sheet_surfaces(bundle):
             self.panel_choice.addItem({"front": "Frontplatte", "back": "Rückwand",
                                        "partition": "Trennwand"}[surface], surface)
         self.panel_choice.blockSignals(False)
-        self._show_panel_sheet(0)
+        self.panel_choice.setCurrentIndex(0)
+        self._load_drawing_views(bundle)
         subtotal, missing = priced_subtotal(design.bom)
         planned_total = budget_cost(design.bom)
         rows = "".join("<tr><td>"+escape(item.reference)+"</td><td>"+
