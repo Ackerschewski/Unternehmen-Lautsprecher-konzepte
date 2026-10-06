@@ -55,7 +55,7 @@ def _csv(path: Path, header: tuple[str, ...], rows: list[tuple[object, ...]]) ->
 
 
 def _simulation_files(folder: Path, bundle: DesignBundle) -> None:
-    r = bundle.vented_response
+    r = bundle.vented_response or bundle.sealed_response
     if r:
         f = r.frequencies_hz
         _csv(folder/'frequenzgang.csv', ('Frequenz_Hz','Relativer_Pegel_dB','SPL_dB_1m'),

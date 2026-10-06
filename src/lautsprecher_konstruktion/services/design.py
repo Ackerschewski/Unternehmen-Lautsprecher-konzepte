@@ -15,6 +15,7 @@ from lautsprecher_konstruktion.acoustics.folded_line import simulate_folded_line
 from lautsprecher_konstruktion.acoustics.front_horn import simulate_front_horn
 from lautsprecher_konstruktion.acoustics.limits import DEFAULT_PORT_VELOCITY_LIMITS
 from lautsprecher_konstruktion.acoustics.sealed import SealedResult
+from lautsprecher_konstruktion.acoustics.sealed_response import simulate_sealed
 from lautsprecher_konstruktion.acoustics.tapped_horn import simulate_tapped_horn
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse, simulate_vented
 from lautsprecher_konstruktion.crossover.passive import (
@@ -90,6 +91,7 @@ class DesignBundle:
     baffle_wing_depth_m: float = 0.0
     front_horn: FrontHorn | None = None
     tapped_horn: TappedHorn | None = None
+    sealed_response: VentedResponse | None = None
 
     @property
     def acoustic_driver(self) -> Driver:
@@ -787,6 +789,8 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         issues=tuple(issues),
         front_elements=layout,
         vented_response=response,
+        sealed_response=(simulate_sealed(pair_driver, target_net_volume_m3, cfg.input_power_w,
+                                         ql=cfg.ql) if sealed_result is not None and response is None else None),
         crossover_response=crossover_response,
         radiator=radiator,
         front_chamber_volume_m3=front_volume if rear_volume is not None else None,

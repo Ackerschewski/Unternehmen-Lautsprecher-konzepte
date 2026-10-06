@@ -291,6 +291,7 @@ class AssistantWindow(QMainWindow):
         layout.addWidget(step4)
         self.options = step4
 
+        footer = QVBoxLayout()  # stays visible below the scrolling form
         row = QHBoxLayout()
         self.create_button = QPushButton("Entwurf erstellen")
         self.create_button.setObjectName("primary")
@@ -300,12 +301,12 @@ class AssistantWindow(QMainWindow):
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self._cancel)
         row.addWidget(self.cancel_button)
-        layout.addLayout(row)
+        footer.addLayout(row)
         self.progress = QProgressBar()
         self.progress.setValue(0)
-        layout.addWidget(self.progress)
+        footer.addWidget(self.progress)
         self.progress_label = QLabel("Noch kein Entwurf berechnet")
-        layout.addWidget(self.progress_label)
+        footer.addWidget(self.progress_label)
         demos = QHBoxLayout()
         self.demo_choice = QComboBox()
         self.demo_choice.setMinimumContentsLength(14)
@@ -317,10 +318,15 @@ class AssistantWindow(QMainWindow):
         load = QPushButton("Demo einsetzen")
         load.clicked.connect(self._demo)
         demos.addWidget(load)
-        layout.addLayout(demos)
+        footer.addLayout(demos)
         layout.addStretch(1)
         scroll.setWidget(card)
-        return scroll
+        panel = QWidget()
+        outer = QVBoxLayout(panel)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scroll, 1)
+        outer.addLayout(footer)
+        return panel
 
     def _build_results(self) -> QWidget:
         container = QWidget()
@@ -574,8 +580,8 @@ class AssistantWindow(QMainWindow):
             "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
         self.figure.clear()
         ax = self.figure.add_subplot(221)
-        if bundle.vented_response:
-            r = bundle.vented_response
+        r = bundle.vented_response or bundle.sealed_response
+        if r is not None:
             ax.semilogx(r.frequencies_hz, r.response_db, color="#1769b3", linewidth=2)
             ax.set_xlim(10, 500)
         else:
@@ -589,13 +595,13 @@ class AssistantWindow(QMainWindow):
         ax.grid(True, which="both", alpha=.25)
         for position, title, ylabel, values, limit in (
             (222, "Membranauslenkung", "mm",
-             r.excursion_mm if bundle.vented_response else None,
+             r.excursion_mm if r is not None else None,
              bundle.project.driver.xmax_mm),
             (223, "Port / Passivmembran", "m/s",
-             r.port_velocity_m_s if bundle.vented_response else None,
+             r.port_velocity_m_s if r is not None else None,
              17 if bundle.port else None),
             (224, "Gruppenlaufzeit", "ms",
-             r.group_delay_ms if bundle.vented_response else None, None),
+             r.group_delay_ms if r is not None else None, None),
         ):
             subplot = self.figure.add_subplot(position)
             subplot.set_title(title)
@@ -603,7 +609,8 @@ class AssistantWindow(QMainWindow):
             subplot.set_ylabel(ylabel)
             subplot.set_xlim(10, 500)
             if values is None:
-                subplot.text(.5, .5, "Mess-/Treiberwerte fehlen", ha="center", va="center",
+                subplot.text(.5, .5, "Kein Port in diesem Gehäuse" if (bundle.sealed is not None and position == 223)
+                             else "Mess-/Treiberwerte fehlen", ha="center", va="center",
                              transform=subplot.transAxes, color="#52627a")
             else:
                 subplot.semilogx(r.frequencies_hz, values, color="#1769b3", linewidth=1.8)

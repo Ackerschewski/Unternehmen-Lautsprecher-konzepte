@@ -109,7 +109,7 @@ def _interp_log(f: FloatArray, xs: tuple[float, ...], ys: tuple[float, ...] | Fl
 
 def simulated_curves(bundle: DesignBundle) -> tuple[FloatArray, FloatArray, ComplexArray | None]:
     """Frequency grid, relative level in dB and (if modelled) complex impedance."""
-    response = bundle.vented_response
+    response = bundle.vented_response or bundle.sealed_response
     if response is not None:
         return response.frequencies_hz, response.response_db, response.impedance_ohm
     f = np.geomspace(10.0, 500.0, 400)
@@ -202,7 +202,7 @@ def _compare_frequency(bundle: DesignBundle, measured: FrequencyResponseData,
 def _compare_impedance(bundle: DesignBundle, measured: ImpedanceData,
                        findings: list[str]) -> ImpedanceComparison | None:
     sim_f, _, sim_z = simulated_curves(bundle)
-    vented = bundle.vented_response is not None
+    vented = bundle.vented_response is not None  # sealed boxes carry sealed_response instead
     fs = bundle.project.driver.fs_hz
     upper = max(300.0, 6.0 * fs)
     low = max(sim_f[0], measured.frequencies_hz[0])
