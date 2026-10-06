@@ -1,7 +1,7 @@
 """Compact visual cabinet preview for the guided design result."""
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, QSize, Qt
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
@@ -81,8 +81,8 @@ class CabinetPreview(QWidget):
 
         # Simple depth cue: enough to make the result tangible without pretending to be CAD.
         painter.setPen(QPen(QColor(t["borderStrong"]), 1.5))
-        painter.drawLine(front.topRight(), front.topRight() + front.topRight().__class__(perspective_x, perspective_y))
-        painter.drawLine(front.bottomRight(), front.bottomRight() + front.bottomRight().__class__(perspective_x, perspective_y))
+        painter.drawLine(front.topRight(), front.topRight() + QPointF(perspective_x, perspective_y))
+        painter.drawLine(front.bottomRight(), front.bottomRight() + QPointF(perspective_x, perspective_y))
         painter.drawLine(
             front.topRight() + front.topRight().__class__(perspective_x, perspective_y),
             front.bottomRight() + front.bottomRight().__class__(perspective_x, perspective_y),
