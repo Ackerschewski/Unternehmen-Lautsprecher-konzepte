@@ -224,6 +224,8 @@ class AssistantWindow(QMainWindow):
         self.setStyleSheet(stylesheet(mode))
         if self.expert_window is not None:
             self.expert_window.set_mode(mode)
+        if hasattr(self, "target_curve"):
+            self.target_curve.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
