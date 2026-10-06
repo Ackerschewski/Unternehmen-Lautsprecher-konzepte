@@ -12,6 +12,7 @@ from lautsprecher_konstruktion.drawings.style import (
     master_css,
     panel_css,
 )
+from lautsprecher_konstruktion.services.automatic import _target_curve_fit
 from lautsprecher_konstruktion.ui import tokens
 from lautsprecher_konstruktion.ui.assistant_window import AssistantWindow
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
@@ -67,3 +68,18 @@ def test_drawing_css_uses_one_ack_studio_palette() -> None:
     assert "#471b28" in css
     for obsolete in ("#193448", "#007fa5", "#bf503a", "#16749a", "#0879a6"):
         assert obsolete not in css
+
+
+def test_target_curve_fit_prefers_matching_response_shape() -> None:
+    frequencies = __import__("numpy").geomspace(20.0, 500.0, 200)
+    flat = __import__("numpy").zeros_like(frequencies)
+    neutral = ((20.0, 0.0), (80.0, 0.0), (500.0, 0.0))
+    bass_lift = ((20.0, 6.0), (50.0, 4.0), (100.0, 0.0), (500.0, 0.0))
+
+    exact = _target_curve_fit(frequencies, flat, neutral)
+    mismatch = _target_curve_fit(frequencies, flat, bass_lift)
+
+    assert exact is not None and mismatch is not None
+    assert exact[0] == pytest.approx(100.0)
+    assert exact[1] == pytest.approx(0.0)
+    assert mismatch[0] < exact[0]
