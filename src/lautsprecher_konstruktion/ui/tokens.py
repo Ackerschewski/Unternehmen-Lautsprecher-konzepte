@@ -1,10 +1,9 @@
-"""Design tokens of the ACK Studio design package (Basis-Ackerschewski-Design-System, packages/ack-studio).
+"""ACK Studio design tokens for the loudspeaker application.
 
-The package defines one light theme with four area accents. This program is a construction tool and uses
-the area "construction". The dark theme is a project extension derived from the same tokens (deep software navy
-ground, warm paper cards, the area accent lightened until it reaches 4.5:1), documented in docs/DESIGN_SYSTEM.md. Status is expressed with a glyph and text (never colour alone), as the package
-prescribes; it defines no status colours. A snapshot of the package tokens lives in docs/design/ and a test
-keeps this module in sync with it.
+The product belongs to the ACK Studio *software* world. Construction ochre remains
+available as a secondary technical colour, but it is not the default interaction
+accent. Dark mode uses a neutral charcoal/navy hierarchy rather than one flat blue
+surface.
 """
 from __future__ import annotations
 
@@ -23,7 +22,11 @@ AREAS: Final[dict[str, dict[str, str]]] = {
     "construction": {"accent": "#735419", "panel": "#f7f1e4", "band": "#f0e7d0"},
     "software": {"accent": "#172d46", "panel": "#edf2f7", "band": "#e4edf5"},
 }
-DEFAULT_AREA: Final = "construction"
+DEFAULT_AREA: Final = "software"
+
+SOFTWARE_DARK_ACCENT: Final = "#adcadb"
+SOFTWARE_LINE: Final = "#4c6a83"
+CONSTRUCTION_SECONDARY: Final = "#a17c2d"
 
 SPACING: Final = (4, 8, 12, 16, 24, 32, 48, 64, 80)
 RADIUS_CONTROL: Final = 8
@@ -53,67 +56,99 @@ def area() -> str:
 
 
 def _mix(a: str, b: str, share: float) -> str:
-    """Blend colour a towards b by share (0..1)."""
-    channels = [round(int(a[i:i + 2], 16) * (1 - share) + int(b[i:i + 2], 16) * share) for i in (1, 3, 5)]
+    channels = [
+        round(int(a[i:i + 2], 16) * (1 - share) + int(b[i:i + 2], 16) * share)
+        for i in (1, 3, 5)
+    ]
     return "#" + "".join(f"{c:02x}" for c in channels)
 
 
-# Dark theme (project extension, see docs/DESIGN_SYSTEM.md): deep software navy as app chrome, taken from the
-# "software" area accent #172d46 and deepened; warm paper surfaces stay as documents/cards; the construction
-# ochre is the active accent, forest green (apparel accent) marks valid states and burgundy (jewelry accent)
-# only critical states. Light accents are lightened until they reach the contrast on the navy ground.
-DARK_PAPER: Final = "#0f1e32"
-DARK_PANEL: Final = "#162a43"
-DARK_BAND: Final = "#1e3856"
-DARK_INK: Final = "#eef2f7"
-DARK_MUTED: Final = "#a8b7ca"
-DARK_LINE: Final = "#2b4567"
+DARK_BACKGROUND: Final = "#11161d"
+DARK_SURFACE: Final = "#151c25"
+DARK_PANEL: Final = "#1b2530"
+DARK_BAND: Final = "#223141"
+DARK_INK: Final = "#f0f3f6"
+DARK_MUTED: Final = "#a7b2bf"
+DARK_LINE: Final = "#344455"
 MODES: Final = ("light", "dark")
 
 
 def _lighten(color: str, backgrounds: tuple[str, ...], minimum: float = 4.5) -> str:
-    """Raise the lightness of color (hue and saturation kept) until it reaches the contrast on all backgrounds."""
     h, lightness, sat = colorsys.rgb_to_hls(*(int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)))
     result = color
     while min(contrast(result, bg) for bg in backgrounds) < minimum and lightness < 0.95:
         lightness += 0.01
-        result = "#" + "".join(f"{round(c * 255):02x}" for c in colorsys.hls_to_rgb(h, lightness, sat))
+        result = "#" + "".join(
+            f"{round(c * 255):02x}" for c in colorsys.hls_to_rgb(h, lightness, sat)
+        )
     return result
 
 
 def theme(mode: str = "light") -> dict[str, str]:
-    """Semantic roles of the light or dark theme in the current area.
-
-    ``doc*`` roles describe warm paper surfaces (cards, documents, drawings backdrop); in the light theme they
-    equal the normal surfaces, in the dark theme they stay light on purpose. ``success`` is the forest green of
-    the apparel area, ``danger`` the burgundy of the jewelry area; both are lightened in the dark theme.
-    """
+    """Return semantic roles for the selected ACK Studio product world."""
     a = AREAS[_area]
-    green, burgundy = AREAS["apparel"]["accent"], AREAS["jewelry"]["accent"]
+    green = AREAS["apparel"]["accent"]
+    burgundy = AREAS["jewelry"]["accent"]
     if mode == "dark":
-        grounds = (DARK_PAPER, DARK_PANEL, DARK_BAND)
-        accent = _lighten(a["accent"], grounds, 4.8)
+        grounds = (DARK_BACKGROUND, DARK_SURFACE, DARK_PANEL, DARK_BAND)
+        accent = SOFTWARE_DARK_ACCENT if _area == "software" else _lighten(a["accent"], grounds, 4.8)
         return {
-            "background": DARK_PAPER, "surface": DARK_PAPER, "surfaceElevated": DARK_PANEL, "panel": DARK_PANEL,
-            "band": DARK_BAND, "textPrimary": DARK_INK, "textSecondary": DARK_MUTED, "border": DARK_LINE,
-            "borderStrong": _mix(DARK_MUTED, DARK_PAPER, 0.35), "accent": accent, "onAccent": DARK_PAPER,
-            "accentHover": _mix(accent, "#ffffff", 0.18), "accentPressed": _mix(accent, "#ffffff", 0.32),
-            "accentSubtle": DARK_BAND, "disabledText": _mix(DARK_MUTED, DARK_PAPER, 0.45),
-            "disabledSurface": DARK_PANEL, "paper": PAPER,
+            "background": DARK_BACKGROUND,
+            "surface": DARK_SURFACE,
+            "surfaceElevated": DARK_PANEL,
+            "panel": DARK_PANEL,
+            "band": DARK_BAND,
+            "textPrimary": DARK_INK,
+            "textSecondary": DARK_MUTED,
+            "border": DARK_LINE,
+            "borderStrong": SOFTWARE_LINE,
+            "accent": accent,
+            "onAccent": DARK_BACKGROUND,
+            "accentHover": _mix(accent, "#ffffff", 0.12),
+            "accentPressed": _mix(accent, DARK_BACKGROUND, 0.18),
+            "accentSubtle": DARK_BAND,
+            "disabledText": _mix(DARK_MUTED, DARK_BACKGROUND, 0.50),
+            "disabledSurface": DARK_PANEL,
+            "paper": PAPER,
             "success": _lighten(green, grounds, 4.8),
             "danger": _lighten(burgundy, grounds, 4.8),
-            "docSurface": PAPER, "docBand": a["band"], "docInk": INK, "docMuted": MUTED, "docLine": LINE,
-            "docAccent": a["accent"],
+            "warning": _lighten(CONSTRUCTION_SECONDARY, grounds, 4.8),
+            "constructionAccent": CONSTRUCTION_SECONDARY,
+            "docSurface": PAPER,
+            "docBand": AREAS["software"]["band"],
+            "docInk": AREAS["software"]["accent"],
+            "docMuted": MUTED,
+            "docLine": LINE,
+            "docAccent": AREAS["software"]["accent"],
         }
     return {
-        "background": PAPER, "surface": PAPER, "surfaceElevated": a["panel"], "panel": a["panel"], "band": a["band"],
-        "textPrimary": INK, "textSecondary": MUTED, "border": LINE, "borderStrong": MUTED,
-        "accent": a["accent"], "onAccent": ON_ACCENT,
-        "accentHover": _mix(a["accent"], "#000000", 0.18), "accentPressed": _mix(a["accent"], "#000000", 0.32),
-        "accentSubtle": a["band"], "disabledText": _mix(MUTED, PAPER, 0.45), "disabledSurface": a["panel"],
-        "paper": PAPER, "success": green, "danger": burgundy,
-        "docSurface": PAPER, "docBand": a["band"], "docInk": INK, "docMuted": MUTED, "docLine": LINE,
-        "docAccent": a["accent"],
+        "background": PAPER,
+        "surface": PAPER,
+        "surfaceElevated": AREAS["software"]["panel"] if _area == "software" else a["panel"],
+        "panel": AREAS["software"]["panel"] if _area == "software" else a["panel"],
+        "band": AREAS["software"]["band"] if _area == "software" else a["band"],
+        "textPrimary": INK,
+        "textSecondary": MUTED,
+        "border": LINE,
+        "borderStrong": SOFTWARE_LINE if _area == "software" else MUTED,
+        "accent": a["accent"],
+        "onAccent": ON_ACCENT,
+        "accentHover": _mix(a["accent"], "#000000", 0.12),
+        "accentPressed": _mix(a["accent"], "#000000", 0.24),
+        "accentSubtle": AREAS["software"]["band"] if _area == "software" else a["band"],
+        "disabledText": _mix(MUTED, PAPER, 0.45),
+        "disabledSurface": AREAS["software"]["panel"] if _area == "software" else a["panel"],
+        "paper": PAPER,
+        "success": green,
+        "danger": burgundy,
+        "warning": CONSTRUCTION_SECONDARY,
+        "constructionAccent": CONSTRUCTION_SECONDARY,
+        "docSurface": PAPER,
+        "docBand": AREAS["software"]["band"],
+        "docInk": AREAS["software"]["accent"],
+        "docMuted": MUTED,
+        "docLine": LINE,
+        "docAccent": AREAS["software"]["accent"],
     }
 
 
@@ -128,11 +163,9 @@ def luminance(color: str) -> float:
 
 
 def contrast(a: str, b: str) -> float:
-    """WCAG contrast ratio of two #RRGGBB colours."""
     hi, lo = sorted((luminance(a), luminance(b)), reverse=True)
     return (hi + 0.05) / (lo + 0.05)
 
 
 def status_line(role: str, text: str) -> str:
-    """Status as glyph plus text; colour is never the only signal."""
     return f"{STATUS_GLYPH[role]} {text}"
