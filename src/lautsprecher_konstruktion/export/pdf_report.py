@@ -281,7 +281,7 @@ def write_pdf_report(path: str | Path, bundle: DesignBundle, bom: tuple[BomItem,
         data.extend(f'F{i+1}: Kanalhoehe {height*1000:.1f} mm, Flaeche {area*10000:.1f} cm2'
                     for i,(height,area) in enumerate(zip(bundle.folded_line.channel_heights_m,
                                                            bundle.folded_line.channel_areas_m2,strict=True)))
-        data.append(f'Umlenkspalt {bundle.folded_line.turn_gap_m*1000:.1f} mm, abwechselnd hinten/vorn')
+        data.append(f'Umlenkspalt max. {bundle.folded_line.turn_gap_m*1000:.1f} mm, abwechselnd hinten/vorn')
     if bundle.rear_port:
         data.append(f'BR2 Rueckkammer: Fb2 {bundle.rear_port.tuning_hz:.1f} Hz, '
                     f'Ø {(bundle.rear_port.diameter_m or 0)*1000:.1f} mm, '

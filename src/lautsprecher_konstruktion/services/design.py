@@ -5,8 +5,17 @@ from typing import Any, cast
 
 import numpy as np
 
-from lautsprecher_konstruktion.acoustics.baffle import simulate_baffle
+from lautsprecher_konstruktion.acoustics.baffle import (
+    dipole_frequencies_hz,
+    dipole_path_m,
+    simulate_baffle,
+)
 from lautsprecher_konstruktion.acoustics.baffle_step import baffle_step_frequency_hz
+from lautsprecher_konstruktion.acoustics.aperiodic import (
+    aperiodic_q,
+    cardioid_ideal_delay_s,
+    specific_flow_resistance,
+)
 from lautsprecher_konstruktion.acoustics.bandpass import (
     simulate_bandpass,
     simulate_bandpass_series,
@@ -32,9 +41,12 @@ from lautsprecher_konstruktion.crossover.standards import round_crossover_to_e12
 from lautsprecher_konstruktion.crossover.three_way import simulate_three_way, three_way_network
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.bracing import WindowBrace, brace_depths
+from lautsprecher_konstruktion.enclosure.damping import VentDamper, WallLining, plan_wall_lining
 from lautsprecher_konstruktion.enclosure.folded_line import (
     FOLDED_TYPES,
+    LINE_TYPES,
     REAR_HORN_TYPES,
+    STUFFING_LABELS,
     FoldedLine,
     baffle_displacement_m3,
     design_folded_line,
@@ -43,7 +55,8 @@ from lautsprecher_konstruktion.enclosure.front_horn import FrontHorn, design_fro
 from lautsprecher_konstruktion.enclosure.isobaric import Coupler, equivalent_driver, make_coupler
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, check_layout
 from lautsprecher_konstruktion.enclosure.passive_radiator import PassiveRadiatorDesign
-from lautsprecher_konstruktion.enclosure.ports import PortDesign, round_port
+from lautsprecher_konstruktion.enclosure.ports import PortDesign
+from lautsprecher_konstruktion.enclosure.rear_horn import rear_horn_notes
 from lautsprecher_konstruktion.enclosure.rectangular import (
     CabinetDimensions,
     CutPanel,
@@ -92,11 +105,56 @@ class DesignBundle:
     front_horn: FrontHorn | None = None
     tapped_horn: TappedHorn | None = None
     sealed_response: VentedResponse | None = None
+    damping: WallLining | None = None
+    vent_damper: VentDamper | None = None
 
     @property
     def acoustic_driver(self) -> Driver:
         return (equivalent_driver(self.project.driver, self.project.enclosure.isobaric_wiring)
                 if self.coupler else self.project.driver)
+
+
+# Closed-type families whose interior is lined with damping material.
+LINED_FAMILIES = frozenset({"sealed", "aperiodic"})
+MIN_DRIVER_REAR_CLEARANCE_M = 0.02
+MIN_DEPTH_TO_SIDE_RATIO = 0.2
+
+
+def _body_size(element: FrontElement) -> tuple[float, float]:
+    """Extent behind the baffle: a front-mounted chassis has to pass through its cutout."""
+    if element.cutout_diameter_m is not None:
+        return element.cutout_diameter_m, element.cutout_diameter_m
+    return element.width, element.height
+
+
+def _wall_gap(element: FrontElement, cabinet: CabinetDimensions, t: float) -> float:
+    """Smallest distance between the element body and the inner cabinet walls (can be negative)."""
+    body_w, body_h = _body_size(element)
+    return min(element.x_m-body_w/2-t, cabinet.width_m-t-element.x_m-body_w/2,
+               element.y_m-body_h/2-(cabinet.bottom_thickness_m or t),
+               cabinet.height_m-(cabinet.top_thickness_m or t)-element.y_m-body_h/2)
+
+
+def _proportion_issues(cabinet: CabinetDimensions, driver: Driver) -> list[DesignWarning]:
+    """Plausibility of the solved depth: it is only a result of net volume / (inner width x height)."""
+    issues: list[DesignWarning] = []
+    mounting = driver.mounting_depth_m or 0.0
+    spare = cabinet.internal_depth_m-mounting
+    if mounting and 0 <= spare < MIN_DRIVER_REAR_CLEARANCE_M:
+        issues.append(DesignWarning(code="DRIVER_REAR_CLEARANCE", severity="warning",
+            message=(f"Zwischen Treiberrückseite und Rückwand bleiben nur {spare*1000:.0f} mm "
+                     f"(Faustregel ≥ {MIN_DRIVER_REAR_CLEARANCE_M*1000:.0f} mm für Magnetbelüftung, Dämmung "
+                     "und Kabel); Breite/Höhe verkleinern."),
+            value=spare*1000, limit=MIN_DRIVER_REAR_CLEARANCE_M*1000))
+    side = min(cabinet.width_m, cabinet.height_m)
+    if cabinet.depth_m < MIN_DEPTH_TO_SIDE_RATIO*side:
+        issues.append(DesignWarning(code="CABINET_PROPORTION", severity="warning",
+            message=(f"Unplausible Proportion: Außentiefe {cabinet.depth_m*1000:.0f} mm bei "
+                     f"{cabinet.width_m*1000:.0f} × {cabinet.height_m*1000:.0f} mm. Die Tiefe ergibt sich nur "
+                     "aus Netto-Volumen / (Innenbreite × Innenhöhe); Front und Rückwand wären große, "
+                     "schwingende Flächen. Breite oder Höhe verkleinern."),
+            value=cabinet.depth_m*1000, limit=MIN_DEPTH_TO_SIDE_RATIO*side*1000))
+    return issues
 
 
 def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
@@ -112,7 +170,8 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
         result.append(FrontElement(id="W1", type=cast(Any, layout_type),
             surface="partition" if project.enclosure.enclosure_type.startswith("bandpass_") else "front",
             x_m=w/2, y_m=h*(0.50 if project.enclosure.enclosure_type.startswith("isobaric_") or
-                            project.enclosure.enclosure_type == "compound_push_pull" else 0.62),
+                            project.enclosure.enclosure_type in {"compound_push_pull","open_baffle","dipole",
+                                                                 "infinite_baffle"} else 0.62),
             outer_diameter_m=driver.outer_diameter_m or driver.cutout_diameter_m,
             cutout_diameter_m=driver.cutout_diameter_m,
             mounting_depth_m=driver.mounting_depth_m or 0))
@@ -258,9 +317,13 @@ def _calculate_baffle_project(project: SpeakerProject) -> DesignBundle:
         raise ValueError("Dipol/H-Frame benötigt mindestens 40 mm Flügeltiefe")
     volume = None
     if cfg.enclosure_type == "infinite_baffle":
+        # Small (1973): Vb >= 10 Vas keeps the Qtc rise below 5 % (Qtc = Qts sqrt(1 + Vas/Vb)).
         volume = (cfg.target_volume_l or 0)/1000
-        if volume < 10*driver.vas_m3:
-            raise ValueError("Infinite Baffle benötigt einen dichten rückseitigen Raum von mindestens 10 × Vas")
+        minimum = 10*driver.vas_m3
+        if volume < minimum:
+            raise ValueError(
+                "Infinite Baffle benötigt einen dichten rückseitigen Raum von mindestens 10 × Vas "
+                f"= {minimum*1000:.0f} l (eingestellt: {volume*1000:.0f} l)")
     cabinet = CabinetDimensions(width,height,
         max((driver.mounting_depth_m or 0)+2*t+0.03,wing+2*t),t)
     elements = tuple(e for e in project.front_elements if e.surface == "front" and e.type not in
@@ -271,8 +334,13 @@ def _calculate_baffle_project(project: SpeakerProject) -> DesignBundle:
     if wing and driver.outer_diameter_m and driver.outer_diameter_m+0.02>width-2*t:
         issues.append(DesignWarning(code="DIPOLE_WING_COLLISION",severity="error",
             message="H-Frame-Seitenflügel kollidieren mit dem Treiberflansch."))
-    path = width+2*wing
-    response = simulate_baffle(driver,cfg.enclosure_type,path,volume,cfg.input_power_w)
+    woofer = next((e for e in elements if e.id == "W1"), None)
+    driver_x = woofer.x_m if woofer else width/2
+    driver_y = woofer.y_m if woofer else height/2
+    path: float | None = None
+    if cfg.enclosure_type != "infinite_baffle":
+        path = dipole_path_m(width,height,driver_x,driver_y,wing)
+    response = simulate_baffle(driver,cfg.enclosure_type,path or width,volume,cfg.input_power_w)
     panels: tuple[CutPanel, ...] = (CutPanel("Schallwand",1,width,height,t),)
     if wing:
         panels += (CutPanel("H-Frame Seitenflügel",2,wing,height,t),)
@@ -286,6 +354,48 @@ def _calculate_baffle_project(project: SpeakerProject) -> DesignBundle:
         warnings.append("Infinite Baffle: Rückraum vor Ort luftdicht trennen und Mindestvolumen sicherstellen; keine Gehäuserückwand in der Stückliste.")
     if wing:
         warnings.append("H-Frame: Seitenflügel rückseitig rechtwinklig und luftdicht an die Schallwand setzen; Falt-/Hohlraumresonanzen messen.")
+    if path is not None:
+        f_corner,f_peak,f_null = dipole_frequencies_hz(path)
+        issues.append(DesignWarning(code="DIPOLE_PATH",severity="info",
+            message=(f"Dipol: wirksamer Umweg {path*1000:.0f} mm (kürzester Weg um die Schallwandkante, "
+                     f"Treiber bei X {driver_x*1000:.0f} / Y {driver_y*1000:.0f} mm). Ohne Entzerrung "
+                     f"fällt der Pegel unterhalb {f_corner:.0f} Hz mit 6 dB/Okt, Maximum bei "
+                     f"{f_peak:.0f} Hz, erste Auslöschung bei {f_null:.0f} Hz."),
+            frequency_hz=f_corner,value=path*1000))
+        if wing:
+            side_path = 2*(min(driver_x,width-driver_x)+wing)
+            if path < side_path-1e-9:
+                issues.append(DesignWarning(code="DIPOLE_HEIGHT_LIMIT",severity="warning",
+                    message=(f"Der Umweg über Ober-/Unterkante ({path*1000:.0f} mm) ist kürzer als über die "
+                             f"Seitenflügel ({side_path*1000:.0f} mm); Flügel allein verlängern den Weg nicht. "
+                             "Treiber mittig setzen oder Schallwand höher bauen."),value=path*1000))
+        fs = driver.fs_hz
+        at_fs = float(np.interp(fs,response.frequencies_hz,response.response_db))
+        if at_fs < -3:
+            issues.append(DesignWarning(code="DIPOLE_EQ_NEEDED",
+                severity="warning" if at_fs < -12 else "info",
+                message=(f"Pegel bei Fs ({fs:.0f} Hz) {-at_fs:.1f} dB unter dem Mittelband; "
+                         "Dipol-Anhebung (aktive Entzerrung, z. B. Linkwitz-Transformation) nötig, "
+                         "die Membranauslenkung steigt entsprechend"
+                         + ("; über 12 dB kaum beherrschbar, größere Schallwand/Flügel wählen." if at_fs < -12
+                            else ".")),
+                frequency_hz=fs,value=-at_fs))
+        warnings.append("Open Baffle/Dipol: freien Rückraum lassen (typisch ≥ 0,5 m, besser ~1 m Abstand "
+                        "zur Rückwand) und Standfestigkeit prüfen.")
+    if project.crossover.enabled and project.crossover.baffle_step_compensation_db > 0:
+        issues.append(DesignWarning(code="BAFFLE_STEP_NOT_APPLICABLE",severity="warning",
+            message=("Schallwandstufen-Korrektur gilt für Boxen mit Halbraum-Abstrahlung. "
+                     + ("Wandeinbau hat keine Baffle-Step; Korrektur entfernen."
+                        if path is None else
+                        "Open Baffle/Dipol haben keine Baffle-Step, sondern einen 6-dB/Okt-Dipolabfall; "
+                        "Korrektur entfernen und die Dipolanhebung über die Weiche/DSP lösen."))))
+    if response.excursion_mm is not None and driver.xmax_mm is not None:
+        i = int(np.argmax(response.excursion_mm))
+        peak = float(response.excursion_mm[i])
+        if peak > driver.xmax_mm:
+            issues.append(DesignWarning(code="XMAX_EXCEEDED",severity="warning",
+                message=f"Xmax bei {response.frequencies_hz[i]:.1f} Hz überschritten: {peak:.1f} mm.",
+                frequency_hz=float(response.frequencies_hz[i]),value=peak,limit=driver.xmax_mm))
     warnings.extend(crossover_warnings)
     warnings.extend(issue.message for issue in issues)
     return DesignBundle(project.model_copy(update={"front_elements":elements}),
@@ -353,6 +463,46 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
         vented_response=response,tapped_horn=horn)
 
 
+def _line_notes(line: FoldedLine, family: str, sd_m2: float | None,
+                issues: list[DesignWarning]) -> list[str]:
+    """Plausibility notes for transmission-line families (rules of thumb, not measured data)."""
+    notes: list[str] = []
+    areas = line.channel_areas_m2
+    if family == "tqwt":
+        taper = areas[0]/areas[-1]
+        notes.append(f"TQWT: Querschnitt verjüngt sich vom Treiberende ({areas[0]*1e4:.0f} cm²) zur Mündung "
+                     f"({areas[-1]*1e4:.0f} cm², Verhältnis {taper:.1f}:1; Literaturrichtwert etwa 2–4:1). "
+                     "Gestufte Rechteckkanäle nähern die kontinuierliche Verjüngung an.")
+    elif sd_m2:
+        notes.append(f"Linienquerschnitt {min(areas[1:])*1e4:.0f}–{max(areas[1:])*1e4:.0f} cm² = "
+                     f"{min(areas[1:])/sd_m2:.2f}–{max(areas[1:])/sd_m2:.2f} × Sd "
+                     "(Praxisrichtwert 1,0–1,5 × Sd); Treiberkammer "
+                     f"{line.driver_chamber_volume_m3*1000:.1f} l hinter dem Treiber.")
+        if line.driver_chamber_volume_m3 > 0.45*sum(a*line.inner_depth_m for a in areas):
+            issues.append(DesignWarning(code="LINE_PLENUM_LARGE",severity="warning",
+                message="Treiberkammer ist ungewöhnlich groß gegenüber dem Linienvolumen; "
+                        "Höhe/Breite oder Abstimmfrequenz anpassen."))
+    if family == "mltl" and line.mltl_port_ratio is not None:
+        notes.append(f"MLTL: Port am Leitungsende, Portfläche = {line.mltl_port_ratio:.2f} × Leitungsquerschnitt; "
+                     f"Leitung kürzer als λ/4, Resonanz der massebelasteten Leitung {line.estimated_quarter_wave_hz:.1f} Hz (Näherung).")
+        if not 0.15 <= line.mltl_port_ratio <= 1.0:
+            issues.append(DesignWarning(code="MLTL_PORT_RATIO",severity="warning",
+                message=f"MLTL-Portfläche/Leitungsquerschnitt = {line.mltl_port_ratio:.2f}; "
+                        "Richtwert 0,15–1,0 (Quellen uneinheitlich), Portdurchmesser prüfen."))
+    if family == "labyrinth":
+        notes.append("Labyrinth: gefalteter, über die gesamte Länge gedämmter Kanal; Dämpfung stärker als bei der Linie.")
+    opening = line.min_turn_opening_ratio
+    notes.append(f"Umlenkspalte: Öffnungsfläche mindestens {opening:.2f} × Kanalquerschnitt (1,0 = ohne Verengung).")
+    if opening < 0.75:
+        issues.append(DesignWarning(code="LINE_TURN_CONSTRICTED",severity="warning",
+            message=f"Umlenköffnung nur {opening:.2f} × Kanalquerschnitt; Verengung wirkt wie Massebelastung. "
+                    "Tiefe vergrößern oder Kanäle niedriger wählen."))
+    zones = ", ".join(f"K{i+1} {STUFFING_LABELS[x]}" for i,x in enumerate(line.stuffing))
+    notes.append(f"Dämmung (Richtwert, dichteste Füllung treibernah): {zones}. Dämmung senkt die Schallgeschwindigkeit "
+                 "(Bradbury-Effekt, nicht modelliert) und verschiebt die Abstimmung nach unten; Menge am Prototyp trimmen.")
+    return notes
+
+
 def calculate_project(project: SpeakerProject) -> DesignBundle:
     cfg = project.enclosure
     entry = registry.get(cfg.enclosure_type)
@@ -399,21 +549,30 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     inner_h = cfg.external_height_mm / 1000.0 - ((cfg.top_thickness_mm or cfg.panel_thickness_mm)+(cfg.bottom_thickness_mm or cfg.panel_thickness_mm))/1000
     if inner_w <= 0 or inner_h <= 0:
         raise ValueError("cabinet width/height are incompatible with panel thickness")
-    coupler = (make_coupler(project.driver, t, cfg.isobaric_gap_mm/1000)
+    front_wall = (cfg.front_thickness_mm or cfg.panel_thickness_mm)*cfg.front_layers/1000
+    back_wall = (cfg.back_thickness_mm or cfg.panel_thickness_mm)/1000
+    rear_port_wall = t if cfg.enclosure_type == "bandpass_6_series" else back_wall
+    coupler = (make_coupler(project.driver, t, cfg.isobaric_gap_mm/1000,
+                            reversed_w2=cfg.enclosure_type == "compound_push_pull")
                if isobaric else None)
     if coupler is not None and coupler.outer_diameter_m + 0.01 > min(inner_w, inner_h):
-        raise ValueError("Isobarik-Koppelkammer passt nicht in die innere Breite/Höhe (10 mm Mindestabstand).")
+        raise ValueError(
+            f"Isobarik-Koppelkammer (außen Ø {coupler.outer_diameter_m*1000:.0f} mm) passt nicht in die innere "
+            f"Breite/Höhe ({inner_w*1000:.0f} × {inner_h*1000:.0f} mm; 10 mm Mindestabstand): "
+            f"Gehäuse mindestens {(coupler.outer_diameter_m+0.01+2*t)*1000:.0f} mm breit und hoch wählen.")
     slot_wall_displacement = 0.0
     slot_panels: tuple[CutPanel, ...] = ()
     if port is not None and port.shape == "slot":
         assert port.width_m is not None and port.height_m is not None
         if port.width_m+2*t > inner_w or port.height_m+2*t > inner_h:
             raise ValueError("Slot-Port mit Kanalwänden passt nicht in die innere Breite/Höhe")
-        length=port.physical_length_m
+        # The duct starts at the outer face of the front panel; the panel itself forms the first
+        # front_wall of its length, the slot walls inside the box supply the rest.
+        length=max(port.physical_length_m-front_wall,0.0)
         slot_panels=(
             CutPanel("Slotkanal Deckel/Boden",2,port.width_m+2*t,length,t),
             CutPanel("Slotkanal Seiten",2,port.height_m,length,t),
-        )
+        ) if length > 0 else ()
         slot_wall_displacement=sum(p.quantity*p.width_m*p.height_m*p.thickness_m
                                    for p in slot_panels)
 
@@ -429,10 +588,11 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
 
     partition_displacement = inner_w*inner_h*t if rear_volume is not None else 0.0
     total_displacement = (
-        project.driver.displacement_m3
+        # Magnet-to-magnet pair: both motors sit inside the coupler envelope counted below.
+        (0.0 if coupler is not None and coupler.w2_reversed else project.driver.displacement_m3)
         + cfg.additional_displacement_l / 1000.0
-        + (port.displacement_m3 if port and cfg.enclosure_type not in {"aperiodic","cardioid"} else 0.0)
-        + (rear_port.displacement_m3 if rear_port else 0.0)
+        + (inside_displacement_m3(port, front_wall) if port and cfg.enclosure_type not in {"aperiodic","cardioid"} else 0.0)
+        + inside_displacement_m3(rear_port, rear_port_wall)
         + (brace.total_displacement_m3 if brace else 0.0)
         + (radiator.displacement_m3 if radiator else 0.0)
         + partition_displacement
@@ -458,9 +618,17 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         assert cfg.tuning_hz is not None
         diameter = project.driver.outer_diameter_m or project.driver.cutout_diameter_m
         assert diameter is not None
+        mltl_port: tuple[float, float] | None = None
+        if cfg.enclosure_type == "mltl":
+            # Port = hole through the front baffle at the line end (mass load, effective length
+            # = panel thickness + end corrections), not a Helmholtz port of the whole box volume.
+            mltl_radius = cfg.port_diameter_mm/2000
+            mltl_port = (np.pi*mltl_radius**2,
+                         cabinet.effective_front_thickness_m+1.46*mltl_radius)
         # The extra panels displace air, so resolve cabinet depth and folds together.
         for _ in range(5):
-            folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter,project.driver.sd_m2)
+            folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter,
+                                             project.driver.sd_m2,mltl_port,project.driver.vas_m3)
             new_displacement = total_displacement+baffle_displacement_m3(folded_line)
             updated = solve_depth_for_net_volume(
                 external_width_m=cfg.external_width_mm/1000,
@@ -476,15 +644,21 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                 cabinet=updated
                 break
             cabinet=updated
-        folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter,project.driver.sd_m2)
+        folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter,
+                                         project.driver.sd_m2,mltl_port,project.driver.vas_m3)
         total_displacement += baffle_displacement_m3(folded_line)
-        if ((project.driver.mounting_depth_m or 0) >
-                cabinet.internal_depth_m-folded_line.turn_gap_m-0.005):
+        magnet_depth = project.driver.mounting_depth_m or 0
+        if magnet_depth > cabinet.internal_depth_m-0.03:
             issues.append(DesignWarning(code="LINE_DRIVER_TURN",severity="error",
-                message="Treibermagnet ragt in die erste Kanalumlenkung; Tiefe oder Kanalhöhe ändern."))
+                message="Treibermagnet reicht bis zur Rückwand und blockiert die erste Kanalumlenkung; Tiefe ändern."))
+        elif magnet_depth > cabinet.internal_depth_m-folded_line.gap_m(0)-0.005:
+            issues.append(DesignWarning(code="LINE_DRIVER_TURN_NEAR",severity="warning",
+                message="Treibermagnet liegt in der Tiefe des ersten Umlenkspalts; "
+                        "Strömung geht darunter/darum herum, Magnet bleibt innerhalb der Treiberkammerhöhe."))
         if cfg.enclosure_type == "mltl":
-            port = round_port(box_volume_m3=target_net_volume_m3,
-                              tuning_hz=cfg.tuning_hz*0.7,
+            assert mltl_port is not None
+            port = PortDesign("round",mltl_port[0],cabinet.effective_front_thickness_m,
+                              mltl_port[1],folded_line.estimated_quarter_wave_hz,
                               diameter_m=cfg.port_diameter_mm/1000)
         elif cfg.enclosure_type != "transmission_line_closed":
             area = folded_line.mouth_width_m*folded_line.mouth_height_m
@@ -499,17 +673,27 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
             issues.append(DesignWarning(code="LINE_PORT_HEIGHT",severity="error",
                 message="MLTL-Portdurchmesser passt nicht in den letzten Kanal mit 10 mm Randabstand."))
         delta = abs(folded_line.estimated_quarter_wave_hz-cfg.tuning_hz)/cfg.tuning_hz
+        if folded_line.horn is not None:
+            delta = 0.0  # horns are judged by their cutoff (see rear_horn_notes), not by c/4L
         if delta>0.15:
             issues.append(DesignWarning(code="LINE_LENGTH_TARGET",severity="warning",
                 message=f"Gefaltete Linie: rechnerisch {folded_line.estimated_quarter_wave_hz:.1f} Hz statt Ziel {cfg.tuning_hz:.1f} Hz; Breite/Höhe/Volumen anpassen."))
+        if cfg.enclosure_type in LINE_TYPES:
+            warnings.extend(_line_notes(folded_line,cfg.enclosure_type,project.driver.sd_m2,issues))
         warnings.append("Linien-/Hornmodell: segmentierter Querschnitt, plane Wellen und angenäherte Faltungs-, Dämm- und Mündungsverluste. Prototyp mit Impedanz- und Nahfeldmessung abstimmen.")
-        if cfg.enclosure_type in REAR_HORN_TYPES:
-            warnings.append("Horn: gestufte Rechteckkanäle bilden das Profil näherungsweise ab; kein glattes Horn und keine vollständige Richtwirkungsberechnung.")
+        if cfg.enclosure_type in REAR_HORN_TYPES and folded_line.horn is not None:
+            for code,message in rear_horn_notes(folded_line,cfg.tuning_hz,project.driver.vas_m3):
+                if code:
+                    issues.append(DesignWarning(code=code,severity="warning",message=message))
+                else:
+                    warnings.append(message)
     if cfg.enclosure_type == "horn_front":
         assert cfg.tuning_hz is not None
         front_horn=design_front_horn(cabinet,project.driver,cfg.tuning_hz)
         warnings.append("Front-Horn: exponentielles Flächenprofil in 24 akustischen Abschnitten; Richtwirkung, Halsübergang und Mundlast am Prototyp messen.")
 
+    if cfg.enclosure_type not in FOLDED_TYPES and front_horn is None:
+        issues.extend(_proportion_issues(cabinet, project.driver))
     if project.driver.cutout_diameter_m and project.driver.cutout_diameter_m > inner_w:
         warnings.append("Driver cutout is wider than the available internal cabinet width.")
     if project.driver.mounting_depth_m and project.driver.mounting_depth_m > cabinet.internal_depth_m:
@@ -657,8 +841,16 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                    (coupler.length_m+coupler.ring_thickness_m+(project.driver.mounting_depth_m or 0)+0.01)
                    if coupler else (project.driver.mounting_depth_m or 0)+0.01
                    if front_horn else 0.0)
+    if brace is not None and brace_start == 0.0:
+        # Window braces must clear the chassis bodies; where a body cannot pass the window,
+        # the braces move behind it instead of cutting through the magnet.
+        blocking = [e.mounting_depth_m for e in layout if e.surface == "front"
+                    and e.mounting_depth_m > 0 and _wall_gap(e, cabinet, t) < brace.border_m]
+        if blocking:
+            brace_start = max(blocking)+0.01
     try:
-        brace_positions = brace_depths(cabinet.internal_depth_m, brace, start_m=brace_start)
+        brace_positions = brace_depths(cabinet.internal_depth_m, brace, start_m=brace_start,
+                                       check_fit=cfg.enclosure_type in LINED_FAMILIES | {"cardioid"})
     except ValueError as exc:
         brace_positions = ()
         issues.append(DesignWarning(code="BRACE_SPACE", severity="error", message=str(exc)))
@@ -670,9 +862,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                     continue
                 if e.mounting_depth_m <= plane:
                     continue
-                edge_gap=min(e.x_m-e.width/2-t,cabinet.width_m-t-e.x_m-e.width/2,
-                             e.y_m-e.height/2-(cabinet.bottom_thickness_m or t),
-                             cabinet.height_m-(cabinet.top_thickness_m or t)-e.y_m-e.height/2)
+                edge_gap=_wall_gap(e,cabinet,t)
                 if edge_gap < brace.border_m:
                     overlap=(brace.border_m-edge_gap)*1000
                     issues.append(DesignWarning(code="BRACE_COLLISION",severity="error",

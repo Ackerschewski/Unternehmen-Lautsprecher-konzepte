@@ -1,4 +1,15 @@
-"""Ideal, same-polarity tandem pair and its explicit sealed coupling chamber."""
+"""Ideal isobaric pair and its explicit sealed coupling chamber.
+
+Two physical layouts share the same acoustic model (identical drivers, one
+common moving mass, Vas/2):
+
+* tandem / push-push ("isobaric_*"): both cones face the listener, W2 sits behind
+  W1 on a mounting ring, both are driven with the same polarity;
+* magnet-to-magnet / push-pull ("compound_push_pull", often called clamshell):
+  W2 is mounted reversed on the ring (cone faces the main box, motor reaches into
+  the coupler towards W1's motor) and must be wired with reversed polarity so that
+  both cones still move in the same physical direction.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,6 +25,22 @@ class Coupler:
     length_m: float
     ring_thickness_m: float
     driver_cutout_m: float
+    w2_depth_m: float = 0.0
+    w2_reversed: bool = False
+
+    @property
+    def w2_extent_m(self) -> float:
+        """Signed axial extent of W2 from the rear face of the ring (+ rearwards).
+
+        Tandem: the motor points rearwards into the main box (+depth).
+        Magnet-to-magnet: the motor points forwards into the coupler (-depth).
+        """
+        return -self.w2_depth_m if self.w2_reversed else self.w2_depth_m
+
+    @property
+    def rear_extent_m(self) -> float:
+        """Distance from the inner face of the front panel to the rearmost point of the pair."""
+        return self.length_m + self.ring_thickness_m + (0.0 if self.w2_reversed else self.w2_depth_m)
 
     @property
     def displaced_volume_m3(self) -> float:
@@ -23,7 +50,7 @@ class Coupler:
 
 
 def make_coupler(driver: Driver, panel_thickness_m: float,
-                 gap_m: float) -> Coupler:
+                 gap_m: float, *, reversed_w2: bool = False) -> Coupler:
     if not driver.cutout_diameter_m or not driver.outer_diameter_m or not driver.mounting_depth_m:
         raise ValueError("Isobarik benötigt Ausschnitt, Außendurchmesser und Einbautiefe beider identischer Chassis.")
     if driver.outer_diameter_m <= driver.cutout_diameter_m:
@@ -31,9 +58,14 @@ def make_coupler(driver: Driver, panel_thickness_m: float,
     if gap_m < 0.01:
         raise ValueError("Isobarik-Koppelkammer benötigt mindestens 10 mm Freiraum.")
     inner = driver.outer_diameter_m + 0.01
-    return Coupler(inner, inner + 2*panel_thickness_m,
-                   driver.mounting_depth_m + gap_m, panel_thickness_m,
-                   driver.cutout_diameter_m)
+    # Tandem: W1's motor sits in the coupler, W2's cone looks into it from the
+    # ring's rear face. Magnet-to-magnet: W2's motor reaches through the ring
+    # (its flange is on the rear face), so the coupler also holds W2's motor.
+    length = driver.mounting_depth_m + gap_m
+    if reversed_w2:
+        length += max(driver.mounting_depth_m - panel_thickness_m, 0.0)
+    return Coupler(inner, inner + 2*panel_thickness_m, length, panel_thickness_m,
+                   driver.cutout_diameter_m, driver.mounting_depth_m, reversed_w2)
 
 
 def equivalent_driver(driver: Driver, wiring: str) -> Driver:

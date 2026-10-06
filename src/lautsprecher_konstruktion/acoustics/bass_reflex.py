@@ -34,7 +34,7 @@ def round_port_length(
     arrangement. Final construction must choose a geometry-specific correction.
     """
     if box_volume_m3 <= 0 or tuning_hz <= 0 or port_diameter_m <= 0:
-        raise ValueError("box volume, tuning and port diameter must be positive")
+        raise ValueError("Volumen, Abstimmfrequenz und Port-Durchmesser müssen positiv sein")
 
     radius = port_diameter_m / 2.0
     area = pi * radius * radius
@@ -44,8 +44,9 @@ def round_port_length(
 
     if physical_length <= 0:
         raise ValueError(
-            "Calculated physical port length is non-positive; choose a different "
-            "diameter, tuning frequency or enclosure volume."
+            f"Port nicht berechenbar: Rohrlänge {physical_length*1000:.0f} mm (effektive Länge "
+            f"{effective_length*1000:.0f} mm minus Endkorrektur). Kleineren Port-Durchmesser, "
+            "niedrigere Abstimmfrequenz oder kleineres Volumen wählen."
         )
 
     return RoundPortResult(

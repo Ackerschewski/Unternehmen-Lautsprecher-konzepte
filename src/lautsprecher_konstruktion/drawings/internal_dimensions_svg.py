@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from html import escape
 
+from lautsprecher_konstruktion.enclosure.folded_line import STUFFING_LABELS
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
@@ -57,16 +58,28 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" width="{ww:.1f}" height="{hh:.1f}" class="panel"/>')
     if bundle.folded_line is not None:
         line = bundle.folded_line
-        yy = y+tt
-        gap = _mm(line.turn_gap_m)*scale
         wall = _mm(c.panel_thickness_m)*scale
+        magnet = _mm(bundle.project.driver.mounting_depth_m or 0.0)*scale
+        # Stuffing zones (rule-of-thumb levels) behind the partitions' channels, drawn first.
+        top = y+tt
+        for index, channel_h in enumerate(line.channel_heights_m):
+            level = line.stuffing[index] if line.stuffing else 'none'
+            if level != 'none':
+                x0 = front+(magnet+8 if index == 0 else 0)
+                opacity = {'light': .25, 'medium': .45, 'heavy': .65}[level]
+                parts.append(f'<rect x="{x0:.1f}" y="{top:.1f}" width="{back-x0:.1f}" '
+                             f'height="{_mm(channel_h)*scale:.1f}" fill="#d9b45a" '
+                             f'fill-opacity="{opacity}" class="stuffing"/>')
+            top += _mm(channel_h)*scale+wall
+        yy = y+tt
         for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+            gap = _mm(line.gap_m(index))*scale
             yy += _mm(channel_h)*scale
             xx = front if index%2 == 0 else front+gap
             parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" '
                          f'width="{back-front-gap:.1f}" height="{wall:.1f}" class="panel"/>')
             parts.append(f'<text x="{xx+4:.1f}" y="{yy-5:.1f}" class="dimtext">'
-                         f'F{index+1} · {_mm(channel_h):.1f} mm</text>')
+                         f'F{index+1} · {_mm(channel_h):.1f} mm · Spalt {_mm(line.gap_m(index)):.0f} mm</text>')
             yy += wall
         # Acoustic path through the channels (dashed), from the driver chamber to the mouth.
         top = y+tt
@@ -74,17 +87,20 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         for channel_h in line.channel_heights_m:
             centres.append(top+_mm(channel_h)*scale/2)
             top += _mm(channel_h)*scale+wall
-        points = [(front+(back-front)*0.35, centres[0])]
+        points = [(front+magnet+8, centres[0])]
         for index in range(len(centres)-1):
+            gap = _mm(line.gap_m(index))*scale
             end_x = back-gap/2 if index%2 == 0 else front+gap/2
             points += [(end_x, centres[index]), (end_x, centres[index+1])]
-        last_x = front+(back-front)*0.9 if (len(centres)-1)%2 == 0 else front+(back-front)*0.1
+        last_x = front+6 if (len(centres)-1)%2 == 1 else back-6
         points.append((last_x, centres[-1]))
         path = " ".join(f"{px:.1f},{py:.1f}" for px, py in points)
         parts.append(f'<polyline points="{path}" fill="none" stroke="#16749a" stroke-width="2" '
                      'stroke-dasharray="7 5"/>')
-        parts.append(f'<text x="{front+6:.1f}" y="{y+tt+14:.1f}" class="dimtext">'
-                     f'Kammer hinter dem Treiber · {_mm(line.channel_heights_m[0]):.0f} mm</text>')
+        parts.append(f'<text x="{back-4:.1f}" y="{y+tt+14:.1f}" text-anchor="end" class="dimtext">'
+                     f'Treiberkammer · {_mm(line.channel_heights_m[0]):.0f} mm</text>')
+        parts.append(f'<text x="{back-4:.1f}" y="{centres[-1]-5:.1f}" text-anchor="end" class="dimtext">'
+                     f'Mündung vorn · {line.channel_areas_m2[-1]*10000:.0f} cm²</text>')
     if bundle.partition_front_depth_m is not None:
         px = front+_mm(bundle.partition_front_depth_m)*scale
         driver = next((e for e in bundle.front_elements if e.surface == 'partition' and e.type != 'port'), None)
@@ -174,7 +190,8 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     if bundle.folded_line is not None:
         line = bundle.folded_line
         info.extend((f'Linienweg {_mm(line.path_length_m):.1f} mm · Viertelwelle {line.estimated_quarter_wave_hz:.1f} Hz',
-                     f'Umlenkspalte {line.turn_gap_m*1000:.1f} mm, abwechselnd hinten/vorn',
+                     f'Umlenkspalte {", ".join(f"{_mm(line.gap_m(i)):.0f}" for i in range(line.fold_count))} mm, abwechselnd hinten/vorn',
+                     'Dämmung (Richtwert): '+', '.join(f'K{i+1} {STUFFING_LABELS[x]}' for i,x in enumerate(line.stuffing)),
                      *(f'Kanal {i+1}: Höhe {_mm(height):.1f} mm · Fläche {area*10000:.1f} cm²'
                        for i,(height,area) in enumerate(zip(line.channel_heights_m,line.channel_areas_m2,strict=True)))))
     if bundle.port:

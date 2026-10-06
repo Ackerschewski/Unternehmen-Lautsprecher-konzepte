@@ -13,7 +13,11 @@ import numpy as np
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
 from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
-from lautsprecher_konstruktion.enclosure.folded_line import FoldedLine, mouth_equivalent_radius_m
+from lautsprecher_konstruktion.enclosure.folded_line import (
+    STUFFING_LOSS,
+    FoldedLine,
+    mouth_equivalent_radius_m,
+)
 from lautsprecher_konstruktion.enclosure.ports import PortDesign
 
 
@@ -25,22 +29,14 @@ def simulate_folded_line(driver: Driver, line: FoldedLine, power_w: float,
     w = 2*pi*f
     s = 1j*w
     rho,c = 1.204,343.0
-    count = len(line.channel_areas_m2)
-    turns = [(a+b)/2 for a,b in zip(line.channel_heights_m,
-                                      line.channel_heights_m[1:])]
-    straight = (line.path_length_m-sum(turns))/(count-1)
-    segments: list[tuple[float,float]] = []
-    for i, area in enumerate(line.channel_areas_m2):
-        segments.append((area,straight*(0.5 if i in (0,count-1) else 1.0)))
-        if i < count-1:
-            segments.append((sqrt(area*line.channel_areas_m2[i+1]),turns[i]))
+    segments = line.segments()
     a = np.ones_like(f,dtype=complex)
     b = np.zeros_like(a)
     cc = np.zeros_like(a)
     d = np.ones_like(a)
-    loss = 0.04 if line.family == "labyrinth" else 0.022
-    gamma = (loss+1j)*w/c
-    for area,length in segments:
+    for area,length,stuffing in segments:
+        # Per-zone attenuation (approximation); stuffing speed reduction is not modelled.
+        gamma = (STUFFING_LOSS[stuffing]+1j)*w/c
         zc = rho*c/area
         ch = np.cosh(gamma*length)
         sh = np.sinh(gamma*length)

@@ -107,9 +107,9 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
     if bundle.folded_line is not None:
         line = bundle.folded_line
         yy = inner_y
-        gap = _mm(line.turn_gap_m)*scale
         wall = _mm(cab.panel_thickness_m)*scale
         for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+            gap = _mm(line.gap_m(index))*scale
             yy += _mm(channel_h)*scale
             xx = inner_x if index%2 == 0 else inner_x+gap
             parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" '
@@ -267,7 +267,7 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         line = bundle.folded_line
         parts.append(f'<text x="{note_x}" y="{note_y+105}" class="note">'
                      f'Linienweg {line.path_length_m*1000:.1f} mm · '
-                     f'{line.fold_count} Faltungen · Umlenkspalt {line.turn_gap_m*1000:.1f} mm</text>')
+                     f'{line.fold_count} Faltungen · Umlenkspalt max. {line.turn_gap_m*1000:.1f} mm</text>')
     if bundle.rear_port:
         parts.append(f'<text x="{note_x}" y="{note_y+77}" class="note">BR2 Rückkammer: '
                      f'Ø {_mm(bundle.rear_port.diameter_m or 0):.1f}, '

@@ -32,6 +32,8 @@ from lautsprecher_konstruktion.project.models import (
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
 
+BAFFLE_FAMILIES = frozenset({"infinite_baffle", "open_baffle", "dipole"})
+
 SPEAKER_TYPES = (
     "Subwoofer", "Regallautsprecher", "Kompaktlautsprecher", "Standlautsprecher",
     "Center", "Heimkino-Surround", "Studio-Monitor", "PA-Lautsprecher",
@@ -365,13 +367,19 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                          for ratio in (2.5,3.5,4.5)]
             elif enclosure == 'horn_front':
                 volumes=[(max(0.5,woofer.qts+0.08),150.0,None)]
+            elif enclosure == "infinite_baffle":
+                # Small: the sealed rear space must be >= 10 Vas; larger spaces only help marginally.
+                volumes=[(vas_m3*1000*10*factor,None,None) for factor in (1.0,1.5,2.5)]
+            elif enclosure in {"open_baffle","dipole"}:
+                volumes=[(1.0,None,None)]  # no enclosure volume exists; placeholder is ignored by the solver
             else:
                 volumes = [(vas_m3*r*1000*(0.5 if enclosure.startswith("isobaric_") else 1), woofer.fs_hz*fb, None)
                            for r, fb in zip(profile.volume_ratios, (0.95, 0.85, 0.75), strict=True)]
             for volume, tuning, _ in volumes:
-                volumes_tested.append(solve_sealed(
-                    equivalent_driver(woofer,"series") if enclosure in {"isobaric_sealed", "compound_push_pull"} else woofer,
-                    volume).box_volume_l if enclosure in {"sealed", "isobaric_sealed", "compound_push_pull", "horn_front"} else volume)
+                if enclosure not in BAFFLE_FAMILIES:
+                    volumes_tested.append(solve_sealed(
+                        equivalent_driver(woofer,"series") if enclosure in {"isobaric_sealed", "compound_push_pull"} else woofer,
+                        volume).box_volume_l if enclosure in {"sealed", "isobaric_sealed", "compound_push_pull", "horn_front"} else volume)
                 port_diameters = (0.05, 0.06, 0.08) if enclosure in {"bass_reflex", "aperiodic", "bandpass_4", "bandpass_6_parallel", "bandpass_6_series", "isobaric_vented"} else (0.0,)
                 for port_diameter in port_diameters:
                     for width, height in _dimensions(request, woofer, tweeter, enclosure, port_diameter):
@@ -525,6 +533,13 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
         capacity = (f"Maximales Brutto-Innenvolumen {max_internal_l:.1f} l; "
             f"kleinste geprüfte Netto-Variante {minimum_l:.1f} l."
             if minimum_l is not None else f"Maximales Brutto-Innenvolumen {max_internal_l:.1f} l.")
+        if request.enclosure_preference in BAFFLE_FAMILIES:
+            # A baffle has no enclosure volume: the box-volume capacity line would be meaningless.
+            capacity = ("Schallwand ohne Gehäusevolumen: Der Rückraum (Wandeinbau ≥ 10 × Vas) "
+                        "bzw. die offene Rückseite zählt nicht zum Bauraum."
+                        if request.enclosure_preference == "infinite_baffle" else
+                        "Offene Schallwand ohne Gehäusevolumen: Breite, Höhe und Treiberlage bestimmen den "
+                        "Dipol-Umweg (Eckfrequenz c/(4·D)).")
         reasons = (capacity, *(reason for reason, _ in rejected.most_common(4)))
         needed_depth = (2*t+(minimum_l/1000)/(max(1e-9,
             (request.max_width_m-2*t)*(request.max_height_m-2*t)))

@@ -80,9 +80,9 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
     if bundle.folded_line is not None:
         line = bundle.folded_line
         yy = y+top
-        gap = line.turn_gap_m*1000*scale
         wall = cab.panel_thickness_m*1000*scale
         for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+            gap = line.gap_m(index)*1000*scale
             yy += channel_h*1000*scale
             xx = x+fw if index%2 == 0 else x+fw+gap
             parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" '
@@ -293,7 +293,7 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
         line = bundle.folded_line
         parts.append(_text(60,internals_y+94,
             f"Faltkanal: Weg {line.path_length_m*1000:.1f} mm · "
-            f"{line.fold_count} Trennplatten · Umlenkspalt {line.turn_gap_m*1000:.1f} mm · "
+            f"{line.fold_count} Trennplatten · Umlenkspalt max. {line.turn_gap_m*1000:.1f} mm · "
             f"Viertelwelle {line.estimated_quarter_wave_hz:.1f} Hz"))
     if bundle.rear_port:
         second_surface = next((e.surface for e in bundle.front_elements if e.id == "BR2"), "back")

@@ -34,12 +34,20 @@ class WindowBrace:
 
 
 def brace_depths(inner_depth_m: float, brace: WindowBrace | None,
-                 *, start_m: float = 0.0) -> tuple[float, ...]:
-    """Brace planes measured from the inner face of the front panel."""
+                 *, start_m: float = 0.0, check_fit: bool = False) -> tuple[float, ...]:
+    """Brace planes measured from the inner face of the front panel.
+
+    With check_fit the free depth must hold every brace including its thickness
+    (planes may neither overlap each other nor the back wall).
+    """
     if brace is None:
         return ()
     if start_m >= inner_depth_m:
         raise ValueError("Für Fensterstreben bleibt hinter den Einbauteilen kein Platz.")
     available = inner_depth_m - start_m
+    if check_fit and available/(brace.quantity+1) < brace.thickness_m:
+        raise ValueError(
+            f"Für {brace.quantity} Fensterstrebe(n) à {brace.thickness_m*1000:.0f} mm bleiben hinter den "
+            f"Einbauteilen nur {available*1000:.0f} mm; Strebenzahl verringern oder Tiefe vergrößern.")
     return tuple(start_m + available*i/(brace.quantity+1)
                  for i in range(1, brace.quantity+1))
