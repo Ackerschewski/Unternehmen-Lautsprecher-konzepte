@@ -33,7 +33,7 @@ def test_tokens_match_the_ack_studio_package_snapshot() -> None:
         assert tokens.AREAS[key] == {k: values[k] for k in ("accent", "panel", "band")}, key
     assert tokens.SPACING == tuple(int(v[:-2]) for v in SNAPSHOT["space"].values())
     assert (tokens.RADIUS_CONTROL, tokens.RADIUS_CARD) == (8, 14) and tokens.TOUCH_TARGET == 44
-    assert tokens.DEFAULT_AREA == "construction" and tokens.theme()["accent"] == "#735419"
+    assert tokens.DEFAULT_AREA == "software" and tokens.theme()["accent"] == "#172d46"
 
 
 def test_every_area_has_readable_text_and_accent_contrast() -> None:
@@ -46,14 +46,14 @@ def test_every_area_has_readable_text_and_accent_contrast() -> None:
         assert tokens.contrast(t["onAccent"], t["accent"]) >= 4.5, name
         assert tokens.contrast(t["onAccent"], t["accentHover"]) >= 4.5, name
         assert tokens.contrast(t["accent"], t["background"]) >= 4.5, name
-    tokens.set_area("construction")
+    tokens.set_area("software")
     with pytest.raises(ValueError):
         tokens.set_area("gold")
 
 
 def test_stylesheet_follows_the_package_look() -> None:
     css = stylesheet()
-    assert "#735419" in css and "#fbfaf7" in css and "'Inter'" in css and "Cormorant Garamond" in css
+    assert "#172d46" in css and "#fbfaf7" in css and "'Inter'" in css and "Cormorant Garamond" in css
     assert "border-radius:8px" in css and "border-radius:14px" in css
     assert "JetBrains" not in css and "#F27216" not in css and "#1769b3" not in css.casefold()
     assert "QPushButton#primary" in css and "min-height:28px" in css
@@ -100,28 +100,25 @@ def test_default_simulation_shows_two_charts_and_more_on_request(app: QApplicati
 def test_tabs_are_grouped_and_there_is_no_theme_switch(app: QApplication) -> None:
     window = AssistantWindow()
     names = [window.tabs.tabText(i) for i in range(window.tabs.count())]
-    assert names == ["Entwürfe", "Variantenvergleich", "Zeichnungen", "Simulation", "Stückliste", "Zuschnitt"]
+    assert names == ["Entwürfe", "Variantenvergleich", "Zeichnungen", "Klang & Simulation", "Stückliste", "Zuschnitt"]
     assert window.export_button.objectName() == "primary" and window.create_button.objectName() == "primary"
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
     assert titles == ["Datei", "Werkzeuge", "Ansicht", "Hilfe"]
     assert window.mode == "light"
 
 
-def test_area_can_be_chosen_in_settings(app: QApplication) -> None:
+def test_loudspeaker_app_is_always_in_software_world(app: QApplication) -> None:
     from lautsprecher_konstruktion.appdata import Settings
-    Settings().set("area", "software")
-    try:
-        window = AssistantWindow()
-        assert "#172d46" in window.styleSheet()
-    finally:
-        Settings().set("area", "bogus")
-        assert "#735419" in AssistantWindow().styleSheet()  # invalid values fall back to construction
+    Settings().set("area", "construction")  # legacy value from older builds
+    window = AssistantWindow()
+    assert Settings().get("area") == "software"
+    assert "#172d46" in window.styleSheet()
 
 
 def test_expert_window_uses_the_same_stylesheet_and_hides_three_way_fields(app: QApplication) -> None:
-    tokens.set_area("construction")
+    tokens.set_area("software")
     window = MainWindow()
-    assert "#735419" in window.styleSheet() and window.calculate_button.objectName() == "primary"
+    assert "#172d46" in window.styleSheet() and window.calculate_button.objectName() == "primary"
     assert window._crossover_form.isRowVisible(window.upper_frequency) is False
     window.crossover_ways.setCurrentIndex(window.crossover_ways.findData(3))
     assert window._crossover_form.isRowVisible(window.upper_frequency) is True
