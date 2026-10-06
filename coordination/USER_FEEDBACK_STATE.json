@@ -2,12 +2,27 @@
   "counts": {
     "closed": 0,
     "defect_created": 0,
-    "needs_triage": 0,
-    "total": 0
+    "needs_triage": 2,
+    "total": 2
   },
   "derived": true,
   "generated_by": "tools/feedback_control.py",
-  "items": [],
+  "items": [
+    {
+      "id": "FB-2BDA3F31C2",
+      "occurrences": 1,
+      "source": "USER_TEST",
+      "status": "NEEDS_TRIAGE",
+      "summary": "UI wirkt zu technisch; Zeichnungen zu klein und schwer lesbar"
+    },
+    {
+      "id": "FB-E8A6C330E8",
+      "occurrences": 1,
+      "source": "MANUAL_QA",
+      "status": "NEEDS_TRIAGE",
+      "summary": "Nach fehlgeschlagener Berechnung bleibt eine alte Zeichnung sichtbar"
+    }
+  ],
   "schema_version": 1,
   "source_of_truth": "coordination/feedback/*.json"
 }

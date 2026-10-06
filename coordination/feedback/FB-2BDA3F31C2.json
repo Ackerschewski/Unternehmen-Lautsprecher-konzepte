@@ -1,0 +1,21 @@
+{
+  "component": "ui",
+  "created_at": "2026-10-06T19:08:56+00:00",
+  "defect_id": null,
+  "evidence_class": "USER_REVIEW",
+  "evidence_reference": "coordination/feedback/2026-10-06-ACK-STUDIO-UI-REVIEW-AND-MOTION.md",
+  "fingerprint": "2bda3f31c25f2e1f672c9edfc967fa5d0c88569723b055f5d7a04e1d2ecf9868",
+  "id": "FB-2BDA3F31C2",
+  "last_seen_at": "2026-10-06T19:08:56+00:00",
+  "occurrences": 1,
+  "raw_feedback": [
+    "Allgemein finde ich die UI sieht noch sehr technisch aus und ich glaube als Nutzer hätte man nicht wirklich Spaß aktuell, gerade weil man auch die Zeichnungen gar nicht lesen kann, weil alles so klein ist."
+  ],
+  "repository": "Ackerschewski/Unternehmen-Lautsprecher-konzepte",
+  "schema_version": 1,
+  "severity": null,
+  "source": "USER_TEST",
+  "status": "NEEDS_TRIAGE",
+  "summary": "UI wirkt zu technisch; Zeichnungen zu klein und schwer lesbar",
+  "symptom_class": "ack-studio-layout-readability"
+}

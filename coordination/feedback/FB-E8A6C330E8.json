@@ -1,0 +1,21 @@
+{
+  "component": "ui/assistant_window",
+  "created_at": "2026-10-06T19:08:56+00:00",
+  "defect_id": null,
+  "evidence_class": "OFFSCREEN_QT",
+  "evidence_reference": "coordination/feedback/2026-10-06-ACK-STUDIO-UI-REVIEW-AND-MOTION.md",
+  "fingerprint": "e8a6c330e8ee5f393ba3ded89a1e79b5e066e26b30ce68a5babfffa4706d9740",
+  "id": "FB-E8A6C330E8",
+  "last_seen_at": "2026-10-06T19:08:56+00:00",
+  "occurrences": 1,
+  "raw_feedback": [
+    "Geprüfter Commit b2e03d89b4829466dc3838764edd6e30d81e9fa2: Regaldemo erfolgreich, danach unmögliche Subwooferdemo. designs leer, SVG gültig, Export gesperrt. Screenshot 09 bestätigt die vorherige Zeichnung."
+  ],
+  "repository": "Ackerschewski/Unternehmen-Lautsprecher-konzepte",
+  "schema_version": 1,
+  "severity": null,
+  "source": "MANUAL_QA",
+  "status": "NEEDS_TRIAGE",
+  "summary": "Nach fehlgeschlagener Berechnung bleibt eine alte Zeichnung sichtbar",
+  "symptom_class": "stale-drawing-after-failed-calculation"
+}

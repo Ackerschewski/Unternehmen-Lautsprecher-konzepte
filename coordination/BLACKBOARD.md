@@ -92,3 +92,12 @@ Messvalidierung und vollständige 3D-Fertigungskontrolle, danach frei konfigurie
 - Gesamt-Fertigungsblatt als SVG: Vorderansicht, Rückansicht, Seitenschnitt, Einbau-/Bohrkoordinaten und Zuschnitt; fehlende Lochbilder werden ausgewiesen.
 - Sechs Gehäusearten berechenbar; 23 weitere bleiben wegen fehlender Solver und Fertigungsgeometrie in Entwicklung.
 - 55 lokale Pytest-Fälle bestanden; Windows-Build und GitHub-Integration stehen noch aus.
+
+
+## Nutzerfeedback 2026-10-06 · ACK Studio UI und Zeichnungslesbarkeit
+
+- Vollständige Review, direkte Nutzerkritik, neun Screenshots und konkreter Bewegungsplan: [Feedback und Abnahmekriterien](feedback/2026-10-06-ACK-STUDIO-UI-REVIEW-AND-MOTION.md).
+- Nutzer empfindet die UI als zu technisch und wenig angenehm; Zeichnungen sind zu klein und schlecht lesbar.
+- Priorität: veraltete Ergebnisansichten/Clipping korrigieren, danach Zeichnungs-Fokusmodus und visuelle Ergebnisübersicht, anschließend kurze funktionale Animationen mit Reduktionsoption.
+- Feedback-Events `FB-2BDA3F31C2` und `FB-E8A6C330E8` aufgenommen; Status `NEEDS_TRIAGE`. Keine Umsetzung oder Nutzerabnahme als erledigt gemeldet.
+- Bildnachweise beziehen sich auf Review-Commit `b2e03d89b4829466dc3838764edd6e30d81e9fa2`; spätere Änderungen vor Nacharbeit gegenprüfen.
