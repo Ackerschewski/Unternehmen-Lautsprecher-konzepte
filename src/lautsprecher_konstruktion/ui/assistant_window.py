@@ -717,6 +717,7 @@ class AssistantWindow(QMainWindow):
         if hasattr(self, "target_curve"):
             self.target_curve.clear_actual()
             self.target_curve.set_candidate_curves(())
+            self.target_curve.set_component_influence({})
             self.target_curve.set_influence_summary(
                 "Berechne Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
             )
