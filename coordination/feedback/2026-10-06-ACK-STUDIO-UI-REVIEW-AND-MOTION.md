@@ -121,6 +121,294 @@ Beibehalten: warmer weißer Grund, dunkles Konstruktion-Senfgelb, Serif für aus
 - Änderungen im Formular markieren vorhandene Unterlagen sofort als veraltet. Fehlschlag leert die neue Ergebnisfläche oder kennzeichnet das vorherige Ergebnis eindeutig inklusive altem Projektnamen/Berechnungsstand.
 - Technische Linien, Bemaßung und Text dürfen in der UI andere Bildschirmgrößen haben als im Druckexport, müssen aber dieselben geprüften Modelldaten zeigen.
 
+## Ziel-Design V3 – vom technischen Tool zum hochwertigen ACK-Studio-Planer
+
+Die nächste UI-Runde soll **nicht** nur Farben, Abstände und Buttonradien polieren. Ziel ist ein struktureller Umbau vom klassischen technischen Desktoptool hin zu einem hochwertigen, verständlichen Produktplaner mit klarer ACK-Studio-Wiedererkennung.
+
+### Designziel
+
+Die Anwendung soll sich anfühlen wie:
+
+> **„ACK Studio hat ein eigenes professionelles Produktdesign-Werkzeug gebaut.“**
+
+Nicht wie:
+
+> **„Eine PySide-Anwendung hat nachträglich ACK-Studio-Farben bekommen.“**
+
+Die Website dient dabei als Markenreferenz, nicht als direkt zu kopierendes Layout. Keine Marketing-Heros, Ticker oder Slideshow in die Fachanwendung übernehmen.
+
+### Markenübertragung aus der ACK-Studio-Website
+
+Für die App folgende Rollen vorsehen:
+
+- **Software-Navy** als primäre App-Chrome-/Arbeitsflächenfarbe im Dark Mode;
+- **warme Papierflächen** für Dokumente, Karten, Detailflächen und Light Mode;
+- **Konstruktions-Ocker** als aktiver technischer Akzent und Primäraktion;
+- **Waldgrün** für valide/geprüfte Zustände und ausreichend Reserve;
+- **Burgunder** nur gezielt für Marke, kritische Zustände oder besondere Hervorhebung;
+- **Cormorant** nur für große Seitentitel und wenige hochwertige Überschriften;
+- **Inter** für Bedienung, Tabellen, Kennwerte, Formulare und technische Inhalte.
+
+Keine großflächige fast-schwarze + braune CAD-Optik als alleinige Designsprache. Die App soll visuell näher an der Software-/Konstruktionswelt der Website liegen.
+
+### Grundlayout nach einer Berechnung
+
+Nach erfolgreicher Berechnung soll sich die Oberfläche vom Eingabeformular in einen Planungsarbeitsplatz verwandeln.
+
+**Empfohlenes Desktoplayout:**
+
+- **linke Spalte ca. 260–300 px:** kompakte, einklappbare Anforderungen / „Entwurf ändern“;
+- **Mitte als größte Fläche:** Lautsprecher-/Gehäusevisualisierung, Geometrie, Graph oder Zeichnung;
+- **rechte Spalte ca. 300–340 px:** zentrale Kennwerte, Prüfstatus, Kosten, Reserve und Kontextaktionen;
+- **oben:** reduzierte Arbeitsnavigation;
+- **unten:** nur kontextbezogene Aktion, keine permanente Dateiverwaltungsleiste.
+
+Das aktuelle starre „großes Formular links + Bericht rechts“ soll nicht das Standard-Arbeitsmodell bleiben.
+
+### Einstieg / Projektassistent
+
+Der leere Ergebnisbereich auf der Startseite soll vollständig entfallen.
+
+Stattdessen ein visuell geführter Projektstart:
+
+1. **Was möchtest du bauen?**
+   - große Auswahlkarten, z. B. Regallautsprecher, Standlautsprecher, Subwoofer, Center, Monitor;
+   - optional kleine vereinfachte Silhouetten/Illustrationen.
+
+2. **Wie viel Platz hast du?**
+   - Breite / Höhe / Tiefe;
+   - kleine proportionale Gehäusegrafik aktualisiert sich direkt;
+   - Volumen nur ergänzend, nicht als dominierende Haupteingabe.
+
+3. **Wie soll er klingen?**
+   - verständliche Klangprofile als Karten/Presets;
+   - später direkter Übergang zur Zielkurve im Klang-Labor.
+
+4. **Weitere Anforderungen**
+   - seltene technische Parameter erst aufklappen;
+   - Kosten, Bauweise, Material, maximale Leistung etc.
+
+Primäraktion klar und groß: **„Entwurf erstellen“**.
+
+### Entwurfsansicht
+
+Der Nutzer soll zuerst den **Lautsprecher** sehen, nicht einen langen Bericht.
+
+Zielaufbau:
+
+- große Front-/Gehäusevisualisierung oder später 3D-Ansicht;
+- daneben höchstens fünf zentrale Kennwerte:
+  - Außenmaße;
+  - F3 / Tiefbass;
+  - Preisstatus;
+  - Datenqualität;
+  - Prüfstatus / Reserve;
+- sichtbare Empfehlung: **„A · Empfohlener Entwurf“**;
+- kurze Begründung in 2–3 verständlichen Aussagen;
+- Schaltfläche **„Warum empfohlen?“** für technische Herleitung;
+- vollständige technischen Details einklappbar.
+
+Die bestehende lange Textausgabe soll nicht das primäre Ergebnisformat sein.
+
+### Variantenvergleich
+
+Für wenige Kandidaten standardmäßig **Vergleichskarten statt Excel-artiger Tabelle**.
+
+Beispielstruktur:
+
+**A · Empfehlung**
+- kompaktester geeigneter Entwurf;
+- F3 72 Hz;
+- aktueller Platzbedarf;
+- Reserve / Prüfstatus.
+
+**B · Mehr Tiefbass**
+- +10 mm Breite;
+- −11 Hz F3;
+- höheres Volumen.
+
+**C · Tiefster Bass**
+- +103 mm Tiefe;
+- −19 Hz F3;
+- mögliche Mehrkosten / Portbedarf.
+
+Wichtige Unterschiede visuell hervorheben.
+
+Erst über **„Alle technischen Daten“** die detaillierte Tabelle öffnen.
+
+Tabellen:
+- keine hellen systemfremden Flächen im Dark Mode;
+- keine horizontalen Scrollmonster als Standard;
+- nur entscheidungsrelevante Spalten zuerst.
+
+### Zeichnungsbereich
+
+Zeichnungen erhalten einen echten Viewer statt eines kleinen eingebetteten Druckblatts.
+
+Zwei klar getrennte Darstellungen:
+
+**Lesemodus**
+- UI-optimierte technische Ansicht;
+- Bauteil/Schnitt füllt den verfügbaren Bereich;
+- Maßtexte in normal lesbarer UI-Größe;
+- direkte Navigation zu Front, Seite, Innenaufbau, Einzelteilen;
+- Zoom am Mauszeiger, Pan, 100 %, Seitenbreite, Einpassen.
+
+**Druckblatt**
+- exakte A4/A3-/PDF-Darstellung für Exportkontrolle;
+- bewusst separat vom Lesemodus.
+
+Optional links:
+- schmale Thumbnail-/Ansichtsleiste;
+- Front;
+- Seitenansicht;
+- Innenaufbau;
+- Einzelteile;
+- Gesamtblatt.
+
+Beim Wechsel in „Zeichnungen“ soll der Fokusmodus automatisch sinnvoll greifen; „Eingaben anzeigen“ ist dann eine Option statt ein permanenter großer Button.
+
+### Navigation vereinfachen
+
+Arbeitsnavigation auf wenige klare Bereiche reduzieren, z. B.:
+
+**Planen | Varianten | Klang & Simulation | Zeichnungen | Fertigung**
+
+Sekundäre Bereiche wie Stückliste und Zuschnitt können innerhalb von „Fertigung“ liegen.
+
+Nicht gleichrangig behandeln:
+- Zeichnungsmodus = Arbeitszustand;
+- Bibliothek = eigener Bereich;
+- Expertenmodus = Einstellung.
+
+Empfehlung:
+- Bibliothek als echter Navigationsbereich mit Icon;
+- Expertenmodus in Einstellungen bzw. als kompakter „Normal / Expert“-Schalter;
+- Zeichnungs-/Fokusmodus kontextabhängig automatisch.
+
+### Dateiverwaltung / untere Leiste
+
+Die permanente Dreierleiste
+
+- Projekt speichern;
+- Projekt laden;
+- Fertigungsunterlagen exportieren
+
+soll nicht auf jeder Seite gleich dominant bleiben.
+
+Besser:
+- **Autosave / Projektzustand automatisch sichern**;
+- „Öffnen/Laden“ in Datei-/Projektmenü;
+- explizite Speicherbestätigung nur bei Bedarf;
+- Export erst im Bereich **Fertigung** als starke Hauptaktion;
+- nach Export kurze hochwertige Bestätigung mit Dateipfad und „Ordner öffnen“.
+
+### Standard-Qt-Look reduzieren
+
+Folgende Elemente müssen konsequent an das Designsystem angepasst werden:
+
+- Scrollbars;
+- Spinboxes;
+- Comboboxen;
+- Checkboxen;
+- Tabellenheader;
+- Tabellen-Selektion;
+- Fokuszustände;
+- Tooltips;
+- Kontextmenüs;
+- leere Zustände;
+- Fehlermeldungen;
+- Splitter;
+- Tabs;
+- native Rahmen.
+
+Keine systemfremden weißen Tabellenflächen im Dark Mode.
+
+Ziel: Bedienelemente sollen nicht nach Standard-Qt aussehen, aber weiterhin klar, zugänglich und tastaturbedienbar bleiben.
+
+### Karten und Flächen
+
+Weniger einzelne dünn gerahmte Kästen.
+
+Stattdessen:
+- größere zusammenhängende Flächen;
+- klare Hierarchie über Abstand, Typografie und Hintergrund;
+- Kartenradius grob 12–14 px;
+- Linien nur dort, wo sie Struktur erklären;
+- Statuskarten sparsam einsetzen;
+- Hauptinhalt visuell dominanter als Navigation und Formular.
+
+### Dark- und Light-Mode
+
+**Dark Mode** als bevorzugte visuelle Leitvariante:
+- nicht fast-schwarz, sondern tiefes Software-Navy;
+- warme/helle Dokumentflächen dürfen bewusst als Kontrast erscheinen;
+- Ocker für aktive technische Aktionen;
+- Grün für valide Zustände.
+
+**Light Mode**:
+- warme Papierbasis statt neutralem Standardweiß;
+- ausreichend Kontrast;
+- keine klassische „Office Engineering Software“-Anmutung.
+
+Beide Modi müssen dieselbe Informationshierarchie besitzen.
+
+### Ergebniszustände
+
+Leere, laufende, erfolgreiche und fehlerhafte Zustände sollen jeweils bewusst gestaltet sein:
+
+- **leer:** hilfreiche Anleitung / Beispiel statt leerem Rechteck;
+- **Berechnung läuft:** echter Fortschritt oder klarer Schrittext;
+- **erfolgreich:** Visualisierung + zentrale Kennwerte;
+- **nicht machbar:** verständliche Ursache + direkte nächste Aktion;
+- **veraltet:** alte Ergebnisse eindeutig als nicht aktuell markieren;
+- **unvollständige Daten:** Unsicherheit sichtbar, keine Scheinpräzision.
+
+### Hochwertige Microinteractions
+
+Nur dezente funktionale Bewegung:
+
+- Hover: 120–160 ms;
+- Panel-/Tabwechsel: 120–220 ms;
+- Variantenauswahl: kurzer Crossfade;
+- Visualisierungsupdate: 180–240 ms;
+- Zeichnung einpassen: kontrollierter Zoom;
+- Exportbestätigung: kurze Einblendung;
+- keine dauerhaft pulsierenden Elemente;
+- keine künstlich hochzählenden Werte;
+- keine Slideshow;
+- Reduced-Motion berücksichtigen.
+
+### Reihenfolge für den Designumbau
+
+1. **Informationsarchitektur und Layout** ändern;
+2. Startassistent visuell neu aufbauen;
+3. Entwurfsseite auf Visualisierung + Kennwerte umstellen;
+4. Variantenkarten umsetzen;
+5. Zeichnungsviewer umbauen;
+6. Navigation und Dateiverwaltung vereinfachen;
+7. Design-Tokens / Website-Farblogik sauber übernehmen;
+8. Standard-Qt-Look entfernen;
+9. Microinteractions und Motion ergänzen;
+10. erst danach Pixel-Politur.
+
+### Design-Abnahmekriterien
+
+- [ ] Startseite enthält keinen großen leeren Ergebnisrahmen.
+- [ ] Nutzer erkennt innerhalb weniger Sekunden, welche drei Schritte zum ersten Entwurf führen.
+- [ ] Nach Berechnung ist eine Lautsprecher-/Gehäusevisualisierung der dominante Inhalt.
+- [ ] Technische Langtexte sind sekundär und aufklappbar.
+- [ ] Varianten A/B/C lassen sich ohne horizontales Scrollen verstehen und vergleichen.
+- [ ] Zeichnungen sind im Lesemodus ohne extremes Zoomen nutzbar.
+- [ ] Dark Mode enthält keine systemfremden hellen Tabellen-/Widgetflächen.
+- [ ] App-Chrome, Zustände und Akzente nutzen nachvollziehbar Navy / Papier / Ocker / Grün / Burgunder.
+- [ ] Bibliothek, Expertenmodus und Zeichnungsmodus sind nicht mehr als drei gleichartige Hauptbuttons behandelt.
+- [ ] Laden/Speichern blockieren nicht permanent wertvolle Arbeitsfläche.
+- [ ] Standard-Qt-Elemente wirken visuell konsistent mit dem ACK-Studio-Designsystem.
+- [ ] 1280×720 bleibt funktional; 1366×768 und 1920×1080 wirken nicht leer oder überdehnt.
+- [ ] UI wirkt auch ohne Animation hochwertig; Motion ist nur Verfeinerung.
+
+
 ## Interaktive Fullrange-Klangabstimmung – Kernfunktion für den Planer
 
 Die bisherige Tieftonsimulation soll zu einem vollbreiten **Klang- und Optimierungsarbeitsbereich** ausgebaut werden. Ziel ist nicht nur ein Frequenzgang von ungefähr 20 Hz bis 20 kHz, sondern eine Oberfläche, in der der Nutzer seine gewünschte Zielkurve direkt bearbeiten und gleichzeitig verstehen kann, **welche Baugruppe welchen Frequenzbereich überhaupt verändern kann**.
