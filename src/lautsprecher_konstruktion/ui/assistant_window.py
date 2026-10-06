@@ -380,7 +380,22 @@ class AssistantWindow(QMainWindow):
         self.variant_list.clear()
         self.variant_list.setVisible(False)
         self.comparison.setRowCount(0)
+        self.comparison.setVisible(False)
+        self.all_columns.blockSignals(True)
+        self.all_columns.setChecked(False)
+        self.all_columns.blockSignals(False)
+        self.variant_cards.set_designs(())
         self.details.clear()
+        self.details_toggle.blockSignals(True)
+        self.details_toggle.setChecked(False)
+        self.details_toggle.blockSignals(False)
+        self.details.setVisible(False)
+        self.details_toggle.setText("Warum empfohlen? · Technische Details")
+        self.selected_title.setText("Noch kein Entwurf")
+        self.recommendation_summary.setText(
+            "Nach der Berechnung stehen hier die wichtigsten Gründe für die Empfehlung."
+        )
+        self.empty_guide.setVisible(True)
         if hasattr(self, "preview"):
             self.preview.set_bundle(None)
         self.kpi_row.setVisible(False)
@@ -916,8 +931,9 @@ class AssistantWindow(QMainWindow):
         if result.status == "ok":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
             self._set_state("success", f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
-            self.variant_list.setVisible(True)
-            self.variant_list.setFixedHeight(28 * len(result.designs) + 8)
+            self.variant_list.setVisible(False)
+            self.empty_guide.setVisible(False)
+            self.variant_cards.set_designs(result.designs)
             self.comparison.setRowCount(len(result.designs))
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
@@ -944,14 +960,26 @@ class AssistantWindow(QMainWindow):
             self.variant_list.setCurrentRow(0)
         elif result.status == "impossible":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
-            self._set_state("danger", "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. Änderungsvorschläge stehen unter „Entwürfe“.")
+            self._set_state(
+                "danger",
+                "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. "
+                "Die wirksamsten Änderungen stehen unter „Planen“.",
+            )
             reasons = "".join(f"<li>{escape(item)}</li>" for item in result.rejection_reasons)
             changes = "".join(f"<li>{escape(item)}</li>" for item in result.suggested_constraint_changes)
             self._clear_results()
             self._stale = True
-            self.details.setHtml(f"<h2>Nicht machbar</h2><p>Technische Meldungen des Berechnungskerns "
-                f"(Originaltext, daher teils englisch):</p><b>Gründe</b><ul>{reasons}</ul>"
-                f"<b>Mögliche Änderungen</b><ul>{changes}</ul>")
+            self.empty_guide.setVisible(False)
+            self.selected_title.setText("Nicht machbar")
+            self.recommendation_summary.setText(
+                "Die aktuellen Randbedingungen schließen alle geprüften Varianten aus. "
+                "Öffne die technischen Details für Ursachen und konkrete Änderungsvorschläge."
+            )
+            self.details.setHtml(
+                f"<h2>Nicht machbar</h2><b>Gründe</b><ul>{reasons}</ul>"
+                f"<b>Mögliche Änderungen</b><ul>{changes}</ul>"
+            )
+            self.details_toggle.setChecked(True)
             self.tabs.setCurrentIndex(0)
             self.save_button.setEnabled(False)
             self.export_button.setEnabled(False)
@@ -977,6 +1005,15 @@ class AssistantWindow(QMainWindow):
             return
         design = self.designs[index]
         bundle = design.bundle
+        self.variant_cards.select(index)
+        self.empty_guide.setVisible(False)
+        self.selected_title.setText(design.label)
+        reasons = tuple(design.reasons[:3])
+        self.recommendation_summary.setText(
+            "Warum passend:\n" + "\n".join(f"• {reason}" for reason in reasons)
+            if reasons else "Die Variante erfüllt die aktuell bewertbaren Randbedingungen."
+        )
+        self.details_toggle.setChecked(False)
         self.preview.set_bundle(bundle)
         self.cutting_panel.set_bundle(bundle)
         c = bundle.cabinet
@@ -1143,6 +1180,7 @@ class AssistantWindow(QMainWindow):
         if surface:
             self.panel_svg.load(QByteArray(render_panel_sheet_svg(
                 current.bundle, surface).encode("utf-8")))
+            self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
     def set_focus_mode(self, on: bool) -> None:
         """Collapse the input column so drawings and results get the full width."""
@@ -1156,15 +1194,17 @@ class AssistantWindow(QMainWindow):
 
         def done() -> None:
             self.wizard_panel.setVisible(not on)
-            for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
-                view.fit()  # fit exactly once after the transition
+            self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
         if not on:
             self.wizard_panel.setVisible(True)
         animate_value(self.split, sizes[0], target, apply, reduced=self.reduced_motion, finished=done)
         self.focus_button.setText("Eingaben zeigen" if on else "Zeichnung groß anzeigen")
         if on:
-            self.tabs.setCurrentIndex(2)
+            for index in range(self.tabs.count()):
+                if self.tabs.tabText(index) == "Zeichnungen":
+                    self.tabs.setCurrentIndex(index)
+                    break
 
     def _expert(self) -> None:
         if self.expert_window is None:
@@ -1189,6 +1229,8 @@ class AssistantWindow(QMainWindow):
         self.variant_list.clear()
         self.comparison.setRowCount(0)
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
+        self.variant_cards.set_designs(self.designs)
+        self.empty_guide.setVisible(False)
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)
         self._set_state("info", "Expertenentwurf übernommen")
