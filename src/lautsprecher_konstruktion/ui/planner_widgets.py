@@ -204,6 +204,27 @@ class VariantCards(QWidget):
                 f" · F3 n/a\n"
             )
             text += f"{price} · Teilbewertung {design.score:.0f}/100"
+            if index:
+                base_cab = baseline.bundle.cabinet
+                deltas: list[str] = []
+                if f3 is not None:
+                    base_f3 = self._f3(baseline)
+                    if base_f3 is not None and abs(f3-base_f3) >= 0.5:
+                        deltas.append(f"F3 {f3-base_f3:+.0f} Hz")
+                volume = cab.width_m*cab.height_m*cab.depth_m
+                base_volume = base_cab.width_m*base_cab.height_m*base_cab.depth_m
+                if base_volume > 0 and abs(volume/base_volume-1) >= 0.03:
+                    deltas.append(f"Volumen {(volume/base_volume-1)*100:+.0f} %")
+                if (
+                    design.total_price_eur is not None
+                    and baseline.total_price_eur is not None
+                    and abs(design.total_price_eur-baseline.total_price_eur) >= 1
+                ):
+                    deltas.append(
+                        f"Kosten {design.total_price_eur-baseline.total_price_eur:+.0f} €"
+                    )
+                if deltas:
+                    text += "\nvs. A · " + " · ".join(deltas)
             button = QPushButton(text)
             button.setObjectName("variantCard")
             button.setCheckable(True)
