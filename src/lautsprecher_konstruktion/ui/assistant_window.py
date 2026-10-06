@@ -623,7 +623,9 @@ class AssistantWindow(QMainWindow):
             panel_thickness_m=self.thickness.value()/1000 if optional else .018,
             preferred_manufacturer=self.manufacturer.text().strip() or None if optional else None,
             preferred_driver=self.driver_choice.currentData(),
-            material=self.material.currentText() if optional else "Birke Multiplex")
+            material=self.material.currentText() if optional else "Birke Multiplex",
+            target_curve_points=(self.target_curve.points()
+                if self.design_method.currentData() == "target_curve" else None))
 
     def create_design(self) -> None:
         if self.worker and self.worker.isRunning():
