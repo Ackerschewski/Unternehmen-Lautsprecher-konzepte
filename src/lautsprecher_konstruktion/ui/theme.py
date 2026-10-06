@@ -46,7 +46,7 @@ def stylesheet(mode: str = "light") -> str:
         QFrame#card {{background:{t['background']}; border:none;}}
         QScrollArea {{border:none; background:transparent;}}
         QScrollArea > QWidget > QWidget {{background:transparent;}}
-        QGroupBox {{border:none; border-top:1px solid {t['border']}; margin-top:20px; padding:16px 0 0 0;
+        QGroupBox {{border:none; border-top:1px solid {t['border']}; margin-top:14px; padding:10px 0 0 0;
             color:{t['accent']}; font-weight:600; font-size:12px;}}
         QGroupBox::title {{subcontrol-origin:margin; left:0; padding:0 8px 0 0; color:{t['accent']};}}
         QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox, QTextEdit, QPlainTextEdit, QListWidget, QTextBrowser {{

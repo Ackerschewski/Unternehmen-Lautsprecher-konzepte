@@ -16,7 +16,9 @@ Tokens: `src/lautsprecher_konstruktion/ui/tokens.py`; Abgleich per Test mit `doc
 - **Zugänglichkeit:** sichtbarer Fokus, Tastenkürzel, Tooltips, Fehlertexte mit nächstem Schritt.
 
 ## Begründete Abweichungen (Desktop)
-- **Ein Theme:** Das Paket liefert nur ein helles Theme. Der zwischenzeitlich eingebaute Dunkelmodus wurde entfernt, bis das Paket ein Dark-Theme definiert.
+- **Dunkelmodus (Projekterweiterung):** Das Paket definiert nur ein helles Theme. Auf ausdrücklichen Wunsch gibt es ein dunkles Projekt-Theme (Ansicht → Erscheinungsbild: System/Hell/Dunkel), abgeleitet aus den Paket-Tokens: warmer Nachtgrund `#1c1b18`, Text `#f1eee8`/`#b4aea5`, Linie `#3b3832`; der Bereichsakzent wird bis mindestens 4,8:1 Kontrast aufgehellt, Flächen mischen den Akzent in den Grund. Zeichnungsblätter und Druckexporte bleiben Papier. Sobald das Paket ein Dark-Theme definiert, ersetzt es diese Ableitung.
+- **Bewegung:** `ui/motion.py`, nur kurze, nicht blockierende Übergänge (Zeichnungsmodus 240 ms OutCubic); Einstellung „Animationen reduzieren“ (Ansicht-Menü) führt Änderungen sofort aus.
+- **Rückmeldung 2026-10-06 umgesetzt:** Ergebnisse werden bei Start/Fehlschlag/Unmöglich vollständig invalidiert; Fortschrittstext außerhalb des Balkens (Balken nur während der Berechnung); Zeichnungsmodus (Strg+D), Zoom „Einpassen/Seitenbreite/100 %/Strg+Mausrad“; Kennwertkarten statt Textbalken; Vergleichstabelle mit Kernspalten; Footer „ACK Studio“. Offen: Outline-Icons, Expertenmodus-Umbau, Windows-DPI-Prüfung.
 - **Zielgrößen:** Das Paket verlangt 44 px für Touch. Auf dem Desktop sind Buttons und Felder etwa 40–44 px hoch, dichte Tabellen und Listen kleiner.
 - **Bewegung:** Es gibt keine animierten Themewechsel; Übergänge entfallen (Reduced-Motion-konform).
 - **Fertigungszeichnungen und PDF** sind Druckdokumente mit technischen Linienfarben auf weißem Papier.

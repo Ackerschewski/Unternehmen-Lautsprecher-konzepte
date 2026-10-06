@@ -35,7 +35,7 @@ def test_window_title_and_menu_structure(app: QApplication) -> None:
     window = AssistantWindow()
     assert REVISION in window.windowTitle()
     titles = [action.text().replace("&", "") for action in window.menuBar().actions()]
-    assert titles == ["Datei", "Werkzeuge", "Hilfe"]
+    assert titles == ["Datei", "Werkzeuge", "Ansicht", "Hilfe"]
     assert not window.recent_menu.isEnabled()
 
 

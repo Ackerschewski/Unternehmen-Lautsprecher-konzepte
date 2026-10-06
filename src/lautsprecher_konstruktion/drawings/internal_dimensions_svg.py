@@ -48,7 +48,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         '.feature{fill:#c5e7f5;stroke:#16749a;stroke-width:1.5}.rule{stroke:#c8d6dd;stroke-width:1}'
         f'</style><rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau</text>',
-        f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Tiefe ab Innenseite Front · Querschnitt schematisch</text>',
+        f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Tiefe ab Innenseite Front · Querschnitt schematisch · gestrichelt: Schallweg der Linie</text>',
         f'<text x="{x}" y="{y-17}" class="head">Seitenschnitt und Tiefenpositionen</text>',
         f'<rect x="{x}" y="{y}" width="{sd:.1f}" height="{sh:.1f}" class="outline"/>',
     ]
@@ -68,6 +68,23 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
             parts.append(f'<text x="{xx+4:.1f}" y="{yy-5:.1f}" class="dimtext">'
                          f'F{index+1} · {_mm(channel_h):.1f} mm</text>')
             yy += wall
+        # Acoustic path through the channels (dashed), from the driver chamber to the mouth.
+        top = y+tt
+        centres = []
+        for channel_h in line.channel_heights_m:
+            centres.append(top+_mm(channel_h)*scale/2)
+            top += _mm(channel_h)*scale+wall
+        points = [(front+(back-front)*0.35, centres[0])]
+        for index in range(len(centres)-1):
+            end_x = back-gap/2 if index%2 == 0 else front+gap/2
+            points += [(end_x, centres[index]), (end_x, centres[index+1])]
+        last_x = front+(back-front)*0.9 if (len(centres)-1)%2 == 0 else front+(back-front)*0.1
+        points.append((last_x, centres[-1]))
+        path = " ".join(f"{px:.1f},{py:.1f}" for px, py in points)
+        parts.append(f'<polyline points="{path}" fill="none" stroke="#16749a" stroke-width="2" '
+                     'stroke-dasharray="7 5"/>')
+        parts.append(f'<text x="{front+6:.1f}" y="{y+tt+14:.1f}" class="dimtext">'
+                     f'Kammer hinter dem Treiber · {_mm(line.channel_heights_m[0]):.0f} mm</text>')
     if bundle.partition_front_depth_m is not None:
         px = front+_mm(bundle.partition_front_depth_m)*scale
         driver = next((e for e in bundle.front_elements if e.surface == 'partition' and e.type != 'port'), None)

@@ -460,7 +460,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         assert diameter is not None
         # The extra panels displace air, so resolve cabinet depth and folds together.
         for _ in range(5):
-            folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter)
+            folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter,project.driver.sd_m2)
             new_displacement = total_displacement+baffle_displacement_m3(folded_line)
             updated = solve_depth_for_net_volume(
                 external_width_m=cfg.external_width_mm/1000,
@@ -476,7 +476,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                 cabinet=updated
                 break
             cabinet=updated
-        folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter)
+        folded_line = design_folded_line(cabinet,cfg.enclosure_type,cfg.tuning_hz,diameter,project.driver.sd_m2)
         total_displacement += baffle_displacement_m3(folded_line)
         if ((project.driver.mounting_depth_m or 0) >
                 cabinet.internal_depth_m-folded_line.turn_gap_m-0.005):

@@ -20,11 +20,11 @@
   "generated_by": "tools/quality_metrics.py",
   "schema_version": 1,
   "structure": {
-    "handwritten_source_files": 161,
+    "handwritten_source_files": 163,
     "over_500_lines": 6,
     "over_800_lines": 3
   },
   "tests": {
-    "discovered_test_files": 40
+    "discovered_test_files": 41
   }
 }

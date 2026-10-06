@@ -103,7 +103,7 @@ def test_tabs_are_grouped_and_there_is_no_theme_switch(app: QApplication) -> Non
     assert names == ["Entwürfe", "Variantenvergleich", "Zeichnungen", "Simulation", "Stückliste", "Zuschnitt"]
     assert window.export_button.objectName() == "primary" and window.create_button.objectName() == "primary"
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
-    assert titles == ["Datei", "Werkzeuge", "Hilfe"]  # the package defines a single light theme
+    assert titles == ["Datei", "Werkzeuge", "Ansicht", "Hilfe"]
     assert window.mode == "light"
 
 

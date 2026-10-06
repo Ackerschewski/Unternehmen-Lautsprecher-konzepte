@@ -11,7 +11,14 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from pydantic import ValidationError
 from PySide6.QtCore import QByteArray, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QDesktopServices, QFont, QKeySequence
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QDesktopServices,
+    QFont,
+    QGuiApplication,
+    QKeySequence,
+)
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -76,6 +83,7 @@ from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
+from lautsprecher_konstruktion.ui.motion import animate_value
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import DEFAULT_AREA, set_area, status_line
@@ -121,7 +129,11 @@ class AssistantWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"Lautsprecher Konstruktion {REVISION}")
-        self.resize(1500, 920)
+        screen = QGuiApplication.primaryScreen()
+        available = screen.availableGeometry() if screen is not None else None
+        self.setMinimumSize(980, 620)
+        self.resize(min(1500, available.width() - 40) if available else 1500,
+                    min(920, available.height() - 60) if available else 920)
         self.library = ComponentLibrary()
         self.designs: tuple[SpeakerDesign, ...] = ()
         self.worker: DesignWorker | None = None
@@ -136,7 +148,11 @@ class AssistantWindow(QMainWindow):
             set_area(str(self.settings.get("area", DEFAULT_AREA)))  # area accent of the design package
         except ValueError:
             set_area(DEFAULT_AREA)
-        self.mode = "light"  # the design package defines one light theme
+        self.theme_choice = str(self.settings.get("theme", "system"))
+        if self.theme_choice not in ("system", "light", "dark"):
+            self.theme_choice = "system"
+        self.reduced_motion = bool(self.settings.get("reduced_motion", False))
+        self.mode = self._resolve_mode()
         self.setStyleSheet(stylesheet(self.mode))
 
         root = QWidget()
@@ -155,16 +171,25 @@ class AssistantWindow(QMainWindow):
         subtitle.setObjectName("subtitle")
         headings.addWidget(subtitle)
         head.addLayout(headings, 1)
+        self.focus_button = QPushButton("Zeichnungsmodus")
+        self.focus_button.setCheckable(True)
+        self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
+        self.focus_button.toggled.connect(self.set_focus_mode)
+        head.addWidget(self.focus_button)
         for label, method in (("Bibliothek", self._library), ("Expertenmodus", self._expert)):
             button = QPushButton(label)
             button.clicked.connect(method)
             head.addWidget(button)
         outer.addLayout(head)
 
-        split = QSplitter(Qt.Orientation.Horizontal)
-        split.addWidget(self._build_wizard())
+        self.split = split = QSplitter(Qt.Orientation.Horizontal)
+        split.setChildrenCollapsible(False)
+        self.wizard_panel = self._build_wizard()
+        split.addWidget(self.wizard_panel)
         split.addWidget(self._build_results())
-        split.setSizes([550, 870])
+        split.setStretchFactor(0, 0)
+        split.setStretchFactor(1, 1)
+        split.setSizes([470, 950])
         self._connect_inputs()
         outer.addWidget(split, 1)
         self.setCentralWidget(root)
@@ -174,9 +199,35 @@ class AssistantWindow(QMainWindow):
         self.autosave_timer.timeout.connect(self._autosave)
         self.autosave_timer.start()
         self.statusBar().showMessage("Bereit · Bibliothek: Herstellerdaten und gekennzeichnete Testdaten")
-        brand = QLabel("Ackerschewski_code")  # subtle branding in the footer, no logo
+        brand = QLabel("ACK Studio")  # subtle branding in the footer, no logo
         brand.setObjectName("brand")
         self.statusBar().addPermanentWidget(brand)
+
+    def _resolve_mode(self) -> str:
+        """light/dark from the setting; "system" follows the operating-system colour scheme."""
+        if self.theme_choice in ("light", "dark"):
+            return self.theme_choice
+        hints = QGuiApplication.styleHints()
+        return "dark" if hints is not None and hints.colorScheme() == Qt.ColorScheme.Dark else "light"
+
+    def set_theme_choice(self, choice: str, *, remember: bool = True) -> None:
+        if choice not in ("system", "light", "dark"):
+            raise ValueError(f"unknown appearance: {choice}")
+        self.theme_choice = choice
+        if remember:
+            self.settings.set("theme", choice)
+        self.apply_mode(self._resolve_mode())
+
+    def apply_mode(self, mode: str) -> None:
+        self.mode = mode
+        self.setStyleSheet(stylesheet(mode))
+        if self.expert_window is not None:
+            self.expert_window.set_mode(mode)
+        self._redraw_simulation()
+
+    def set_reduced_motion(self, reduced: bool) -> None:
+        self.reduced_motion = reduced
+        self.settings.set("reduced_motion", reduced)
 
     def _connect_inputs(self) -> None:
         for control in (self.project_name, self.manufacturer):
@@ -197,6 +248,27 @@ class AssistantWindow(QMainWindow):
         self.state.style().unpolish(self.state)
         self.state.style().polish(self.state)
 
+    def _clear_results(self) -> None:
+        """Invalidate every result view so no drawing, chart or list of an older run stays unmarked."""
+        self.designs = ()
+        self._stale = False
+        self._unsaved = False
+        self.variant_list.clear()
+        self.variant_list.setVisible(False)
+        self.comparison.setRowCount(0)
+        self.details.clear()
+        self.kpi_row.setVisible(False)
+        empty = QByteArray(b"<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>")
+        for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
+            view.load(empty)
+        self.panel_choice.clear()
+        self.bom_view.clear()
+        self.cutting_panel.set_bundle(None)
+        self.figure.clear()
+        self.canvas.draw_idle()
+        self.save_button.setEnabled(False)
+        self.export_button.setEnabled(False)
+
     def _mark_stale(self, *_args: object) -> None:
         if self.designs:
             self._stale = True
@@ -204,15 +276,26 @@ class AssistantWindow(QMainWindow):
             self.export_button.setEnabled(False)
             self._set_state("warning", "Eingaben geändert · Entwurf erneut erstellen, um aktuelle Ergebnisse zu erhalten.")
 
+    @staticmethod
+    def _form(parent: QWidget) -> QFormLayout:
+        """Form that wraps labels above fields when narrow and never forces a wide minimum."""
+        form = QFormLayout(parent)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        form.setVerticalSpacing(6)
+        return form
+
     def _build_wizard(self) -> QWidget:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         card = QFrame()
         card.setObjectName("card")
+        card.setMinimumWidth(360)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 18, 20, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(20, 12, 20, 16)
+        layout.setSpacing(8)
 
         section = QLabel("Dein Projekt")
         section.setObjectName("section")
@@ -222,7 +305,7 @@ class AssistantWindow(QMainWindow):
         layout.addWidget(self.project_name)
 
         step1 = QGroupBox("1 · Was möchtest du bauen?")
-        form1 = QFormLayout(step1)
+        form1 = self._form(step1)
         self.speaker_type = QComboBox()
         for name in SPEAKER_TYPES:
             self.speaker_type.addItem(name)
@@ -238,7 +321,6 @@ class AssistantWindow(QMainWindow):
                 item = self.enclosure.model().item(self.enclosure.count()-1)
                 item.setEnabled(False)
                 item.setToolTip("Für diesen Gehäusetyp fehlen noch geprüfter Solver und Fertigungsgeometrie.")
-        form1.addRow("Gehäuseprinzip", self.enclosure)
         self.driver_choice = QComboBox()
         self.driver_choice.addItem("Automatisch aus berechenbaren Chassis", None)
         for entry in self.library.entries("drivers"):
@@ -248,15 +330,15 @@ class AssistantWindow(QMainWindow):
             label = entry.display() + (f" · {price:.2f} €/Stück" if price is not None else
                                        " · Preis unbekannt")
             self.driver_choice.addItem(label, entry.display())
+        self.driver_choice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.driver_choice.setMinimumContentsLength(16)
         self.driver_choice.setToolTip("Nur Chassis mit T/S-Daten. Thomann-Preise sind Momentaufnahmen vom 02.10.2026.")
-        form1.addRow("Chassis / Preis", self.driver_choice)
         self.budget = _spin(0, 0, 100000, " €")
         self.budget.setToolTip("Gesamtbudget für ein Gehäuse inkl. Chassis, Holz, Weiche, Zubehör und 15 % Kostenreserve. 0 = offen.")
-        form1.addRow("Gesamtbudget bis", self.budget)
         layout.addWidget(step1)
 
         step2 = QGroupBox("2 · Maximaler Bauraum")
-        form2 = QFormLayout(step2)
+        form2 = self._form(step2)
         self.max_width = _spin(300, 120, 2000, " mm")
         self.max_height = _spin(500, 120, 2500, " mm")
         self.max_depth = _spin(400, 120, 2000, " mm")
@@ -271,18 +353,25 @@ class AssistantWindow(QMainWindow):
         layout.addWidget(step2)
 
         step3 = QGroupBox("3 · Gewünschter Klang")
-        form3 = QFormLayout(step3)
+        form3 = self._form(step3)
         self.profile = QComboBox()
         for item in PROFILES.values():
             self.profile.addItem(item.label, item.id)
         form3.addRow("Klangprofil", self.profile)
         layout.addWidget(step3)
 
+        step3b = QGroupBox("Gehäuse, Chassis und Kosten")
+        form3b = self._form(step3b)
+        form3b.addRow("Gehäuseprinzip", self.enclosure)
+        form3b.addRow("Chassis / Preis", self.driver_choice)
+        form3b.addRow("Gesamtbudget bis", self.budget)
+        layout.addWidget(step3b)
+
         step4 = QGroupBox("4 · Weitere Anforderungen (optional)")
         step4.setCheckable(True)
         step4.setChecked(False)
         options_body = QWidget()
-        form4 = QFormLayout(options_body)
+        form4 = self._form(options_body)
         QVBoxLayout(step4).addWidget(options_body)
         step4.toggled.connect(options_body.setVisible)
         options_body.setVisible(False)
@@ -325,8 +414,11 @@ class AssistantWindow(QMainWindow):
         footer.addLayout(row)
         self.progress = QProgressBar()
         self.progress.setValue(0)
+        self.progress.setTextVisible(False)  # text on the filled accent bar has too little contrast
         footer.addWidget(self.progress)
+        self.progress.setVisible(False)  # shown only while a calculation runs
         self.progress_label = QLabel("Noch kein Entwurf berechnet")
+        self.progress_label.setObjectName("caption")
         footer.addWidget(self.progress_label)
         demos = QHBoxLayout()
         self.demo_choice = QComboBox()
@@ -361,7 +453,20 @@ class AssistantWindow(QMainWindow):
 
         overview = QWidget()
         ov = QVBoxLayout(overview)
+        self.kpi_row = QWidget()
+        kpi_layout = QHBoxLayout(self.kpi_row)
+        kpi_layout.setContentsMargins(0, 0, 0, 0)
+        self.kpis: dict[str, QLabel] = {}
+        for key in ("Maße", "Tiefbass F3", "Preisstatus", "Datenqualität", "Prüfstatus"):
+            label = QLabel()
+            label.setObjectName("kpi")
+            label.setWordWrap(True)
+            kpi_layout.addWidget(label, 1)
+            self.kpis[key] = label
+        self.kpi_row.setVisible(False)
+        ov.addWidget(self.kpi_row)
         self.variant_list = QListWidget()
+        self.variant_list.setVisible(False)
         self.variant_list.setMaximumHeight(125)
         self.variant_list.currentRowChanged.connect(self._select_variant)
         ov.addWidget(self.variant_list)
@@ -375,10 +480,17 @@ class AssistantWindow(QMainWindow):
             "Netto [l]", "F3 [Hz]", "Bewertung", "Chassiswahl", "Chassis [€]",
             "Gesamt inkl. Reserve [€]", "Budget frei [€]", "Hinweise"))
         self.comparison.setAlternatingRowColors(True)
+        self.comparison.setWordWrap(True)
         self.comparison.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.comparison.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.comparison.cellClicked.connect(lambda row, _column: self.variant_list.setCurrentRow(row))
-        self.tabs.addTab(self.comparison, "Variantenvergleich")
+        compare = QWidget()
+        compare_layout = QVBoxLayout(compare)
+        self.all_columns = QCheckBox("Alle Spalten anzeigen")
+        self.all_columns.toggled.connect(self._apply_column_choice)
+        compare_layout.addWidget(self.all_columns)
+        compare_layout.addWidget(self.comparison, 1)
+        self.tabs.addTab(compare, "Variantenvergleich")
 
         self.drawing_tabs = QTabWidget()
         self.drawing_tabs.setDocumentMode(True)
@@ -458,15 +570,29 @@ class AssistantWindow(QMainWindow):
             QMessageBox.warning(self, "Vorgaben ungültig", str(exc))
             return
         self.worker = DesignWorker(request, self.library)
-        self.worker.progress.connect(self.progress.setValue)
+        self.worker.progress.connect(self._progress)
         self.worker.completed.connect(self._completed)
         self.worker.failed.connect(self._failed)
+        self._clear_results()  # no unmarked results of an earlier run while a new one is calculated
         self.create_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
         self.progress.setValue(0)
-        self.progress_label.setText("Varianten werden berechnet…")
+        self.progress.setVisible(True)
+        self.progress_label.setText("Varianten werden berechnet… 0 %")
         self._set_state("info", "Komponenten werden geprüft und Gehäusevarianten simuliert…")
         self.worker.start()
+
+    # decision-relevant columns first: variant, enclosure, size, F3, total cost, notes
+    _CORE_COLUMNS = (0, 1, 2, 4, 8, 10)
+
+    def _apply_column_choice(self, *_args: object) -> None:
+        show_all = self.all_columns.isChecked()
+        for column in range(self.comparison.columnCount()):
+            self.comparison.setColumnHidden(column, not (show_all or column in self._CORE_COLUMNS))
+
+    def _progress(self, value: int) -> None:
+        self.progress.setValue(value)
+        self.progress_label.setText(f"Varianten werden berechnet… {value} %")
 
     def _cancel(self) -> None:
         if self.worker:
@@ -477,6 +603,7 @@ class AssistantWindow(QMainWindow):
         self.create_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
         self.progress.setValue(100 if result.status != "cancelled" else 0)
+        self.progress.setVisible(False)
         self.designs = result.designs
         self._stale = result.status != "ok"
         self._unsaved = result.status == "ok" and bool(result.designs)
@@ -485,6 +612,8 @@ class AssistantWindow(QMainWindow):
         if result.status == "ok":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
             self._set_state("success", f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
+            self.variant_list.setVisible(True)
+            self.variant_list.setFixedHeight(28 * len(result.designs) + 8)
             self.comparison.setRowCount(len(result.designs))
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
@@ -506,6 +635,7 @@ class AssistantWindow(QMainWindow):
                 for column, value in enumerate(values):
                     self.comparison.setItem(row, column, QTableWidgetItem(value))
             self.comparison.resizeColumnsToContents()
+            self._apply_column_choice()
             self.save_button.setEnabled(True)
             self.variant_list.setCurrentRow(0)
         elif result.status == "impossible":
@@ -513,8 +643,12 @@ class AssistantWindow(QMainWindow):
             self._set_state("danger", "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. Änderungsvorschläge stehen unter „Entwürfe“.")
             reasons = "".join(f"<li>{escape(item)}</li>" for item in result.rejection_reasons)
             changes = "".join(f"<li>{escape(item)}</li>" for item in result.suggested_constraint_changes)
-            self.details.setHtml(f"<h2>Nicht machbar</h2><b>Gründe</b><ul>{reasons}</ul>"
-                f"<b>Änderungsvorschläge</b><ul>{changes}</ul>")
+            self._clear_results()
+            self._stale = True
+            self.details.setHtml(f"<h2>Nicht machbar</h2><p>Technische Meldungen des Berechnungskerns "
+                f"(Originaltext, daher teils englisch):</p><b>Gründe</b><ul>{reasons}</ul>"
+                f"<b>Mögliche Änderungen</b><ul>{changes}</ul>")
+            self.tabs.setCurrentIndex(0)
             self.save_button.setEnabled(False)
             self.export_button.setEnabled(False)
         else:
@@ -525,6 +659,8 @@ class AssistantWindow(QMainWindow):
     def _failed(self, message: str) -> None:
         self.create_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
+        self.progress.setVisible(False)
+        self._clear_results()
         self.progress_label.setText("Berechnung fehlgeschlagen")
         self._set_state("danger", f"{message} Nächster Schritt: Vorgaben prüfen oder die Protokolldatei (Hilfe) ansehen.")
 
@@ -559,14 +695,15 @@ class AssistantWindow(QMainWindow):
             lines.append(f"<p><b>Budget noch frei:</b> "
                          f"{self.budget.value()-design.total_price_eur:.2f} €</p>")
         if design.breakdown:
-            lines.append(f"<h3>Technische Bewertung · {design.score:.0f}/100</h3>")
+            lines.append(f"<h3>Teilbewertung · {design.score:.0f}/100 aus {len(design.breakdown)} "
+                         "bewerteten Kriterien</h3><p>Keine Qualitätsfreigabe: nicht belegbare Kriterien "
+                         "fließen nicht ein.</p>")
             names = {"bass": "Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
                 "port": "Portreserve", "delay": "Gruppenlaufzeit", "flatness": "Linearität",
                 "cost": "Budgetreserve"}
             for metric in design.breakdown:
-                bars = round(metric.value/10)
                 lines.append(f"<p><b>{names.get(metric.name, metric.name)}</b> "
-                    f"{'█'*bars}{'░'*(10-bars)} {metric.value:.0f}/100 "
+                    f"{metric.value:.0f}/100 "
                     f"(Gewicht {metric.weight:g})<br>{escape(metric.evidence)}</p>")
             missing = {"headroom", "port", "delay", "flatness"}-{
                 metric.name for metric in design.breakdown}
@@ -584,6 +721,19 @@ class AssistantWindow(QMainWindow):
             lines.append("<h3>Hinweise</h3><ul>"+
                 "".join(f"<li>{escape(message)}</li>" for message in bundle.warnings)+"</ul>")
         self.details.setHtml("".join(lines))
+        geometry_issue_count = sum(1 for issue in bundle.issues if issue.severity == "error")
+        self.kpis["Maße"].setText(f"<b>Maße</b><br>{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × "
+                                  f"{c.depth_m*1000:.0f} mm")
+        self.kpis["Tiefbass F3"].setText(f"<b>Tiefbass F3</b><br>{f'{f3:.0f} Hz' if f3 else 'nicht berechenbar'}")
+        self.kpis["Preisstatus"].setText("<b>Preisstatus</b><br>" + (
+            f"{design.total_price_eur:.0f} € inkl. Reserve" if design.total_price_eur is not None
+            else "unvollständig bepreist"))
+        self.kpis["Datenqualität"].setText("<b>Datenqualität</b><br>" + (
+            "vorläufige Weiche" if design.provisional_crossover else "Herstellerdaten, Quelle je Chassis prüfen"))
+        self.kpis["Prüfstatus"].setText("<b>Prüfstatus</b><br>" + (
+            f"✕ {geometry_issue_count} Geometriefehler" if geometry_issue_count else
+            f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine Hinweise"))
+        self.kpi_row.setVisible(True)
         self.comparison.selectRow(index)
         self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
         self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
@@ -682,6 +832,28 @@ class AssistantWindow(QMainWindow):
         if surface:
             self.panel_svg.load(QByteArray(render_panel_sheet_svg(
                 current.bundle, surface).encode("utf-8")))
+
+    def set_focus_mode(self, on: bool) -> None:
+        """Collapse the input column so drawings and results get the full width."""
+        sizes = self.split.sizes()
+        total = sum(sizes) or 1
+        target = 0 if on else max(420, round(total * 0.33))
+        self.wizard_panel.setMinimumWidth(0 if on else 360)
+
+        def apply(width: int) -> None:
+            self.split.setSizes([width, total - width])
+
+        def done() -> None:
+            self.wizard_panel.setVisible(not on)
+            for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
+                view.fit()  # fit exactly once after the transition
+
+        if not on:
+            self.wizard_panel.setVisible(True)
+        animate_value(self.split, sizes[0], target, apply, reduced=self.reduced_motion, finished=done)
+        self.focus_button.setText("Eingaben zeigen" if on else "Zeichnungsmodus")
+        if on:
+            self.tabs.setCurrentIndex(2)
 
     def _expert(self) -> None:
         if self.expert_window is None:
@@ -817,6 +989,22 @@ class AssistantWindow(QMainWindow):
         tools.addAction(self._action("&Bibliothek", self._library))
         tools.addAction(self._action("&Expertenmodus", self._expert))
         tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
+        view = bar.addMenu("&Ansicht")
+        view.addAction(self._action("&Zeichnungsmodus", lambda: self.focus_button.toggle(), "Ctrl+D"))
+        look = view.addMenu("&Erscheinungsbild")
+        self.theme_group = QActionGroup(self)
+        self.theme_actions: dict[str, QAction] = {}
+        for key, label in (("system", "&System"), ("light", "&Hell"), ("dark", "&Dunkel")):
+            action = QAction(label, self, checkable=True)
+            action.setChecked(self.theme_choice == key)
+            action.triggered.connect(lambda _checked=False, k=key: self.set_theme_choice(k))
+            self.theme_group.addAction(action)
+            look.addAction(action)
+            self.theme_actions[key] = action
+        self.motion_action = QAction("&Animationen reduzieren", self, checkable=True)
+        self.motion_action.setChecked(self.reduced_motion)
+        self.motion_action.toggled.connect(self.set_reduced_motion)
+        view.addAction(self.motion_action)
         help_menu = bar.addMenu("&Hilfe")
         help_menu.addAction(self._action("&Kurzanleitung und Über…", self._help, "F1"))
         help_menu.addAction(self._action("&Protokollordner öffnen", self._open_log_folder))

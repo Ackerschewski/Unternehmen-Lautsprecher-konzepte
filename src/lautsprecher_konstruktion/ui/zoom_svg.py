@@ -21,7 +21,9 @@ class ZoomableSvgView(QWidget):
         bar = QHBoxLayout()
         for label, callback in (("−", lambda: self.zoom(1 / 1.25)),
                                 ("+", lambda: self.zoom(1.25)),
-                                ("Einpassen", self.fit)):
+                                ("Einpassen", self.fit),
+                                ("Seitenbreite", self.fit_width),
+                                ("100 %", self.actual_size)):
             button = QPushButton(label)
             button.clicked.connect(callback)
             bar.addWidget(button)
@@ -52,6 +54,18 @@ class ZoomableSvgView(QWidget):
         self._apply_scale()
         self.zoom_label.setText(f"Einpassen · {self._scale*100:.0f} %")
 
+    def fit_width(self) -> None:
+        self._fit = False
+        self._scale = max(0.05, (self.scroll.viewport().width() - 20) / self._native[0])
+        self._apply_scale()
+        self.zoom_label.setText(f"Seitenbreite · {self._scale*100:.0f} %")
+
+    def actual_size(self) -> None:
+        self._fit = False
+        self._scale = 1.0
+        self._apply_scale()
+        self.zoom_label.setText("100 %")
+
     def zoom(self, factor: float) -> None:
         self._fit = False
         self._scale = min(5.0, max(0.1, self._scale*factor))
@@ -65,4 +79,8 @@ class ZoomableSvgView(QWidget):
     def eventFilter(self, watched: object, event: QEvent) -> bool:
         if watched is self.scroll.viewport() and event.type() == QEvent.Type.Resize and self._fit:
             self.fit()
+        if (watched is self.scroll.viewport() and event.type() == QEvent.Type.Wheel
+                and event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            self.zoom(1.15 if event.angleDelta().y() > 0 else 1 / 1.15)  # Ctrl + wheel zooms immediately
+            return True
         return super().eventFilter(watched, event)
