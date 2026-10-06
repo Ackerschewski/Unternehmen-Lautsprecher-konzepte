@@ -85,7 +85,7 @@ from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
-from lautsprecher_konstruktion.ui.motion import animate_value
+from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
 from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
@@ -289,6 +289,9 @@ class AssistantWindow(QMainWindow):
             )
 
     def _result_tab_changed(self, index: int) -> None:
+        current_page = self.tabs.widget(index)
+        if current_page is not None:
+            fade_in(current_page, reduced=self.reduced_motion)
         on_drawings = self.tabs.tabText(index) == "Zeichnungen"
         self.focus_button.setVisible(on_drawings)
         if on_drawings and self.drawing_mode.currentData() == "read":
@@ -872,6 +875,7 @@ class AssistantWindow(QMainWindow):
         self.variant_list.currentRowChanged.connect(self._select_variant)
 
         result_body = QWidget()
+        self.result_body = result_body
         result_layout = QHBoxLayout(result_body)
         result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(16)
@@ -1212,6 +1216,7 @@ class AssistantWindow(QMainWindow):
         design = self.designs[index]
         bundle = design.bundle
         self.variant_cards.select(index)
+        fade_in(self.result_body, reduced=self.reduced_motion)
         self.empty_guide.setVisible(False)
         self.selected_title.setText(design.label)
         reasons = tuple(design.reasons[:3])
