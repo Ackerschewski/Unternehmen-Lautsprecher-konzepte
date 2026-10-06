@@ -227,6 +227,8 @@ class AssistantWindow(QMainWindow):
             self.target_curve.set_mode(mode)
         if hasattr(self, "preview"):
             self.preview.set_mode(mode)
+        if hasattr(self, "dimension_preview"):
+            self.dimension_preview.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
@@ -240,12 +242,49 @@ class AssistantWindow(QMainWindow):
                         self.active_mode, self.material, self.driver_choice):
             control.currentIndexChanged.connect(self._mark_stale)
         self.design_method.currentIndexChanged.connect(self._design_method_changed)
+        self.design_method.currentIndexChanged.connect(self._sync_method_cards)
+        self.speaker_type.currentTextChanged.connect(self._sync_speaker_cards)
+        self.profile.currentIndexChanged.connect(self._sync_profile_cards)
         self.target_curve.curveChanged.connect(self._target_curve_changed)
         for control in (self.max_width, self.max_height, self.max_depth, self.max_volume,
                         self.budget, self.target_spl, self.target_f3, self.power,
                         self.preferred_size, self.thickness):
             control.valueChanged.connect(self._mark_stale)
         self.options.toggled.connect(self._mark_stale)
+        for control in (self.max_width, self.max_height, self.max_depth):
+            control.valueChanged.connect(self._update_dimension_preview)
+        self._update_dimension_preview()
+
+    def _set_design_method_value(self, value: str) -> None:
+        index = self.design_method.findData(value)
+        if index >= 0:
+            self.design_method.setCurrentIndex(index)
+
+    def _set_speaker_type_value(self, value: str) -> None:
+        self.speaker_type.setCurrentText(value)
+
+    def _set_profile_value(self, value: str) -> None:
+        index = self.profile.findData(value)
+        if index >= 0:
+            self.profile.setCurrentIndex(index)
+
+    def _sync_method_cards(self, _index: int = 0) -> None:
+        if hasattr(self, "method_cards"):
+            self.method_cards.set_value(str(self.design_method.currentData()))
+
+    def _sync_speaker_cards(self, value: str) -> None:
+        if hasattr(self, "speaker_cards"):
+            self.speaker_cards.set_value(value)
+
+    def _sync_profile_cards(self, _index: int = 0) -> None:
+        if hasattr(self, "profile_cards"):
+            self.profile_cards.set_value(str(self.profile.currentData()))
+
+    def _update_dimension_preview(self, *_args: object) -> None:
+        if hasattr(self, "dimension_preview"):
+            self.dimension_preview.set_dimensions(
+                self.max_width.value(), self.max_height.value(), self.max_depth.value()
+            )
 
     def _result_tab_changed(self, index: int) -> None:
         drawing_index = self.tabs.indexOf(self.drawing_tabs)
