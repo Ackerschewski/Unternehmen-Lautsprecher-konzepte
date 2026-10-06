@@ -208,6 +208,24 @@ class TargetCurveEditor(QWidget):
     def preset_id(self) -> str:
         return str(self.preset.currentData())
 
+    def restore_state(
+        self,
+        points: Iterable[tuple[float, float]],
+        *,
+        preset: str = "custom",
+        analysis_mode: str = "overall",
+    ) -> None:
+        data = tuple(points)
+        if data:
+            self.set_points(data)
+        else:
+            self._levels[:] = 0.0
+            self._sync_controls()
+            self._draw()
+        if self.preset.findData(preset) >= 0:
+            self._set_preset_combo(preset)
+        self.set_analysis_mode(analysis_mode)
+
     def analysis_mode(self) -> str:
         return str(self.analysis.currentData())
 
