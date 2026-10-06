@@ -40,7 +40,10 @@ def stylesheet(mode: str = "light") -> str:
         QLabel#caption, QLabel#brand {{color:{t['textSecondary']}; font-size:12px;}}
         QLabel#statusLine {{padding:12px 16px; background:{t['panel']}; border:1px solid {t['border']};
             border-radius:{rc}px; font-weight:600;}}
-        QLabel#statusLine[role="danger"] {{border:2px dashed {t['textPrimary']};}}
+        QLabel#statusLine[role="success"] {{border-left:4px solid {t['success']};}}
+        QLabel#statusLine[role="warning"] {{border-left:4px solid {t['warning']};}}
+        QLabel#statusLine[role="info"] {{border-left:4px solid {t['accent']};}}
+        QLabel#statusLine[role="danger"] {{border:2px dashed {t['danger']}; border-left:4px solid {t['danger']};}}
         QLabel#kpi {{padding:12px 16px; background:{t['band']}; border:1px solid {t['border']};
             border-radius:{rc}px;}}
         QFrame#card {{background:{t['surface']}; border:none;}}
