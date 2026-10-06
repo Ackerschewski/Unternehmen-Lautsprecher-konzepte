@@ -79,6 +79,7 @@ from lautsprecher_konstruktion.services.automatic import (
     automatic_design,
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
+from lautsprecher_konstruktion.ui.cabinet_preview import CabinetPreview
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
@@ -530,8 +531,16 @@ class AssistantWindow(QMainWindow):
         self.variant_list.setMaximumHeight(125)
         self.variant_list.currentRowChanged.connect(self._select_variant)
         ov.addWidget(self.variant_list)
+
+        result_body = QWidget()
+        result_layout = QHBoxLayout(result_body)
+        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.setSpacing(14)
+        self.preview = CabinetPreview(self.mode)
+        result_layout.addWidget(self.preview, 5)
         self.details = QTextBrowser()
-        ov.addWidget(self.details, 1)
+        result_layout.addWidget(self.details, 6)
+        ov.addWidget(result_body, 1)
         self.tabs.addTab(overview, "Entwürfe")
 
         self.comparison = QTableWidget()
