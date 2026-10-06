@@ -87,7 +87,7 @@ from lautsprecher_konstruktion.ui.motion import animate_value
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
-from lautsprecher_konstruktion.ui.tokens import DEFAULT_AREA, set_area, status_line
+from lautsprecher_konstruktion.ui.tokens import set_area, status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
 
@@ -145,10 +145,10 @@ class AssistantWindow(QMainWindow):
         self.recent = RecentProjects()
         self.autosave = Autosave()
         configure_logging()
-        try:
-            set_area(str(self.settings.get("area", DEFAULT_AREA)))  # area accent of the design package
-        except ValueError:
-            set_area(DEFAULT_AREA)
+        # Loudspeaker Konstruktion is an ACK Studio software product.
+        # Ignore legacy area=construction settings from older builds.
+        set_area("software")
+        self.settings.set("area", "software")
         self.theme_choice = str(self.settings.get("theme", "system"))
         if self.theme_choice not in ("system", "light", "dark"):
             self.theme_choice = "system"
