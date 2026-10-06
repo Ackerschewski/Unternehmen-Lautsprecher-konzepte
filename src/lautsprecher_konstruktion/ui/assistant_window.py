@@ -1566,6 +1566,15 @@ class AssistantWindow(QMainWindow):
         self.variant_cards.set_designs(self.designs)
         self.empty_guide.setVisible(False)
         project = bundle.project
+        loaded_method = "target_curve" if project.target_curve_points else "classic"
+        self.design_method.blockSignals(True)
+        self.design_method.setCurrentIndex(self.design_method.findData(loaded_method))
+        self.design_method.blockSignals(False)
+        self._sync_method_cards()
+        self.create_button.setText(
+            "Passenden Entwurf zur Zielkurve berechnen"
+            if loaded_method == "target_curve" else "Entwurf erstellen"
+        )
         if project.target_curve_points:
             self.target_curve.restore_state(
                 project.target_curve_points,
