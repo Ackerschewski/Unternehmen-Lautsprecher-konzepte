@@ -246,6 +246,35 @@ class AssistantWindow(QMainWindow):
             control.valueChanged.connect(self._mark_stale)
         self.options.toggled.connect(self._mark_stale)
 
+    def _design_method_changed(self, _index: int = 0) -> None:
+        target_mode = self.design_method.currentData() == "target_curve"
+        self.create_button.setText(
+            "Passenden Entwurf zur Zielkurve berechnen" if target_mode else "Entwurf erstellen"
+        )
+        if target_mode:
+            self.tabs.setCurrentWidget(self.sound_tab)
+            self._set_state(
+                "info",
+                "Zielkurvenmodus aktiv · Forme den gewünschten Verlauf. "
+                "Bewertet wird nur, was vorhandene Treiber-/Simulationsdaten belegen.",
+            )
+        else:
+            self._set_state(
+                "info",
+                "Klassischer Entwurf · Typ, Bauraum und Klangprofil wählen.",
+            )
+        self._mark_stale()
+
+    def _target_curve_changed(self) -> None:
+        if self.design_method.currentData() != "target_curve":
+            return
+        self._mark_stale()
+        if not self.designs:
+            self._set_state(
+                "info",
+                "Zielkurve geändert · Randbedingungen prüfen und passenden Entwurf berechnen.",
+            )
+
     def _set_state(self, role: str, text: str) -> None:
         """Status line with glyph and text (colour is never the only signal) and a role-coloured edge."""
         self.state.setProperty("role", role)
