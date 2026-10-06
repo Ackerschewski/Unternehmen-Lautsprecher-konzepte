@@ -452,21 +452,25 @@ def _write_tapped_horn_pdf(path: str | Path, bundle: DesignBundle,
     det=horn.details
     assert det is not None
     top_y=iy+cab.internal_height_m*1000*scale          # inner top edge (PDF y points up)
+    back_x=ix+cab.internal_depth_m*1000*scale           # runs are vertical, stacked from the back wall
     c.setFillColor(HexColor('#e0ebef'))
     for sep in det.septa:
-        pts=[(ix+px_*1000*scale,top_y-py_*1000*scale) for px_,py_ in sep.points_m]
+        pts=[(back_x-py_*1000*scale,top_y-px_*1000*scale) for px_,py_ in sep.points_m]
         outline=c.beginPath()
         outline.moveTo(*pts[0])
         for pt in pts[1:]:
             outline.lineTo(*pt)
         for pt in reversed(pts):
-            outline.lineTo(pt[0],pt[1]-t*scale)
+            outline.lineTo(pt[0]-t*scale,pt[1])
         outline.close()
         c.drawPath(outline,fill=1,stroke=1)
     c.setFillColor(INK)
-    f1y=top_y-det.septa[0].points_m[0][1]*1000*scale
-    center=ix+horn.driver_depth_from_front_m*1000*scale
-    c.circle(center,f1y,(driver.cutout_diameter_m or 0)*500*scale)
+    f1=det.septa[0]
+    x_axis=(f1.x1_m+f1.x2_m)/2
+    y_f1=f1.y1_m+(f1.y2_m-f1.y1_m)*(x_axis-f1.x1_m)/(f1.x2_m-f1.x1_m)
+    cut_r=(driver.cutout_diameter_m or 0)*500*scale
+    c.rect(back_x-y_f1*1000*scale-t*scale,top_y-x_axis*1000*scale-cut_r,
+           t*scale,2*cut_r,fill=0,stroke=1)
     _lines(c,[f'Aussen B x H x T: {w:.1f} x {h:.1f} x {d:.1f} mm',
               f'F1: {cab.internal_width_m*1000:.1f} x {horn.baffle_length_m*1000:.1f} x {t:.1f} mm',
               f'Treiber-Mitte ab F1-Vorderkante: {horn.driver_depth_from_front_m*1000:.1f} mm',

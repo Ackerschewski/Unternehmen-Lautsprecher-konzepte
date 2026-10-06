@@ -7,6 +7,7 @@ from textwrap import wrap
 
 import numpy as np
 
+from lautsprecher_konstruktion.enclosure.horn_geometry import HornDetails, SeptumGeometry
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
@@ -14,13 +15,13 @@ def _mm(value: float) -> float:
     return value*1000
 
 
-def _sep_y(sep, x: float) -> float:
+def _sep_y(sep: SeptumGeometry, x: float) -> float:
     xs = [p[0] for p in sep.points_m]
     ys = [p[1] for p in sep.points_m]
     return float(np.interp(x, xs, ys))
 
 
-def horn_septa_svg(horn, inner_x: float, inner_y: float, scale: float, wall_m: float,
+def horn_septa_svg(horn: HornDetails, inner_x: float, inner_y: float, scale: float, wall_m: float,
                    css: str, labels: bool = True) -> list[str]:
     """Inclined septa of a rear horn as polygons; scale is px/mm, origin = inner front/top corner."""
     parts: list[str] = []
@@ -116,8 +117,12 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     pts = []
     for run in horn.runs:
         k = run.index
-        top_y = lambda x, k=k: _sep_y(horn.septa[k-1], x)+t           # noqa: E731
-        bot_y = (lambda x, k=k: _sep_y(horn.septa[k], x)) if k < len(horn.runs) else (lambda x: c.internal_height_m)
+        def top_y(x: float, k: int = k) -> float:
+            return _sep_y(horn.septa[k-1], x)+t
+
+        def bot_y(x: float, k: int = k) -> float:
+            return _sep_y(horn.septa[k], x) if k < len(horn.runs) else c.internal_height_m
+
         for x in (run.x_start_m, run.x_end_m):
             pts.append((px(x), py((top_y(x)+bot_y(x))/2)))
         mid_x = (run.x_start_m+run.x_end_m)/2

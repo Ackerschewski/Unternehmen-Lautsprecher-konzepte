@@ -78,7 +78,8 @@ class FrontHorn:
         return result
 
     def ideal_area_m2(self, x_m: float) -> float:
-        return self.throat_area_m2*(self.area_ratio**(min(max(x_m, 0.0), self.axial_length_m)/self.axial_length_m))
+        fraction = min(max(x_m, 0.0), self.axial_length_m)/self.axial_length_m
+        return float(self.throat_area_m2*self.area_ratio**fraction)
 
     def max_area_deviation(self) -> float:
         worst, x = 0.0, 0.0

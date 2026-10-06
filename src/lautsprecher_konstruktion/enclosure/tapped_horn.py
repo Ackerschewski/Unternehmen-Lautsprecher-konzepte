@@ -15,6 +15,7 @@ The heights are given by the area law; the floor closure is distributed over run
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from math import exp, log, pi
 
@@ -70,11 +71,12 @@ class TappedHorn:
         return (cabinet.bottom_thickness_m or cabinet.panel_thickness_m)+self.lower_height_m/2
 
 
-def _law_factory(width: float, run_extent: float, driver_height: float, mouth_area: float):
+def _law_factory(width: float, run_extent: float, driver_height: float,
+                 mouth_area: float) -> Callable[[float, float], Callable[[float], float]]:
     """Exponential area law through S(x_d) = W*driver_height (magnet clearance) and S(L) = mouth."""
     s_mag = width*driver_height
 
-    def factory(length: float, first_end: float):
+    def factory(length: float, first_end: float) -> Callable[[float], float]:
         x_d = max(first_end-run_extent/2, 0.0)          # driver centre on F1 (middle of F1)
         rate = log(mouth_area/s_mag)/max(length-x_d, 1e-6)
         s_0 = s_mag*exp(-rate*x_d)
@@ -85,7 +87,9 @@ def _law_factory(width: float, run_extent: float, driver_height: float, mouth_ar
     return factory
 
 
-def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, mouth_area: float):
+def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, mouth_area: float) -> tuple[
+        list[RunGeometry], list[float], float, Callable[[float], float], list[float],
+        list[list[float]], list[float], float]:
     """Fold geometry for a given mouth area: runs, gaps, length, law, built heights and residuals."""
     t, w, d, h = (cabinet.panel_thickness_m, cabinet.internal_width_m,
                   cabinet.internal_height_m, cabinet.internal_depth_m)   # d: run length, h: stack
@@ -107,7 +111,8 @@ def _candidate(cabinet: CabinetDimensions, driver: Driver, runs: int, mouth_area
     return path, gaps, length, area, grid, built, residual, h_mag
 
 
-def _finish(cabinet: CabinetDimensions, driver: Driver, runs: int, mouth_area: float):
+def _finish(cabinet: CabinetDimensions, driver: Driver, runs: int,
+            mouth_area: float) -> tuple[HornDetails, float, float, tuple[int, int], float, float] | None:
     t, w, d = cabinet.panel_thickness_m, cabinet.internal_width_m, cabinet.internal_height_m
     path, gaps, length, area, grid, built, _res, h_mag = _candidate(cabinet, driver, runs, mouth_area)
     facets = 1

@@ -137,10 +137,10 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
     ]
     f1_tilt=degrees(atan2(f1.rise_m,f1.x2_m-f1.x1_m))
     # area law plot
-    gx,gy,gw,gh=1050.0,430.0,380.0,190.0
+    gx,gy,gw,gh=800.0,470.0,230.0,190.0
     smax=det.length_m
     amax=max(det.profile_area_m2)*1.1
-    parts.append(f'<text x="{gx}" y="{gy-20}" class="head">Flächenverlauf S(s) mit Taps</text>')
+    parts.append(f'<text x="{gx}" y="{gy-20}" class="head">Fläche S(s), Taps</text>')
     parts.append(f'<path d="M{gx} {gy}V{gy+gh}H{gx+gw}" class="axis"/>')
     parts.append('<polyline points="'+' '.join(f'{gx+s/smax*gw:.1f},{gy+gh-a/amax*gh:.1f}'
                  for s,a in zip(det.profile_s_m,det.profile_area_m2,strict=True))+'" class="law"/>')

@@ -8,9 +8,11 @@ The chamber above F1 takes the height that remains, so the stack closes exactly.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from itertools import pairwise
 from math import log, pi
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 
@@ -25,6 +27,9 @@ from lautsprecher_konstruktion.enclosure.horn_geometry import (
     trace_path,
 )
 from lautsprecher_konstruktion.enclosure.rectangular import CabinetDimensions, CutPanel
+
+if TYPE_CHECKING:
+    from lautsprecher_konstruktion.enclosure.folded_line import FoldedLine
 
 # family -> (area law, throat area as fraction of the cone area Sd)
 # Throat fractions are design defaults, not manufacturer data: rear/folded horns
@@ -51,12 +56,23 @@ def _chamber_target(width: float, depth: float, height: float, driver_diameter: 
     return min(max(minimum, preferred), 0.45*height)
 
 
-def _build(cabinet: CabinetDimensions, kind: str, runs: int, throat: float, mouth: float):
+class _Build(NamedTuple):
+    w: float
+    d: float
+    h: float
+    t: float
+    path: list[RunGeometry]
+    gaps: list[float]
+    length: float
+    law: AreaLaw
+
+
+def _build(cabinet: CabinetDimensions, kind: str, runs: int, throat: float, mouth: float) -> _Build:
     w, d, h, t = (cabinet.internal_width_m, cabinet.internal_depth_m,
                   cabinet.internal_height_m, cabinet.panel_thickness_m)
     cache: dict[float, AreaLaw] = {}
 
-    def factory(length: float, _first_end: float):
+    def factory(length: float, _first_end: float) -> Callable[[float], float]:
         key = round(length, 9)
         if key not in cache:
             cache.clear()
@@ -64,13 +80,12 @@ def _build(cabinet: CabinetDimensions, kind: str, runs: int, throat: float, mout
         return cache[key].area
 
     path, gaps, length = trace_path(d, w, t, runs, factory, "rear", throat/w)
-    law = make_law(kind, throat, mouth, length)
-    return w, d, h, t, path, gaps, length, law
+    return _Build(w, d, h, t, path, gaps, length, make_law(kind, throat, mouth, length))
 
 
 def _chamber_front(cabinet: CabinetDimensions, kind: str, runs: int, throat: float, mouth: float) -> float:
-    w, d, h, t, path, _gaps, _length, law = _build(cabinet, kind, runs, throat, mouth)
-    return h-sum(law.area(r.s_start_m)/w*0+_edge_height(r, law, w, 0.0)+t for r in path)
+    b = _build(cabinet, kind, runs, throat, mouth)
+    return b.h-sum(_edge_height(r, b.law, b.w, 0.0)+b.t for r in b.path)
 
 
 def _edge_height(run: RunGeometry, law: AreaLaw, w: float, x: float) -> float:
@@ -80,7 +95,7 @@ def _edge_height(run: RunGeometry, law: AreaLaw, w: float, x: float) -> float:
 
 
 def _details(cabinet: CabinetDimensions, kind: str, runs: int, throat: float, mouth: float,
-             driver_area: float, facets: int):
+             driver_area: float, facets: int) -> HornDetails:
     w, d, h, t, path, gaps, length, law = _build(cabinet, kind, runs, throat, mouth)
     grid = [d*j/facets for j in range(facets+1)]
     built = [replace(r, h_nodes_m=tuple(_edge_height(r, law, w, x) for x in grid)) for r in path]
@@ -133,7 +148,7 @@ def _details(cabinet: CabinetDimensions, kind: str, runs: int, throat: float, mo
 
 
 def _solve_candidate(cabinet: CabinetDimensions, family: str, runs: int, driver_diameter: float,
-                     driver_area: float, vas_m3: float | None):
+                     driver_area: float, vas_m3: float | None) -> HornDetails | None:
     kind, fraction = HORN_FAMILIES[family]
     w, d, h = cabinet.internal_width_m, cabinet.internal_depth_m, cabinet.internal_height_m
     throat = min(max(fraction*driver_area, w*0.03), w*0.45*d)
@@ -156,6 +171,7 @@ def _solve_candidate(cabinet: CabinetDimensions, family: str, runs: int, driver_
             else:
                 hi = mid
         mouth = (lo+hi)/2
+
     def deviation(candidate_mouth: float) -> float:
         try:
             return _details(cabinet, kind, runs, throat, candidate_mouth, driver_area,
@@ -176,7 +192,7 @@ def _solve_candidate(cabinet: CabinetDimensions, family: str, runs: int, driver_
             else:
                 lo = mid
         mouth = lo
-    best = None
+    best: HornDetails | None = None
     for facets in FACET_COUNTS:
         try:
             details = _details(cabinet, kind, runs, throat, mouth, driver_area, facets)
@@ -195,13 +211,13 @@ def _solve_candidate(cabinet: CabinetDimensions, family: str, runs: int, driver_
 
 def design_rear_horn(cabinet: CabinetDimensions, family: str, target_hz: float,
                      driver_diameter_m: float, driver_area_m2: float | None,
-                     vas_m3: float | None = None):
+                     vas_m3: float | None = None) -> FoldedLine:
     """Pick the run count whose cutoff is closest to ``target_hz``."""
-    from lautsprecher_konstruktion.enclosure.folded_line import FoldedLine
+    from lautsprecher_konstruktion.enclosure.folded_line import FoldedLine as _FoldedLine
     if family not in HORN_FAMILIES:
         raise ValueError("Unbekannte Horn-Familie")
     area = driver_area_m2 or pi*(0.8*driver_diameter_m/2)**2
-    best = None
+    best: tuple[float, HornDetails] | None = None
     for runs in RUN_COUNTS:
         details = _solve_candidate(cabinet, family, runs, driver_diameter_m, area, vas_m3)
         if details is None:
@@ -229,16 +245,17 @@ def design_rear_horn(cabinet: CabinetDimensions, family: str, target_hz: float,
     straights = (cabinet.internal_depth_m-details.turn_gaps_m[0]/2,
                  *(r.length_m for r in details.runs))
     turns = (0.0, *((a.h_end_m+b.h_start_m)/2+t for a, b in pairwise(details.runs)))
-    return FoldedLine(
+    return _FoldedLine(
         family, tuple(heights), tuple(w*x for x in heights), details.turn_gaps_m[0],
         details.length_m, 343/(4*details.length_m), panels, max(0.0, w-0.02),
         max(0.0, details.runs[-1].h_end_m-0.02), details.turn_gaps_m, straights, turns,
         ("light",)*len(heights), cabinet.internal_depth_m, None, details)
 
 
-def rear_horn_notes(line, target_hz: float, vas_m3: float | None) -> list[tuple[str | None, str]]:
+def rear_horn_notes(line: FoldedLine, target_hz: float, vas_m3: float | None) -> list[tuple[str | None, str]]:
     """(issue code or None, message) hints for a designed rear horn."""
     horn = line.horn
+    assert horn is not None
     notes: list[tuple[str | None, str]] = []
     notes.append((None, (
         f"Horn {horn.law_label}: Hals {horn.throat_area_m2*1e4:.0f} cm², Mündung "
@@ -248,8 +265,8 @@ def rear_horn_notes(line, target_hz: float, vas_m3: float | None) -> list[tuple[
         "Ebene Wellen, keine Richtwirkung, Mündung als Kolben in der Frontwand.")))
     if abs(horn.cutoff_hz-target_hz)/target_hz > 0.15:
         notes.append(("HORN_CUTOFF_TARGET",
-                      f"Horn-Grenzfrequenz {horn.cutoff_hz:.1f} Hz statt Ziel {target_hz:.1f} Hz "
-                      "(Hals, Länge und Mündung folgen aus Gehäusemaßen); Breite/Höhe/Volumen anpassen."))
+                      (f"Horn-Grenzfrequenz {horn.cutoff_hz:.1f} Hz statt Ziel {target_hz:.1f} Hz "
+                       "(Hals, Länge und Mündung folgen aus Gehäusemaßen); Breite/Höhe/Volumen anpassen.")))
     if horn.mouth_area_m2 < 0.5*horn.mouth_min_area_m2:
         notes.append((None, (
             f"Mündung {horn.mouth_area_m2*1e4:.0f} cm² ist nur {horn.mouth_area_m2/horn.mouth_min_area_m2*100:.0f} % "
@@ -257,8 +274,8 @@ def rear_horn_notes(line, target_hz: float, vas_m3: float | None) -> list[tuple[
             "Wand-/Eckaufstellung hilft, die Basserweiterung unterhalb der Mündungsgrenze bleibt begrenzt.")))
     if horn.min_turn_area_ratio < 0.9:
         notes.append(("HORN_TURN_CONSTRICTION",
-                      f"Umlenkspalt engt den Horn-Querschnitt bis auf {horn.min_turn_area_ratio*100:.0f} % ein; "
-                      "45°-Umlenkblech oder größere Tiefe einplanen."))
+                      (f"Umlenkspalt engt den Horn-Querschnitt bis auf {horn.min_turn_area_ratio*100:.0f} % ein; "
+                       "45°-Umlenkblech oder größere Tiefe einplanen.")))
     if horn.max_area_deviation > 0.12:
         notes.append((None, "Sehnenabweichung zum Flächengesetz > 12 %; mehr Läufe oder Gehrungsleisten verwenden."))
     if horn.law_kind == "scoop":
