@@ -102,7 +102,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         last_x = front+6 if (len(centres)-1)%2 == 1 else back-6
         points.append((last_x, centres[-1]))
         path = " ".join(f"{px:.1f},{py:.1f}" for px, py in points)
-        parts.append(f'<polyline points="{path}" fill="none" stroke="#16749a" stroke-width="2" '
+        parts.append(f'<polyline points="{path}" fill="none" stroke="{ACCENT}" stroke-width="2" '
                      'stroke-dasharray="7 5"/>')
         parts.append(f'<text x="{back-4:.1f}" y="{y+tt+14:.1f}" text-anchor="end" class="dimtext">'
                      f'Treiberkammer · {_mm(line.channel_heights_m[0]):.0f} mm</text>')
