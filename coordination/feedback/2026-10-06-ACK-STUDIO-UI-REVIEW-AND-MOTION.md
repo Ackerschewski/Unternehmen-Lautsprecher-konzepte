@@ -413,6 +413,173 @@ Nur dezente funktionale Bewegung:
 
 Die bisherige Tieftonsimulation soll zu einem vollbreiten **Klang- und Optimierungsarbeitsbereich** ausgebaut werden. Ziel ist nicht nur ein Frequenzgang von ungefähr 20 Hz bis 20 kHz, sondern eine Oberfläche, in der der Nutzer seine gewünschte Zielkurve direkt bearbeiten und gleichzeitig verstehen kann, **welche Baugruppe welchen Frequenzbereich überhaupt verändern kann**.
 
+### Zielkurven-Konfigurator als alternative Entwurfsart
+
+Die Fullrange-Klangansicht soll nicht nur zur nachträglichen Anpassung eines bestehenden Entwurfs dienen. Sie wird zusätzlich zu einer **vollwertigen zweiten Konfigurationsmethode**.
+
+Beim Projektstart kann der Nutzer zwischen mindestens zwei Wegen wählen:
+
+**A · Klassischer Entwurf**
+- Lautsprechertyp, maximaler Bauraum, Budget, Klangprofil und weitere Anforderungen vorgeben;
+- Programm erzeugt passende Konstruktionen;
+- Zielkurve dient anschließend zur Analyse und Feinabstimmung.
+
+**B · Entwurf über Zielkurve**
+- zunächst erscheint eine neutrale, gerade Referenzkurve als Ausgangspunkt;
+- Nutzer formt diese Kurve nach seinem Wunsch;
+- zusätzliche Randbedingungen wie maximale Außenmaße, Budget, maximaler Pegel, Hörabstand, aktiv/passiv und gewünschte Anzahl Wege werden separat angegeben;
+- der Solver sucht anschließend die Kombination aus **Gehäusekonzept, Gehäuseparametern, Chassis, Anzahl Wege, Frequenzweiche und optional DSP**, die diese Zielkurve innerhalb der Randbedingungen möglichst gut erreicht.
+
+Die Zielkurve ist dabei ein **Optimierungsziel**, keine Garantie, dass jeder gezeichnete Verlauf physikalisch erreichbar ist.
+
+#### Workflow
+
+1. Nutzer startet mit einer neutralen Referenz.
+2. Kurve mit EQ-artigen Punkten/Bändern formen.
+3. Bereiche können optional unterschiedlich gewichtet werden, z. B.:
+   - Tiefbass sehr wichtig;
+   - Mittelton möglichst neutral;
+   - Hochton leicht abfallend.
+4. Randbedingungen festlegen:
+   - maximale Breite / Höhe / Tiefe;
+   - Budget;
+   - maximaler gewünschter Pegel;
+   - Hörabstand;
+   - passiv oder aktiv/DSP erlaubt;
+   - optional Gehäusearten erlauben/verbieten;
+   - optional 2-Wege / 3-Wege / Sub-Satellit etc.
+5. Programm bewertet geeignete Architekturen.
+6. Mehrere realistisch machbare Entwürfe werden gegen dieselbe Zielkurve gerechnet.
+7. Nutzer erhält z. B.:
+   - **A · beste Übereinstimmung**
+   - **B · kompakter**
+   - **C · günstiger**
+   - **D · mehr Pegelreserve**
+8. Jede Variante zeigt:
+   - Ist-Frequenzgang gegenüber Ziel;
+   - mittlere/maximale Abweichung;
+   - Gehäusegröße;
+   - Chassis;
+   - Weichen-/DSP-Konzept;
+   - Kosten;
+   - Max-SPL / Hubreserve soweit berechenbar;
+   - Fertigbarkeit und Datenqualität.
+
+#### Wichtig: Nicht nur das Gehäuse optimieren
+
+Ein Fullrange-Ziel kann in vielen Frequenzbereichen nicht sinnvoll allein über das Gehäuse erreicht werden.
+
+Der Solver muss deshalb selbst erkennen:
+- Tieftonproblem → zuerst Gehäuse, Abstimmung, Chassis, Membranfläche prüfen;
+- Übergangsbereich → Chassiswahl und Weiche;
+- Mittel-/Hochtonform → Chassis, Schallwand, Weiche und optional DSP;
+- gewünschte Bassanhebung → zusätzlich Hub, Leistung und Portgrenzen prüfen.
+
+Die Anwendung darf also nicht versuchen, eine beliebige 10-kHz-Anhebung durch größere Gehäuseabmessungen zu „lösen“.
+
+#### Neutraler Startgraph
+
+Die standardmäßig gerade Kurve ist eine **Zielreferenz**, nicht die Behauptung, dass ein realer Lautsprecher bereits so spielt.
+
+Für den Nutzer verständlich kennzeichnen, z. B.:
+- „Zielkurve“
+- „Ausgangspunkt: Neutral“
+- „Forme den Klang, den du erreichen möchtest“
+
+Optional später mehrere Startreferenzen:
+- Neutral;
+- Warm;
+- leichte House-Curve;
+- Nahfeld;
+- Heimkino / hoher Pegel;
+- eigener Preset.
+
+Die absolute Referenz und Messart muss im technischen Modell eindeutig definiert sein. Später insbesondere unterscheiden:
+- anechoischer / quasi-anechoischer Zielverlauf;
+- Hörraum-/Listening-Window-/In-Room-Ziel, falls entsprechende Daten und Modelle vorhanden sind.
+
+Keine unbekannte Raumantwort als präzise Gehäuseanforderung behandeln.
+
+#### Direkte Rückmeldung während des Zeichnens
+
+Während der Nutzer die Zielkurve verändert, soll die Oberfläche bereits grob zeigen:
+
+- **gut erreichbar**;
+- **nur mit größerem Gehäuse / anderem Chassis erreichbar**;
+- **nur mit DSP sinnvoll**;
+- **kritisch wegen Hub/Leistung**;
+- **mit aktuellem Budget/Bauraum nicht sinnvoll erreichbar**.
+
+Dabei zunächst schnelle Näherungen/Sensitivitätsdaten verwenden. Die vollständige Architektur- und Solveroptimierung startet erst über eine klare Aktion wie **„Passenden Lautsprecher berechnen“** oder nach Abschluss einer Bearbeitung, nicht bei jedem Pixel des Drag-Vorgangs.
+
+#### Architektur-Suche
+
+Die Optimierung darf nicht nur Parameter innerhalb eines bereits gewählten Gehäuses variieren. Sie soll bei Bedarf unterschiedliche Lautsprecherkonzepte gegeneinander prüfen, sofern vom Nutzer erlaubt:
+
+- geschlossen;
+- Bassreflex;
+- Passivmembran;
+- Transmission-Line / weitere implementierte Gehäusefamilien;
+- unterschiedliche Chassisgrößen;
+- 2-Wege vs. 3-Wege;
+- passiv vs. aktiv;
+- optional Subwoofer-Unterstützung.
+
+Damit kann dieselbe Zielkurve zu unterschiedlichen sinnvollen Lösungen führen.
+
+Beispiel:
+- Ziel: sehr tiefer Bass + kleine Frontbreite + hoher Pegel.
+- Entwurf A: großes Bassreflexgehäuse;
+- Entwurf B: kleineres aktives Gehäuse mit DSP, aber geringerer Pegelreserve;
+- Entwurf C: 3-Wege-Lösung mit größerem Tieftöner;
+- Programm erklärt die Trade-offs, statt nur einen „Score“ auszuspucken.
+
+#### Zielkurven-Fehlermaß
+
+Für die Optimierung sollte nicht nur ein einzelner Gesamtscore verwendet werden.
+
+Mindestens berücksichtigen:
+- frequenzabhängig gewichtete Abweichung zur Zielkurve;
+- maximale lokale Abweichung;
+- Glättung bzw. sinnvolle Frequenzauflösung;
+- Tiefbassziel;
+- Übergangsbereiche;
+- technische Reserve;
+- Datenqualität;
+- geometrische/fertigungstechnische Machbarkeit;
+- Kosten und Bauraum.
+
+Der Nutzer darf bei Bedarf Prioritäten setzen. Ein kleiner Frequenzgangvorteil darf nicht automatisch ein doppelt so großes oder doppelt so teures Gehäuse gewinnen lassen.
+
+#### Ergebnisdarstellung des Zielkurven-Konfigurators
+
+Nach der Berechnung bleibt der große Fullrange-Graph das Zentrum.
+
+Darstellung:
+- Zielkurve als Referenz;
+- Kurven von A/B/C als überlagerbare Kandidaten;
+- darunter kompakte Variantenkarten;
+- Klick auf Variante hebt deren Kurve hervor;
+- „Warum diese Variante?“ erklärt die wichtigsten konstruktiven Entscheidungen;
+- „Klangabweichung“ zeigt relevante Stellen direkt im Graphen;
+- Grenzen und Reserve bleiben eingeblendet.
+
+Aktion:
+- **„Als Entwurf übernehmen“**
+- danach wird aus der Zielkurven-Suche ein normaler editierbarer Lautsprecherentwurf mit Zeichnungen, Stückliste, Fertigungsdaten und weiterer Klangabstimmung.
+
+#### Zusätzliche Abnahme für den Zielkurven-Konfigurator
+
+- [ ] Nutzer kann ein Projekt vollständig aus einer Zielkurve starten, ohne vorher eine Gehäuseart wählen zu müssen.
+- [ ] Eine neutrale gerade Zielkurve ist klar als Sollwert und nicht als gemessener Ist-Frequenzgang beschriftet.
+- [ ] Der Solver darf Gehäuseart, Chassis, Weiche und optional DSP gemeinsam variieren, soweit der Nutzer diese Freiheitsgrade erlaubt.
+- [ ] Fullrange-Ziele werden nicht fälschlich allein auf Gehäuseparameter abgebildet.
+- [ ] Mindestens drei unterschiedlich priorisierte, realistisch gerechnete Kandidaten können dargestellt werden, wenn genügend valide Lösungen vorhanden sind.
+- [ ] Jede Variante zeigt ihre Abweichung zur gleichen Zielkurve und ihre konstruktiven Trade-offs.
+- [ ] Nicht erreichbare Zielbereiche werden bereits vor bzw. während der Optimierung verständlich markiert.
+- [ ] Übernahme in den normalen Konstruktionsworkflow erfolgt explizit und erzeugt einen reproduzierbaren konkreten Entwurf.
+
+
 ### Grundprinzip
 
 Im Hauptdiagramm werden drei Ebenen unterschieden:
