@@ -172,7 +172,7 @@ class AssistantWindow(QMainWindow):
         subtitle.setObjectName("subtitle")
         headings.addWidget(subtitle)
         head.addLayout(headings, 1)
-        self.focus_button = QPushButton("Zeichnungsmodus")
+        self.focus_button = QPushButton("Zeichnung groß anzeigen")
         self.focus_button.setCheckable(True)
         self.focus_button.setVisible(False)
         self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
@@ -934,7 +934,7 @@ class AssistantWindow(QMainWindow):
         if not on:
             self.wizard_panel.setVisible(True)
         animate_value(self.split, sizes[0], target, apply, reduced=self.reduced_motion, finished=done)
-        self.focus_button.setText("Eingaben zeigen" if on else "Zeichnungsmodus")
+        self.focus_button.setText("Eingaben zeigen" if on else "Zeichnung groß anzeigen")
         if on:
             self.tabs.setCurrentIndex(2)
 
