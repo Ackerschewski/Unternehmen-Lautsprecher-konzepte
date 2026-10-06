@@ -6,6 +6,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, panel_css
 
 SURFACE_NAMES = {"front": "Frontplatte", "back": "Rückwand", "partition": "Trennwand"}
 
@@ -38,13 +39,9 @@ def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
     elements = tuple(e for e in bundle.front_elements if e.surface == surface)
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">',
-        '<style>.title{font:700 28px sans-serif;fill:#153349}.head{font:700 19px sans-serif;fill:#153349}'
-        '.text{font:15px sans-serif;fill:#29485a}.small{font:13px sans-serif;fill:#486477}'
-        '.panel{fill:#fff;stroke:#17394c;stroke-width:2.5}.cut{fill:#e4f5fb;stroke:#0879a6;stroke-width:2}'
-        '.flange{fill:none;stroke:#6e9aae;stroke-width:1.5;stroke-dasharray:5 4}'
-        '.hole{fill:#fff;stroke:#b7442f;stroke-width:1.8}.axis{stroke:#a6b9c4;stroke-width:1;stroke-dasharray:5 5}'
-        '.dim{stroke:#496577;stroke-width:1.3}.rule{stroke:#d4e0e6;stroke-width:1}</style>',
-        '<rect width="1200" height="900" fill="white"/>',
+        panel_css(),
+        f'<rect width="1200" height="900" fill="{PAPER}"/>',
+        '<text x="1155" y="46" text-anchor="end" class="brand">ACK STUDIO · SOFTWARE</text>',
         f'<text x="45" y="46" class="title">{escape(bundle.project.name)} · {SURFACE_NAMES[surface]}</text>',
         f'<text x="45" y="75" class="text">{escape(bundle.project.revision)} · Einzelteil / Fräsansicht · alle Maße in mm</text>',
         f'<rect x="{px:.2f}" y="{py:.2f}" width="{pw:.2f}" height="{ph:.2f}" class="panel"/>',
@@ -88,7 +85,7 @@ def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
         f'transform="rotate(-90 {px-40} {py+ph/2:.2f})">H {h:.1f}</text>',
         '<text x="650" y="126" class="head">Fräsdaten und Positionen</text>',
         f'<text x="650" y="154" class="text">Rohmaß {w:.1f} × {h:.1f} × {thick:.1f}</text>',
-        f'<text x="45" y="805" class="small">{escape(SURFACE_NAMES[surface])}: Ansichts- und DXF-Koordinaten stimmen überein. Blau = Ausschnitt, gestrichelt = Flansch, Rot = bekannte Bohrungen.</text>',
+        f'<text x="45" y="805" class="small">{escape(SURFACE_NAMES[surface])}: Ansichts- und DXF-Koordinaten stimmen überein. Akzent = Ausschnitt, gestrichelt = Flansch, Burgunder = bekannte Bohrungen.</text>',
         '<text x="45" y="831" class="small">Bei fehlenden Herstellermaßen keine Bohrungen ableiten. Vor CNC-Bearbeitung Chassis und Datenblatt prüfen.</text>',
         '</svg>',
     ]
