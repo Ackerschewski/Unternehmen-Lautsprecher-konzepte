@@ -1,0 +1,9 @@
+Lautsprecher Konstruktion - Start unter Windows
+
+1. Python 3.12 oder neuer installieren (python.org, "Add python.exe to PATH" anhaken).
+2. ZIP vollstaendig entpacken (nicht aus dem ZIP heraus starten).
+3. Doppelklick auf  Start-Lautsprecher-Konstruktion.bat
+   Beim ersten Start wird alles installiert (Internet noetig, einige Minuten). Danach startet das Programm sofort.
+
+Das ist keine fertige EXE: Die Windows-EXE (scripts\build_windows.ps1) muss auf einem Windows-Rechner gebaut werden.
+Hinweise zum Testen: docs\application\CODEX_TESTUEBERGABE.md. Fehlerprotokoll: %LOCALAPPDATA%\LautsprecherKonstruktion\logs
