@@ -17,6 +17,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -64,6 +65,7 @@ class TargetCurveEditor(QWidget):
 
     curveChanged = Signal()
     analysisModeChanged = Signal(str)
+    frequencySelected = Signal(float)
 
     def __init__(self, mode: str = "light") -> None:
         super().__init__()
@@ -180,6 +182,24 @@ class TargetCurveEditor(QWidget):
         self.influence.setWordWrap(True)
         layout.addWidget(self.influence)
 
+        influence_grid = QGridLayout()
+        influence_grid.setContentsMargins(0, 0, 0, 0)
+        influence_grid.setHorizontalSpacing(8)
+        self.influence_cards: dict[str, QLabel] = {}
+        for column, (key, title) in enumerate((
+            ("enclosure", "Gehäuse"),
+            ("driver", "Chassis"),
+            ("crossover", "Weiche"),
+            ("dsp", "DSP"),
+        )):
+            card = QLabel(f"<b>{title}</b><br>noch keine Vergleichsdaten")
+            card.setObjectName("kpi")
+            card.setWordWrap(True)
+            influence_grid.addWidget(card, 0, column)
+            influence_grid.setColumnStretch(column, 1)
+            self.influence_cards[key] = card
+        layout.addLayout(influence_grid)
+
         self.canvas.mpl_connect("button_press_event", self._press)
         self.canvas.mpl_connect("motion_notify_event", self._motion)
         self.canvas.mpl_connect("button_release_event", self._release)
@@ -226,6 +246,20 @@ class TargetCurveEditor(QWidget):
         if self.preset.findData(preset) >= 0:
             self._set_preset_combo(preset)
         self.set_analysis_mode(analysis_mode)
+
+    def selected_frequency_hz(self) -> float:
+        index = max(0, self.point.currentIndex())
+        return float(self._frequencies[index])
+
+    def set_component_influence(self, values: dict[str, str]) -> None:
+        titles = {
+            "enclosure": "Gehäuse",
+            "driver": "Chassis",
+            "crossover": "Weiche",
+            "dsp": "DSP",
+        }
+        for key, card in self.influence_cards.items():
+            card.setText(f"<b>{titles[key]}</b><br>{values.get(key, 'keine belastbaren Vergleichsdaten')}")
 
     def analysis_mode(self) -> str:
         return str(self.analysis.currentData())
@@ -414,6 +448,7 @@ class TargetCurveEditor(QWidget):
     def _selected_point_changed(self, _index: int) -> None:
         self._sync_controls()
         self._draw()
+        self.frequencySelected.emit(self.selected_frequency_hz())
 
     def _sync_controls(self) -> None:
         index = max(0, self.point.currentIndex())
