@@ -106,7 +106,7 @@ def special_css() -> str:
     return (
         f"<style>"
         f".brand{{font:700 11px {FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
-        f"text{font:14px {FONT_UI};fill:{TEXT}}"
+        f"text{{font:14px {FONT_UI};fill:{TEXT}}}"
         f".title{{font:600 30px {FONT_DISPLAY};fill:{INK}}}"
         f".head,.label{{font:700 19px {FONT_UI};fill:{INK}}}"
         f".text,.note{{font:15px {FONT_UI};fill:{TEXT}}}"
