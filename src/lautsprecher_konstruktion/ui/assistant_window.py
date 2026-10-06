@@ -1521,6 +1521,23 @@ class AssistantWindow(QMainWindow):
                 package = export_project_package(design.bundle, folder,
                     self.cutting_panel.settings(design.project.material))
                 self.statusBar().showMessage(f"Fertigungsunterlagen: {package}")
+                dialog = QMessageBox(self)
+                dialog.setWindowTitle("Fertigungsunterlagen bereit")
+                dialog.setIcon(QMessageBox.Icon.Information)
+                dialog.setText("Export abgeschlossen")
+                dialog.setInformativeText(
+                    f"Die Fertigungsunterlagen wurden erstellt.\n{package}"
+                )
+                open_button = dialog.addButton(
+                    "Ordner öffnen", QMessageBox.ButtonRole.ActionRole
+                )
+                dialog.addButton("Fertig", QMessageBox.ButtonRole.AcceptRole)
+                dialog.exec()
+                if dialog.clickedButton() is open_button:
+                    target = Path(package)
+                    QDesktopServices.openUrl(
+                        QUrl.fromLocalFile(str(target if target.is_dir() else target.parent))
+                    )
             except (OSError, ValueError) as exc:
                 LOG.warning("Export fehlgeschlagen: %s", exc)
                 QMessageBox.warning(self, "Export fehlgeschlagen", str(exc))
