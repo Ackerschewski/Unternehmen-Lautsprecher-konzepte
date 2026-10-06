@@ -34,7 +34,7 @@ def test_dark_theme_meets_contrast_in_every_area(area: str) -> None:
 
 def test_dark_stylesheet_and_charts_use_dark_ground() -> None:
     assert tokens.DARK_PAPER in stylesheet("dark")
-    assert chart_rc("dark")["figure.facecolor"] == tokens.DARK_PAPER
+    assert chart_rc("dark")["figure.facecolor"] == tokens.DARK_SURFACE
     assert chart_rc("light")["figure.facecolor"] == tokens.PAPER
 
 
