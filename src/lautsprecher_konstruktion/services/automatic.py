@@ -592,7 +592,11 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
             unique.append(item)
         if len(unique) == 3:
             break
-    labels = ("A · Favorit", "B · Alternative", "C · Alternative")
+    labels = (
+        ("A · Beste Zielkurven-Näherung", "B · Alternative", "C · Alternative")
+        if request.target_curve_points
+        else ("A · Favorit", "B · Alternative", "C · Alternative")
+    )
     return AutomaticDesignResult("ok", tuple(SpeakerDesign(labels[i], d.project, d.bundle,
         d.woofer, d.tweeter, d.score, d.breakdown, d.reasons, d.bom, d.price,
         d.spl_limit_db, d.provisional_crossover, d.total_price_eur)
