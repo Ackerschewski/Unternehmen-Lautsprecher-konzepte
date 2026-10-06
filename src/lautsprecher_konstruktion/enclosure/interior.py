@@ -128,10 +128,17 @@ def check_interior(
                 z0, z1 = spans[e.id]
                 if z1 <= z0 or z1 <= zb or z0 >= zb + brace.thickness_m:
                     continue
-                edge_gap = min(e.x_m - e.width / 2 - panel_thickness_m,
-                               width_m - panel_thickness_m - e.x_m - e.width / 2,
-                               e.y_m - e.height / 2 - bottom_thickness_m,
-                               height_m - top_thickness_m - e.y_m - e.height / 2)
+                # Behind the baffle a front-mounted chassis is at most as wide as its cutout
+                # (it has to pass through it); only the flange is wider, and that sits in the panel.
+                body_w = body_h = e.cutout_diameter_m
+                if body_w is None or body_h is None:
+                    body_w, body_h = e.width, e.height
+                    if e.type == "port":  # slot duct: the channel walls add one panel per side
+                        body_w, body_h = body_w + 2 * panel_thickness_m, body_h + 2 * panel_thickness_m
+                edge_gap = min(e.x_m - body_w / 2 - panel_thickness_m,
+                               width_m - panel_thickness_m - e.x_m - body_w / 2,
+                               e.y_m - body_h / 2 - bottom_thickness_m,
+                               height_m - top_thickness_m - e.y_m - body_h / 2)
                 if edge_gap < brace.border_m:
                     over = (brace.border_m - edge_gap) * 1000
                     issues.append(DesignWarning(

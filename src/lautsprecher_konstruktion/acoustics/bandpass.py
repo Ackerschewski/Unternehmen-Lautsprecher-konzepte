@@ -19,9 +19,15 @@ from lautsprecher_konstruktion.enclosure.ports import PortDesign
 def simulate_bandpass(
     driver: Driver, rear_volume_m3: float, front_volume_m3: float,
     port: PortDesign, power_w: float = 1.0,
-    *, rear_port: PortDesign | None = None,
+    *, rear_port: PortDesign | None = None, rear_port_path_m: float = 0.0,
     rho_kg_m3: float = 1.204, sound_speed_m_s: float = 343.0,
 ) -> VentedResponse:
+    """Fourth-order (rear port None) or parallel sixth-order bandpass.
+
+    ``rear_port_path_m`` is the extra acoustic path of the rear-chamber port to a
+    listener on the front axis, e.g. the cabinet depth if it exits through the
+    back wall; it delays the rear port's contribution.
+    """
     if min(rear_volume_m3, front_volume_m3, power_w, port.area_m2,
            port.effective_length_m) <= 0:
         raise ValueError("Bandpass-Volumen, Port und Leistung müssen positiv sein")
@@ -77,6 +83,8 @@ def simulate_bandpass(
     # Rear-chamber volume velocity has the opposite sign at the diaphragm.
     # Coherent summation assumes colocated port outlets in the far field.
     u_rear = sd*cone_speed*zrear/zrp if zrp is not None else None
+    if u_rear is not None and rear_port_path_m > 0:
+        u_rear = u_rear*np.exp(-1j*w*rear_port_path_m/sound_speed_m_s)
     pressure = s*rho_kg_m3*(u_port + (u_rear if u_rear is not None else 0))/(2*pi)
     magnitude = np.maximum(np.abs(pressure), np.finfo(float).tiny)
     # A bandpass is normalized to its peak, not to a high-frequency shelf.

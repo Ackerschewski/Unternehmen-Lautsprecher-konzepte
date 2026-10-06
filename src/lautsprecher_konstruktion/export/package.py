@@ -198,7 +198,9 @@ def export_project_package(bundle: DesignBundle, directory: str | Path,
         summary.extend(((f'Schallwand: {bundle.cabinet.width_m*1000:.1f} x '
                         f'{bundle.cabinet.height_m*1000:.1f} x '
                         f'{bundle.cabinet.panel_thickness_m*1000:.1f} mm'),
-                        f'Front/Rück-Schallweg: {(bundle.baffle_path_m or 0)*1000:.1f} mm'))
+                        (f'Front/Rück-Schallweg: {bundle.baffle_path_m*1000:.1f} mm'
+                         if bundle.baffle_path_m is not None else
+                         'Front/Rück-Schallweg: entfällt (Wand trennt Vorder- und Rückseite)')))
         if bundle.baffle_mode == 'infinite_baffle':
             summary.append(f'Rückraum mindestens: {bundle.target_net_volume_m3*1000:.1f} l')
     else:

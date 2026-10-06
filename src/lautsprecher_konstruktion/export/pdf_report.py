@@ -134,15 +134,15 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
             if e.type=='port' and bundle.port is not None and bundle.port.shape=='slot':
                 wall=cab.panel_thickness_m*1000*scale
                 c.setFillColor(HexColor('#dce7ed'))
-                c.rect(inner_x,cy-opening/2-wall,depth,wall,fill=1,stroke=1)
-                c.rect(inner_x,cy+opening/2,depth,wall,fill=1,stroke=1)
+                c.rect(inner_x,cy-opening/2-wall,max(depth-ft,0),wall,fill=1,stroke=1)
+                c.rect(inner_x,cy+opening/2,max(depth-ft,0),wall,fill=1,stroke=1)
                 c.setFillColor(HexColor('#dceff8'))
-            c.rect(inner_x,cy-opening/2,depth,opening,fill=1,stroke=1)
+            # A port's length L includes the wall it passes through: it starts at the outer face.
+            c.rect(sx if e.type=='port' else inner_x,cy-opening/2,depth,opening,fill=1,stroke=1)
         elif e.surface=='back':
-            c.rect(rear_x-depth,cy-opening/2,depth,opening,fill=1,stroke=1)
+            c.rect(rear_x+bt-depth if e.type=='port' else rear_x-depth,cy-opening/2,depth,opening,fill=1,stroke=1)
         elif partition_x is not None:
-            start = partition_x+(cab.panel_thickness_m*1000*scale if e.type=='port' else 0)
-            c.rect(start,cy-opening/2,depth,opening,fill=1,stroke=1)
+            c.rect(partition_x,cy-opening/2,depth,opening,fill=1,stroke=1)
     c.setFillColor(INK)
     if bundle.brace:
         c.setFillColor(HexColor('#dceadd'))
@@ -449,19 +449,32 @@ def _write_tapped_horn_pdf(path: str | Path, bundle: DesignBundle,
     c.rect(x,y,d*scale,h*scale)
     ix=x+cab.effective_front_thickness_m*1000*scale
     iy=y+(cab.bottom_thickness_m or cab.panel_thickness_m)*1000*scale
-    f1y=iy+horn.lower_height_m*1000*scale
+    det=horn.details
+    assert det is not None
+    top_y=iy+cab.internal_height_m*1000*scale          # inner top edge (PDF y points up)
     c.setFillColor(HexColor('#e0ebef'))
-    c.rect(ix,f1y,horn.baffle_length_m*1000*scale,t*scale,fill=1,stroke=1)
+    for sep in det.septa:
+        pts=[(ix+px_*1000*scale,top_y-py_*1000*scale) for px_,py_ in sep.points_m]
+        outline=c.beginPath()
+        outline.moveTo(*pts[0])
+        for pt in pts[1:]:
+            outline.lineTo(*pt)
+        for pt in reversed(pts):
+            outline.lineTo(pt[0],pt[1]-t*scale)
+        outline.close()
+        c.drawPath(outline,fill=1,stroke=1)
     c.setFillColor(INK)
+    f1y=top_y-det.septa[0].points_m[0][1]*1000*scale
     center=ix+horn.driver_depth_from_front_m*1000*scale
-    c.circle(center,f1y+t*scale/2,(driver.cutout_diameter_m or 0)*500*scale)
+    c.circle(center,f1y,(driver.cutout_diameter_m or 0)*500*scale)
     _lines(c,[f'Aussen B x H x T: {w:.1f} x {h:.1f} x {d:.1f} mm',
               f'F1: {cab.internal_width_m*1000:.1f} x {horn.baffle_length_m*1000:.1f} x {t:.1f} mm',
               f'Treiber-Mitte ab F1-Vorderkante: {horn.driver_depth_from_front_m*1000:.1f} mm',
-              f'Oberer Kanal {horn.upper_height_m*1000:.1f}; unterer Kanal {horn.lower_height_m*1000:.1f} mm',
-              f'Umlenkspalt hinten {horn.turn_gap_m*1000:.1f} mm',
+              f'Lauf 1 {horn.upper_height_m*1000:.1f} mm; Muendungslauf {horn.lower_height_m*1000:.1f} mm; {len(det.runs)} Laeufe',
+              f'Umlenkspalte {" / ".join(f"{g*1000:.0f}" for g in det.turn_gaps_m[1:])} mm',
+              f'Taps: hinten s {horn.rear_tap_s_m*1000:.0f}, vorn s {horn.front_tap_s_m*1000:.0f} mm',
               f'Muendung {horn.mouth_width_m*1000:.1f} x {horn.mouth_height_m*1000:.1f} mm',
-              f'Linienweg {horn.path_length_m*1000:.1f} mm; Viertelwelle {horn.quarter_wave_hz:.1f} Hz'],
+              f'Linienweg {horn.path_length_m*1000:.1f} mm; c/2L {horn.half_wave_hz:.1f} Hz; Viertelwelle {horn.quarter_wave_hz:.1f} Hz'],
            625,PAGE_H-125,25)
     c.showPage()
     _header(c,'F1-Bohrbild, Zuschnitt und Stueckliste',bundle,2)
@@ -514,10 +527,15 @@ def _write_front_horn_pdf(path: str | Path, bundle: DesignBundle,
     c.setStrokeColor(INK)
     c.rect(sx+length*scale,y,d*scale,h*scale)
     outline=c.beginPath()
-    outline.moveTo(sx,cy-h*scale/2)
-    outline.lineTo(sx+length*scale,cy-throat*scale/2)
-    outline.lineTo(sx+length*scale,cy+throat*scale/2)
-    outline.lineTo(sx,cy+h*scale/2)
+    # sectioned exponential contour, mouth (left) to throat (right)
+    count=len(horn.section_heights_m)
+    borders=[(sx+sum(horn.section_lengths_m[i:])*1000*scale,horn.section_heights_m[i]*1000)
+             for i in range(count-1,-1,-1)]
+    outline.moveTo(borders[0][0],cy-borders[0][1]*scale/2)
+    for bx,bh in borders[1:]:
+        outline.lineTo(bx,cy-bh*scale/2)
+    for bx,bh in reversed(borders):
+        outline.lineTo(bx,cy+bh*scale/2)
     outline.close()
     c.setStrokeColor(BLUE)
     c.drawPath(outline)
@@ -598,7 +616,9 @@ def _write_baffle_pdf(path: str | Path, bundle: DesignBundle,
         c.drawString(px,py-25,'Flache Schallwand ohne Gehaeuserueckwand')
     notes=[f'Bauform: {bundle.baffle_mode}',
            f'Platte: {w:.1f} x {h:.1f} x {t:.1f} mm',
-           f'Wirksamer Front/Rueckweg: {(bundle.baffle_path_m or 0)*1000:.1f} mm']
+           (f'Wirksamer Front/Rueckweg: {bundle.baffle_path_m*1000:.1f} mm'
+            if bundle.baffle_path_m is not None else
+            'Front/Rueckweg: entfaellt (Wand trennt Vorder- und Rueckseite)')]
     if bundle.baffle_mode=='infinite_baffle':
         notes.append(f'Luftdichter Rueckraum vor Ort: mindestens {bundle.target_net_volume_m3*1000:.1f} l')
     _lines(c,notes,650,PAGE_H-375)

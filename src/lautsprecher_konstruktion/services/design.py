@@ -5,17 +5,17 @@ from typing import Any, cast
 
 import numpy as np
 
+from lautsprecher_konstruktion.acoustics.aperiodic import (
+    aperiodic_q,
+    cardioid_ideal_delay_s,
+    specific_flow_resistance,
+)
 from lautsprecher_konstruktion.acoustics.baffle import (
     dipole_frequencies_hz,
     dipole_path_m,
     simulate_baffle,
 )
 from lautsprecher_konstruktion.acoustics.baffle_step import baffle_step_frequency_hz
-from lautsprecher_konstruktion.acoustics.aperiodic import (
-    aperiodic_q,
-    cardioid_ideal_delay_s,
-    specific_flow_resistance,
-)
 from lautsprecher_konstruktion.acoustics.bandpass import (
     simulate_bandpass,
     simulate_bandpass_series,
@@ -52,10 +52,16 @@ from lautsprecher_konstruktion.enclosure.folded_line import (
     design_folded_line,
 )
 from lautsprecher_konstruktion.enclosure.front_horn import FrontHorn, design_front_horn
+from lautsprecher_konstruktion.enclosure.interior import (
+    InteriorGeometry,
+    check_interior,
+    inside_displacement_m3,
+    port_protrusion_m,
+)
 from lautsprecher_konstruktion.enclosure.isobaric import Coupler, equivalent_driver, make_coupler
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, check_layout
 from lautsprecher_konstruktion.enclosure.passive_radiator import PassiveRadiatorDesign
-from lautsprecher_konstruktion.enclosure.ports import PortDesign
+from lautsprecher_konstruktion.enclosure.ports import PortDesign, round_port_diameter_for_length_m
 from lautsprecher_konstruktion.enclosure.rear_horn import rear_horn_notes
 from lautsprecher_konstruktion.enclosure.rectangular import (
     CabinetDimensions,
@@ -69,6 +75,7 @@ from lautsprecher_konstruktion.enclosure.tapped_horn import (
     TappedHorn,
     design_tapped_horn,
     tapped_baffle_displacement_m3,
+    tapped_horn_notes,
 )
 from lautsprecher_konstruktion.project.models import CrossoverConfig, SpeakerProject
 from lautsprecher_konstruktion.warnings import DesignWarning
@@ -130,6 +137,8 @@ def _body_size(element: FrontElement) -> tuple[float, float]:
 def _wall_gap(element: FrontElement, cabinet: CabinetDimensions, t: float) -> float:
     """Smallest distance between the element body and the inner cabinet walls (can be negative)."""
     body_w, body_h = _body_size(element)
+    if element.type == "port" and element.cutout_diameter_m is None:
+        body_w, body_h = body_w+2*t, body_h+2*t  # slot duct: channel walls add one panel per side
     return min(element.x_m-body_w/2-t, cabinet.width_m-t-element.x_m-body_w/2,
                element.y_m-body_h/2-(cabinet.bottom_thickness_m or t),
                cabinet.height_m-(cabinet.top_thickness_m or t)-element.y_m-body_h/2)
@@ -164,6 +173,14 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
     w, h = cabinet.width_m, cabinet.height_m
     result: list[FrontElement] = []
     driver = project.driver
+    cfg = project.enclosure
+
+    def floor_y(radius_m: float, fraction: float) -> float:
+        # Keep the opening clear of the floor and of the window brace's lower border.
+        clear = ((cfg.bottom_thickness_mm or cfg.panel_thickness_mm)/1000 +
+                 (cfg.brace_border_mm/1000 if cfg.brace_quantity else 0.0) + 0.005)
+        return max(radius_m + clear, radius_m + 0.025, h*fraction)
+
     if driver.cutout_diameter_m:
         layout_type = ("woofer" if driver.driver_type in {"midwoofer", "coaxial_driver"} else
                        "tweeter" if driver.driver_type == "compression_driver" else driver.driver_type)
@@ -183,11 +200,12 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
                 cutout_diameter_m=port.diameter_m, mounting_depth_m=port.physical_length_m))
         elif port.width_m and port.height_m:
             result.append(FrontElement(id="BR1", type="port", x_m=w/2,
-                y_m=port.height_m/2+(project.enclosure.bottom_thickness_mm or project.enclosure.panel_thickness_mm)/1000+project.enclosure.brace_border_mm/1000+0.005, width_m=port.width_m,
+                # lower channel wall (one panel) has to clear the brace border as well
+                y_m=port.height_m/2+project.enclosure.panel_thickness_mm/1000+(project.enclosure.bottom_thickness_mm or project.enclosure.panel_thickness_mm)/1000+project.enclosure.brace_border_mm/1000+0.005, width_m=port.width_m,
                 height_m=port.height_m, mounting_depth_m=port.physical_length_m))
     if radiator is not None:
         result.append(FrontElement(id="PM1", type="passive_radiator", surface="back", x_m=w/2,
-            y_m=max(radiator.cutout_diameter_m/2+0.025, h*0.17),
+            y_m=floor_y(radiator.cutout_diameter_m*1.1/2, 0.17),
             outer_diameter_m=radiator.cutout_diameter_m*1.1,
             cutout_diameter_m=radiator.cutout_diameter_m,
             mounting_depth_m=radiator.mounting_depth_m))
@@ -196,7 +214,7 @@ def _default_layout(project: SpeakerProject, cabinet: CabinetDimensions,
         second_surface = ("partition" if project.enclosure.enclosure_type == "bandpass_6_series"
                           else "back")
         result.append(FrontElement(id="BR2", type="port", surface=cast(Any, second_surface), x_m=w/2,
-            y_m=max(rear_port.diameter_m/2+0.025, h*0.18),
+            y_m=floor_y(rear_port.diameter_m/2, 0.18),
             outer_diameter_m=rear_port.diameter_m,
             cutout_diameter_m=rear_port.diameter_m,
             mounting_depth_m=rear_port.physical_length_m))
@@ -320,7 +338,7 @@ def _calculate_baffle_project(project: SpeakerProject) -> DesignBundle:
         # Small (1973): Vb >= 10 Vas keeps the Qtc rise below 5 % (Qtc = Qts sqrt(1 + Vas/Vb)).
         volume = (cfg.target_volume_l or 0)/1000
         minimum = 10*driver.vas_m3
-        if volume < minimum:
+        if volume < minimum*(1-1e-9):
             raise ValueError(
                 "Infinite Baffle benötigt einen dichten rückseitigen Raum von mindestens 10 × Vas "
                 f"= {minimum*1000:.0f} l (eingestellt: {volume*1000:.0f} l)")
@@ -426,14 +444,14 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
             top_thickness_m=cfg.top_thickness_mm/1000 if cfg.top_thickness_mm else None,
             bottom_thickness_m=cfg.bottom_thickness_mm/1000 if cfg.bottom_thickness_mm else None,
             front_layers=cfg.front_layers)
-        horn=design_tapped_horn(cabinet,driver)
+        horn=design_tapped_horn(cabinet,driver,cfg.tuning_hz)
         updated=(driver.displacement_m3+cfg.additional_displacement_l/1000+
                  tapped_baffle_displacement_m3(horn,driver))
         if abs(updated-displacement)<1e-8:
             break
         displacement=updated
     assert cabinet is not None and horn is not None
-    horn=design_tapped_horn(cabinet,driver)
+    horn=design_tapped_horn(cabinet,driver,cfg.tuning_hz)
     displacement=(driver.displacement_m3+cfg.additional_displacement_l/1000+
                   tapped_baffle_displacement_m3(horn,driver))
     # A front cutout is the mouth only. W1 is mounted horizontally in F1.
@@ -444,9 +462,10 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
         mounting_depth_m=cabinet.effective_front_thickness_m)
     layout=(mouth,)
     issues=list(check_layout(layout,cabinet.width_m,cabinet.height_m,cabinet.internal_depth_m))
-    if cfg.tuning_hz and abs(horn.quarter_wave_hz-cfg.tuning_hz)/cfg.tuning_hz>0.15:
-        issues.append(DesignWarning(code='TAPPED_LENGTH_TARGET',severity='warning',
-            message=f'Tapped-Horn-Linienweg ergibt {horn.quarter_wave_hz:.1f} Hz statt Ziel {cfg.tuning_hz:.1f} Hz; Volumen oder Höhe anpassen.'))
+    tapped_notes=tapped_horn_notes(horn,cfg.tuning_hz)
+    for code,message in tapped_notes:
+        if code:
+            issues.append(DesignWarning(code=code,severity='warning',message=message))
     if project.tweeter_name or project.additional_drivers or project.crossover.enabled:
         issues.append(DesignWarning(code='TAPPED_EXTRA_DRIVER',severity='error',
             message='Tapped-Horn-Fertigung ist ein einzelner Tieftöner; Hochtöner, Zusatztreiber und Weiche entfernen.'))
@@ -456,9 +475,10 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
         cabinet.effective_front_thickness_m+1.46*(area/np.pi)**0.5,
         horn.quarter_wave_hz,width_m=horn.mouth_width_m,height_m=horn.mouth_height_m)
     warnings=['Tapped-Horn: Zweifach-Einspeisung an F1, ebene Wellen und angenäherte Faltungs-/Mündungsverluste. Impedanz und Nahfeld am Prototyp messen.']
+    warnings.extend(message for code,message in tapped_notes if code is None)
     warnings.extend(issue.message for issue in issues)
     return DesignBundle(project.model_copy(update={'front_elements':layout}),target,
-        cabinet,cut_list(cabinet, cfg.joint_style)+(horn.panel,),port,None,None,None,displacement,
+        cabinet,cut_list(cabinet, cfg.joint_style)+horn.panels,port,None,None,None,displacement,
         tuple(warnings),issues=tuple(issues),front_elements=layout,
         vented_response=response,tapped_horn=horn)
 
@@ -503,6 +523,19 @@ def _line_notes(line: FoldedLine, family: str, sd_m2: float | None,
     return notes
 
 
+def _port_fit_hint(port: PortDesign, chamber_volume_m3: float, max_length_m: float) -> str:
+    """German remedy for a port that is longer than the room its chamber offers."""
+    tail = ("Alternativen: Gehäuse schmaler/niedriger (tieferer Raum), Abstimmfrequenz erhöhen, "
+            "Slot-Port oder zusätzlichen Port.")
+    if port.shape == "round" and chamber_volume_m3 > 0 and max_length_m > 0:
+        d_max = round_port_diameter_for_length_m(box_volume_m3=chamber_volume_m3, tuning_hz=port.tuning_hz,
+                                                 length_m=max_length_m)
+        if d_max < (port.diameter_m or 0.0):
+            return (f"Rund-Ø höchstens {d_max*1000:.0f} mm würde passen (Portgeschwindigkeit prüfen). "
+                    + tail)
+    return tail
+
+
 def calculate_project(project: SpeakerProject) -> DesignBundle:
     cfg = project.enclosure
     entry = registry.get(cfg.enclosure_type)
@@ -525,6 +558,16 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         issues.append(DesignWarning(code="BANDPASS6_MODEL_LIMIT", severity="info",
             message="Bandpass 6: ideales Modell; Portabstand, Leckage und Kanalmoden am Prototyp messen."))
     radiator = prepared.radiator
+    if radiator is not None and project.driver.sd_m2 and project.driver.xmax_m:
+        driver_vd = project.driver.sd_m2*project.driver.xmax_m
+        radiator_vd = radiator.area_m2*radiator.xmax_m
+        if radiator_vd < 2*driver_vd:
+            issues.append(DesignWarning(code="RADIATOR_DISPLACEMENT", severity="warning",
+                message=(f"Passivmembran-Hubvolumen {radiator_vd*1e6:.0f} cm³ (Sd × Xmax) ist kleiner als das "
+                         f"Doppelte des Treibers ({2*driver_vd*1e6:.0f} cm³); Richtwert nach Small (1973): "
+                         "mindestens 2 × Treiber-Hubvolumen, sonst begrenzt die Passivmembran den Pegel "
+                         "(mechanischer Anschlag)."),
+                value=radiator_vd*1e6, limit=2*driver_vd*1e6))
     resonator = prepared.resonator
     front_volume = prepared.front_volume_m3
     rear_volume = prepared.rear_volume_m3
@@ -690,7 +733,19 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     if cfg.enclosure_type == "horn_front":
         assert cfg.tuning_hz is not None
         front_horn=design_front_horn(cabinet,project.driver,cfg.tuning_hz)
-        warnings.append("Front-Horn: exponentielles Flächenprofil in 24 akustischen Abschnitten; Richtwirkung, Halsübergang und Mundlast am Prototyp messen.")
+        warnings.append(
+            f"Front-Horn: {len(front_horn.section_lengths_m)} Pyramidenstumpf-Abschnitte mit Exponentialgesetz an den Grenzen "
+            f"(fc {front_horn.cutoff_hz:.1f} Hz, S_M/S_T {front_horn.area_ratio:.2f}, Abweichung bis "
+            f"{front_horn.max_area_deviation()*100:.1f} %); Richtwirkung, Halsübergang und Mundlast am Prototyp messen.")
+        if front_horn.decompression > 1.2:
+            warnings.append(
+                f"Front-Horn: Hals {front_horn.throat_area_m2*1e4:.0f} cm² ist {front_horn.decompression:.1f}× die Membranfläche "
+                "(Treiberrahmen bestimmt den Hals, keine Kompression); Wirkungsgradgewinn geringer als bei einem Hals ≈ Sd.")
+        if front_horn.mouth_area_m2 < 0.5*front_horn.mouth_min_area_m2:
+            warnings.append(
+                f"Front-Horn: Mündung {front_horn.mouth_area_m2*1e4:.0f} cm² = "
+                f"{front_horn.mouth_area_m2/front_horn.mouth_min_area_m2*100:.0f} % der freien Mindestfläche "
+                f"{front_horn.mouth_min_area_m2*1e4:.0f} cm² für fc; Basserweiterung unterhalb der Mündungsgrenze begrenzt.")
 
     if cfg.enclosure_type not in FOLDED_TYPES and front_horn is None:
         issues.extend(_proportion_issues(cabinet, project.driver))
@@ -699,18 +754,28 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     if project.driver.mounting_depth_m and project.driver.mounting_depth_m > cabinet.internal_depth_m:
         warnings.append("Driver mounting depth exceeds the available internal cabinet depth.")
     if coupler is not None and project.driver.mounting_depth_m is not None:
-        tandem_depth = coupler.length_m + coupler.ring_thickness_m + project.driver.mounting_depth_m
+        tandem_depth = coupler.rear_extent_m
         if tandem_depth + 0.01 > cabinet.internal_depth_m:
             issues.append(DesignWarning(code="ISOBARIC_DEPTH", severity="error",
-                message=f"Isobarik-Paar benötigt {tandem_depth*1000:.1f} mm Einbautiefe plus 10 mm Rückwandabstand; verfügbar {cabinet.internal_depth_m*1000:.1f} mm."))
+                message=(f"Isobarik-Paar benötigt {tandem_depth*1000:.1f} mm Einbautiefe plus 10 mm Rückwandabstand; "
+                         f"verfügbar {cabinet.internal_depth_m*1000:.1f} mm. Die Tiefe ergibt sich aus Netto-Volumen "
+                         "und Innenquerschnitt: Breite/Höhe verkleinern (Innenquerschnitt höchstens "
+                         f"{cabinet.gross_internal_volume_m3/(tandem_depth+0.01)*10000:.0f} cm², heute "
+                         f"{cabinet.internal_width_m*cabinet.internal_height_m*10000:.0f} cm²; die Koppelkammer braucht "
+                         f"mindestens {(coupler.outer_diameter_m+0.01)*1000:.0f} mm), ein größeres Netto-Volumen "
+                         "(höheres Qtc) wählen"
+                         + ("." if coupler.w2_reversed else " oder den Push-Pull-Aufbau (Magnet an Magnet) nutzen."))))
     front_chamber_depth = None
     if front_volume is not None and rear_volume is not None:
-        front_gross = front_volume + (port.displacement_m3 if port else 0.0) + slot_wall_displacement
+        front_gross = front_volume + inside_displacement_m3(port, front_wall) + slot_wall_displacement
         front_chamber_depth = front_gross/(cabinet.internal_width_m*cabinet.internal_height_m)
         if front_chamber_depth + t >= cabinet.internal_depth_m:
-            raise ValueError("Bandpass: kein Platz für die hintere Kammer")
+            raise ValueError(
+                f"Bandpass: kein Platz für die hintere Kammer (Frontkammer allein {front_chamber_depth*1000:.0f} mm "
+                f"tief bei {cabinet.internal_depth_m*1000:.0f} mm Innentiefe). Frontkammer verkleinern oder "
+                "Breite/Höhe des Gehäuses verringern.")
         if rear_port is not None:
-            rear_gross = (rear_volume + rear_port.displacement_m3 +
+            rear_gross = (rear_volume + inside_displacement_m3(rear_port, rear_port_wall) +
                           project.driver.displacement_m3 + cfg.additional_displacement_l/1000)
             if brace is not None:
                 rear_gross += brace.total_displacement_m3
@@ -718,15 +783,27 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
             if rear_gross/(cabinet.internal_width_m*cabinet.internal_height_m) > available_rear+0.0001:
                 raise ValueError("Rückkammer mit Port und Verdrängung passt nicht in das Gehäuse")
     available_port_depth = front_chamber_depth or cabinet.internal_depth_m
-    if port and port.physical_length_m > available_port_depth:
+    port_protrusion = port_protrusion_m(port.physical_length_m, front_wall) if port else 0.0
+    if port and port_protrusion > available_port_depth:
+        chamber = "Frontkammer" if front_chamber_depth is not None else "Gehäuse"
         warnings.append("Port ist länger als seine Kammer; Faltung oder anderes Gehäuse nötig.")
         issues.append(DesignWarning(code="PORT_BACK_WALL",severity="error",
-            message=f"Port passt nicht in seine Kammer; Überstand {(port.physical_length_m-available_port_depth)*1000:.1f} mm."))
+            message=(f"BR1 passt nicht in die {chamber}: Rohrlänge {port.physical_length_m*1000:.0f} mm "
+                     f"(davon {port_protrusion*1000:.0f} mm im Innenraum) bei nur "
+                     f"{available_port_depth*1000:.0f} mm Tiefe, Überstand "
+                     f"{(port_protrusion-available_port_depth)*1000:.1f} mm. "
+                     + _port_fit_hint(port, front_volume if front_volume is not None else target_net_volume_m3,
+                                      available_port_depth+front_wall))))
     if rear_port is not None and front_chamber_depth is not None:
         rear_depth = cabinet.internal_depth_m-front_chamber_depth-t
-        if rear_port.physical_length_m > rear_depth:
+        rear_protrusion = port_protrusion_m(rear_port.physical_length_m, rear_port_wall)
+        if rear_protrusion > rear_depth:
             issues.append(DesignWarning(code="REAR_PORT_BACK_WALL", severity="error",
-                message=f"BR2 passt nicht in die Rückkammer; Überstand {(rear_port.physical_length_m-rear_depth)*1000:.1f} mm."))
+                message=(f"BR2 passt nicht in die Rückkammer: Rohrlänge {rear_port.physical_length_m*1000:.0f} mm "
+                         f"(davon {rear_protrusion*1000:.0f} mm im Innenraum) bei nur {rear_depth*1000:.0f} mm Tiefe, "
+                         f"Überstand {(rear_protrusion-rear_depth)*1000:.1f} mm. "
+                         + _port_fit_hint(rear_port, rear_volume if rear_volume is not None else 0.0,
+                                          rear_depth+rear_port_wall))))
     source_layout = project.front_elements
     if folded_line is not None:
         top = cabinet.height_m-(cabinet.top_thickness_m or t)-folded_line.channel_heights_m[0]/2
@@ -807,7 +884,8 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     issues.extend(check_layout(layout, cabinet.width_m, cabinet.height_m,
         cabinet.internal_depth_m, partition_inset_m=t,
         partition_top_m=cabinet.top_thickness_m or t,
-        partition_bottom_m=cabinet.bottom_thickness_m or t))
+        partition_bottom_m=cabinet.bottom_thickness_m or t,
+        port_wall_m={"front": front_wall, "back": back_wall, "partition": t}))
     if coupler is not None:
         pair_woofer = next((e for e in layout if e.id == "W1" and e.surface == "front"), None)
         if pair_woofer is None:
@@ -834,11 +912,13 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         rear_chamber_depth=cabinet.internal_depth_m-front_chamber_depth-t
         for e in layout:
             available=(front_chamber_depth if e.surface == "front" else rear_chamber_depth)
+            if e.type == "port":
+                continue  # ports are reported as PORT_BACK_WALL / REAR_PORT_BACK_WALL with a fit hint
             if e.mounting_depth_m > available:
                 issues.append(DesignWarning(code="CHAMBER_DEPTH",severity="error",
                     message=f"{e.id}: Einbautiefe {e.mounting_depth_m*1000:.1f} mm überschreitet die Kammer um {(e.mounting_depth_m-available)*1000:.1f} mm."))
     brace_start = ((front_chamber_depth+t) if front_chamber_depth is not None else
-                   (coupler.length_m+coupler.ring_thickness_m+(project.driver.mounting_depth_m or 0)+0.01)
+                   (coupler.rear_extent_m+0.01)
                    if coupler else (project.driver.mounting_depth_m or 0)+0.01
                    if front_horn else 0.0)
     if brace is not None and brace_start == 0.0:
@@ -854,19 +934,14 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
     except ValueError as exc:
         brace_positions = ()
         issues.append(DesignWarning(code="BRACE_SPACE", severity="error", message=str(exc)))
-    if brace is not None:
-        for index, depth_from_front in enumerate(brace_positions, start=1):
-            plane=cabinet.effective_front_thickness_m+depth_from_front
-            for e in layout:
-                if e.surface != "front":
-                    continue
-                if e.mounting_depth_m <= plane:
-                    continue
-                edge_gap=_wall_gap(e,cabinet,t)
-                if edge_gap < brace.border_m:
-                    overlap=(brace.border_m-edge_gap)*1000
-                    issues.append(DesignWarning(code="BRACE_COLLISION",severity="error",
-                        message=f"{e.id} kollidiert mit Strebe B{index} um {overlap:.1f} mm.",value=overlap))
+    if folded_line is None:
+        issues.extend(check_interior(
+            layout, InteriorGeometry(cabinet.internal_depth_m, front_wall, back_wall, t, front_chamber_depth),
+            width_m=cabinet.width_m, height_m=cabinet.height_m, panel_thickness_m=t,
+            bottom_thickness_m=cabinet.bottom_thickness_m or t, top_thickness_m=cabinet.top_thickness_m or t,
+            brace=brace, brace_depths_m=brace_positions, coupler=coupler,
+            ports={key: value for key, value in (("BR1", port), ("BR2", rear_port))
+                   if value is not None and cfg.enclosure_type not in {"aperiodic", "cardioid"}}))
 
     response: VentedResponse | None = None
     if resonator is not None or folded_line is not None or front_horn is not None:
@@ -884,7 +959,8 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
                                                     port, rear_port, power_w=cfg.input_power_w)
             else:
                 response = simulate_bandpass(project.driver, rear_volume, front_volume,
-                                             port, power_w=cfg.input_power_w, rear_port=rear_port)
+                                             port, power_w=cfg.input_power_w, rear_port=rear_port,
+                                             rear_port_path_m=(cabinet.depth_m if rear_port is not None else 0.0))
         else:
             assert resonator is not None
             response = simulate_vented(pair_driver, target_net_volume_m3,
@@ -949,11 +1025,52 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
             issues.append(DesignWarning(code="BANDPASS_FRD", severity="info",
                 message="Bandpass-Weichensumme nur mit am fertigen Gehäuse gemessenen FRD-Daten gültig."))
 
+    damping: WallLining | None = None
+    if cfg.enclosure_type in LINED_FAMILIES and project.driver.mounting_depth_m:
+        rear_obstruction = project.driver.mounting_depth_m
+        if brace is not None and brace_positions:
+            rear_obstruction = max(rear_obstruction, brace_positions[-1]+brace.thickness_m)
+        damping = plan_wall_lining(cabinet, rear_obstruction, project.driver.cutout_diameter_m)
+        if damping is None:
+            issues.append(DesignWarning(code="DAMPING_NO_ROOM", severity="info",
+                message=("Hinter dem Treiber ist zu wenig Tiefe für eine Wanddämmung (mindestens 10 mm Dämmung "
+                         "plus 20 mm Abstand zum Magneten); Dämmung nur lose an die Seitenwände legen.")))
+    vent_damper: VentDamper | None = None
+    if port_resistance is not None and port is not None and cfg.enclosure_type in {"aperiodic", "cardioid"}:
+        rs = specific_flow_resistance(port_resistance, port.area_m2)
+        q = aperiodic_q(project.driver, target_net_volume_m3, port_resistance)
+        vent_damper = VentDamper("back" if cfg.enclosure_type == "cardioid" else "front", port_resistance,
+            port.area_m2, rs, q.qtc_closed, q.ql, q.qtc_effective, q.leak_corner_hz)
+        if cfg.enclosure_type == "aperiodic":
+            issues.append(DesignWarning(code="APERIODIC_QTC",
+                severity="warning" if q.leak_corner_hz > 1.5*project.driver.fs_hz else "info",
+                message=(f"Aperiodisch: Qtc geschlossen {q.qtc_closed:.2f}, Vent-Verlust QL {q.ql:.2f} "
+                         f"→ Qtc gesamt ≈ {q.qtc_effective:.2f} (Ventmasse vernachlässigt). Unterhalb "
+                         f"{q.leak_corner_hz:.0f} Hz fällt der Pegel zusätzlich mit 6 dB/Okt. "
+                         f"Vent {port.area_m2*1e4:.0f} cm² braucht Dämpfungsmaterial mit ≈ {rs:.0f} Rayl "
+                         f"(Rac {port_resistance:.0f} Pa·s/m³ = Rayl / Fläche)."),
+                value=q.qtc_effective))
+        elif response is not None and response.front_to_back_db is not None:
+            band = (response.frequencies_hz >= 40) & (response.frequencies_hz <= 120)
+            ratio = response.front_to_back_db[band]
+            best = float(np.max(ratio))
+            at = float(response.frequencies_hz[band][int(np.argmax(ratio))])
+            ideal_ms = cardioid_ideal_delay_s(cabinet.depth_m)*1000
+            issues.append(DesignWarning(code="CARDIOID_FRONT_BACK",
+                severity="warning" if best < 10 else "info",
+                message=(f"Kardioid: Rückdämpfung 40–120 Hz höchstens {best:.1f} dB (bei {at:.0f} Hz), "
+                         f"Median {float(np.median(ratio)):.1f} dB"
+                         + ("; ein Kardioid braucht ≥ 10 dB. " if best < 10 else ". ")
+                         + f"Ideale Verzögerung Tiefe/c = {ideal_ms:.2f} ms (eingestellt "
+                         f"{cfg.cardioid_delay_ms:.2f} ms); die Rückvent-Masse ρ·L/A muss klein gegen die "
+                         "Boxnachgiebigkeit sein, sonst folgt der Volumenstrom des Vents dem Konus nicht."),
+                value=best,limit=10.0))
     warnings.extend(issue.message for issue in issues)
     if coupler is not None:
-        warnings.append("Isobarik: ideal gekoppeltes identisches Treiberpaar; endliches Koppelvolumen und Verluste sind nicht im Frequenzgang modelliert. Polung nach Verschaltung prüfen.")
+        warnings.append("Isobarik: ideal gekoppeltes identisches Treiberpaar; endliches Koppelvolumen und Verluste sind nicht im Frequenzgang modelliert. Polung nach Verschaltung prüfen."
+                        + (" Tandem: beide Membranen zeigen nach vorn, W2 sitzt hinter W1 und wird gleichsinnig gepolt." if cfg.enclosure_type != "compound_push_pull" else ""))
     if cfg.enclosure_type == "compound_push_pull":
-        warnings.append("Push-Pull: W2 mechanisch umgedreht montieren und elektrisch gegensinnig polen, damit beide Membranen gleichgerichtet arbeiten. Verzerrungsreduktion wird nicht simuliert.")
+        warnings.append("Push-Pull (Magnet an Magnet): W1 normal in der Front, W2 mechanisch umgedreht auf dem Montagering (Membran zeigt in die Hauptkammer, Magnete liegen in der Koppelkammer) und elektrisch gegensinnig gepolt, damit beide Membranen in dieselbe Richtung laufen. Verzerrungsreduktion wird nicht simuliert.")
     if port_resistance is not None:
         prefix = "Kardioid-Rückvent" if cfg.enclosure_type == "cardioid" else "Aperiodischer Vent"
         warnings.append(f"{prefix}widerstand Soll {port_resistance:.0f} Pa·s/m³; Dämpfungseinsatz durch Impedanzmessung am Prototyp abstimmen.")
@@ -988,6 +1105,8 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         partition_front_depth_m=front_chamber_depth,
         coupler=coupler,
         brace_depths_m=brace_positions,
+        damping=damping,
+        vent_damper=vent_damper,
         folded_line=folded_line,
         front_horn=front_horn,
     )

@@ -1,4 +1,4 @@
-"""Plane-wave two-tap network: cone sides inject at separate path nodes."""
+"""Plane-wave two-tap network on the folded path: cone sides inject at separate path nodes."""
 from __future__ import annotations
 
 from math import pi, sqrt
@@ -19,17 +19,17 @@ def simulate_tapped_horn(driver: Driver, horn: TappedHorn,
     w=2*pi*f
     s=1j*w
     rho,c=1.204,343.0
-    a1=internal_width_m*horn.upper_height_m
-    a2=internal_width_m*horn.lower_height_m
-    run=horn.baffle_length_m
-    segments=((0,1,a1,run/2),(1,2,a1,run/2),
-              (2,3,sqrt(a1*a2),horn.turn_gap_m+(horn.upper_height_m+horn.lower_height_m)/2),
-              (3,4,a2,run/2),(4,5,a2,run/2))
-    # Six pressure nodes: closed upper-front end, rear tap, turn, front tap,
-    # lower run, radiating mouth. Segment admittance includes wall loss.
-    admittance=np.zeros((len(f),6,6),dtype=complex)
+    details=horn.details
+    if details is None:
+        raise ValueError('Tapped-Horn ohne Pfadgeometrie')
+    segments=details.acoustic_segments
+    nodes=len(segments)+1
+    # Pressure nodes between the path segments: node 0 is the closed end, the last
+    # node radiates into the room; the cone sides inject at the two tap nodes.
+    admittance=np.zeros((len(f),nodes,nodes),dtype=complex)
     gamma=(0.025+1j)*w/c
-    for left,right,area,length in segments:
+    for index,(area,length) in enumerate(segments):
+        left,right=index,index+1
         zc=rho*c/area
         sh=np.sinh(gamma*length)
         ch=np.cosh(gamma*length)
@@ -41,13 +41,14 @@ def simulate_tapped_horn(driver: Driver, horn: TappedHorn,
     radius=sqrt(mouth_area/pi)
     ka=w*radius/c
     radiation=rho*c/mouth_area*(0.25*ka*ka+0.61j*ka)
-    admittance[:,5,5]+=1/radiation
-    injection=np.zeros((len(f),6),dtype=complex)
-    injection[:,1]=1
-    injection[:,3]=-1
+    admittance[:,nodes-1,nodes-1]+=1/radiation
+    rear,front=horn.tap_nodes
+    injection=np.zeros((len(f),nodes),dtype=complex)
+    injection[:,rear]=1
+    injection[:,front]=-1
     pressure_per_flow=np.linalg.solve(admittance,injection[...,None])[...,0]
-    differential=pressure_per_flow[:,1]-pressure_per_flow[:,3]
-    mouth_factor=pressure_per_flow[:,5]/radiation
+    differential=pressure_per_flow[:,rear]-pressure_per_flow[:,front]
+    mouth_factor=pressure_per_flow[:,nodes-1]/radiation
     complete=all(v is not None for v in (driver.sd_m2,driver.re_ohm,driver.qes))
     sd=driver.sd_m2 if driver.sd_m2 is not None else 1.0
     compliance=driver.vas_m3/(rho*c*c*sd*sd)

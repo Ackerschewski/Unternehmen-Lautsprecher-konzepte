@@ -22,26 +22,25 @@ class PortDesign:
         return self.area_m2 * self.physical_length_m
 
 
-def max_round_port_diameter_m(
+def round_port_diameter_for_length_m(
     *,
     box_volume_m3: float,
     tuning_hz: float,
-    max_length_m: float | None = None,
+    length_m: float = 0.0,
     end_correction_factor_radius: float = 1.46,
 ) -> float:
-    """Largest round-port diameter for which the pipe stays buildable.
+    """Round-port diameter whose physical length equals ``length_m``.
 
-    Physical length L = k*D**2 - c*D with k = c0**2*pi/(4*w**2*V) and c = factor/2.
-    Without ``max_length_m`` the limit is L -> 0; with it, L == max_length_m.
+    L = k*D**2 - c*D with k = c0**2*pi/(4*w**2*V) and c = factor/2. A larger
+    diameter gives a longer port, so ``length_m=0`` is the *smallest* buildable
+    diameter and a chamber depth limit gives the *largest* diameter that fits.
     """
     if min(box_volume_m3, tuning_hz) <= 0:
         raise ValueError("Volumen und Abstimmfrequenz müssen positiv sein")
     omega = 2.0 * pi * tuning_hz
     k = SPEED_OF_SOUND_M_S**2 * pi / (4.0 * omega**2 * box_volume_m3)
     c = end_correction_factor_radius / 2.0
-    if max_length_m is None or max_length_m <= 0:
-        return c / k
-    return (c + sqrt(c * c + 4.0 * k * max_length_m)) / (2.0 * k)
+    return (c + sqrt(c * c + 4.0 * k * max(length_m, 0.0))) / (2.0 * k)
 
 
 def _port_length_from_area(
@@ -58,15 +57,15 @@ def _port_length_from_area(
     effective = (SPEED_OF_SOUND_M_S**2 * area_m2) / (omega**2 * box_volume_m3)
     physical = effective - end_correction_factor_radius * equivalent_radius_m
     if physical <= 0:
-        limit = max_round_port_diameter_m(
+        limit = round_port_diameter_for_length_m(
             box_volume_m3=box_volume_m3, tuning_hz=tuning_hz,
             end_correction_factor_radius=end_correction_factor_radius)
         raise ValueError(
             f"Port nicht berechenbar: bei {tuning_hz:g} Hz in {box_volume_m3*1000:.1f} l ist die "
-            f"effektive Länge {effective*1000:.0f} mm kürzer als die Endkorrektur "
+            f"effektive Länge ({effective*1000:.0f} mm) kleiner als die Endkorrektur "
             f"({end_correction_factor_radius*equivalent_radius_m*1000:.0f} mm); die Rohrlänge wäre "
-            f"{physical*1000:.0f} mm. Port-Querschnitt verkleinern (gleichwertiger Rund-Ø höchstens {limit*1000:.0f} mm), "
-            "Abstimmfrequenz senken oder das Kammervolumen verkleinern.")
+            f"{physical*1000:.0f} mm. Port-Querschnitt vergrößern (gleichwertiger Rund-Ø mindestens "
+            f"{limit*1000:.0f} mm), Abstimmfrequenz senken oder das Kammervolumen verkleinern.")
     return physical, effective
 
 

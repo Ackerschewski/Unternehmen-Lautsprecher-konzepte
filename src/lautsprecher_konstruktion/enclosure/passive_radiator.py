@@ -6,7 +6,7 @@ and mass. Added mass changes only the mass, not the suspension or losses.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import pi
+from math import pi, sqrt
 
 
 @dataclass(frozen=True)
@@ -40,13 +40,27 @@ def design_passive_radiator(
     if min(box_volume_m3, tuning_hz, area_m2, stock_mass_kg, free_air_fs_hz,
            qms, cutout_diameter_m, mounting_depth_m, xmax_m) <= 0:
         raise ValueError("Passivmembran-Daten und Gehäusevolumen müssen positiv sein")
+    piston_diameter = sqrt(4*area_m2/pi)
+    if piston_diameter > cutout_diameter_m:
+        raise ValueError(
+            f"Passivmembran: Sd {area_m2*1e4:.0f} cm² entspricht Ø {piston_diameter*1000:.0f} mm, "
+            f"das ist größer als der Ausschnitt Ø {cutout_diameter_m*1000:.0f} mm. "
+            "Sd oder Ausschnitt-Durchmesser prüfen (Herstellerdaten verwenden).")
     cb = box_volume_m3 / (rho_kg_m3 * sound_speed_m_s**2)
     stock_acoustic_mass = stock_mass_kg / area_m2**2
     compliance = 1.0 / ((2*pi*free_air_fs_hz)**2 * stock_acoustic_mass)
     required_acoustic_mass = (1/cb + 1/compliance) / (2*pi*tuning_hz)**2
     added = (required_acoustic_mass - stock_acoustic_mass) * area_m2**2
     if added < -1e-9:
-        raise ValueError("Fb mit dieser Passivmembran nicht erreichbar: Grundmasse ist bereits zu hoch")
+        # Without added mass the system already sits at its highest reachable Fb:
+        # f = sqrt((1/Cb + 1/Cp) / Map) / (2 pi).
+        highest = sqrt((1/cb + 1/compliance) / stock_acoustic_mass) / (2*pi)
+        raise ValueError(
+            f"Fb {tuning_hz:g} Hz ist mit dieser Passivmembran nicht erreichbar: die Grundmasse ist bereits "
+            f"zu hoch (ohne Zusatzmasse {highest:.1f} Hz bei {box_volume_m3*1000:.1f} l, "
+            f"Membranmasse {stock_mass_kg*1000:.0f} g, Fs {free_air_fs_hz:g} Hz). "
+            f"Fb auf höchstens {highest:.1f} Hz senken, das Volumen verkleinern oder eine leichtere "
+            "Membran wählen.")
     resistance = 2*pi*free_air_fs_hz * stock_acoustic_mass / qms
     return PassiveRadiatorDesign(
         area_m2=area_m2, cutout_diameter_m=cutout_diameter_m,

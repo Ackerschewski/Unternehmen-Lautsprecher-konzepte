@@ -29,6 +29,9 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     if bundle.tapped_horn is not None:
         from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
         return render_tapped_horn_svg(bundle)
+    if bundle.folded_line is not None and bundle.folded_line.horn is not None:
+        from lautsprecher_konstruktion.drawings.rear_horn_svg import render_rear_horn_svg
+        return render_rear_horn_svg(bundle)
     c = bundle.cabinet
     d, h = _mm(c.depth_m), _mm(c.height_m)
     scale = min(550/max(d,1), 360/max(h,1))
@@ -47,6 +50,8 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         '.dimtext{font:13px sans-serif;fill:#254a60}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
         '.outline{fill:white;stroke:#193448;stroke-width:2}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.5}'
         '.feature{fill:#c5e7f5;stroke:#16749a;stroke-width:1.5}.rule{stroke:#c8d6dd;stroke-width:1}'
+        '.lining{fill:#f6ecc8;stroke:#b8963a;stroke-width:1;stroke-dasharray:4 3}'
+        '.damper{fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5}.hole{fill:#fff;stroke:#34576a;stroke-width:1.5}'
         f'</style><rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau</text>',
         f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Tiefe ab Innenseite Front · Querschnitt schematisch · gestrichelt: Schallweg der Linie</text>',
@@ -56,6 +61,12 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     for xx,yy,ww,hh in ((x,y,ft,sh),(back,y,bt,sh),(front,y,back-front,tt),
                         (front,y+sh-bot,back-front,bot)):
         parts.append(f'<rect x="{xx:.1f}" y="{yy:.1f}" width="{ww:.1f}" height="{hh:.1f}" class="panel"/>')
+    if bundle.damping is not None:
+        lt = _mm(bundle.damping.thickness_m)*scale
+        parts.append(f'<rect x="{back-lt:.1f}" y="{y+tt:.1f}" width="{lt:.1f}" height="{sh-tt-bot:.1f}" class="lining"/>')
+        parts.append(f'<text x="{back-lt/2+4:.1f}" y="{y+sh/2:.1f}" text-anchor="middle" class="dimtext" '
+                     f'transform="rotate(-90 {back-lt/2+4:.1f} {y+sh/2:.1f})">'
+                     f'Dämmung {_mm(bundle.damping.thickness_m):.0f}</text>')
     if bundle.folded_line is not None:
         line = bundle.folded_line
         wall = _mm(c.panel_thickness_m)*scale
@@ -125,7 +136,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
                 py = y+sh-_mm(element.y_m)*scale
                 eh = _mm(element.cutout_diameter_m or element.height)*scale
                 depth = _mm(element.mounting_depth_m)*scale
-                xx = px+_mm(c.panel_thickness_m)*scale
+                xx = px  # the duct passes through the partition; L includes its thickness
                 parts.append(f'<rect x="{xx:.1f}" y="{py-eh/2:.1f}" '
                              f'width="{depth:.1f}" height="{eh:.1f}" class="feature"/>')
                 parts.append(f'<text x="{xx+5:.1f}" y="{py-eh/2-7:.1f}" '
@@ -140,13 +151,27 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         opening = _mm(element.cutout_diameter_m or element.height)*scale
         depth = _mm(element.mounting_depth_m)*scale
         xx = front if element.surface == 'front' else back-depth
+        if element.type == 'port':  # L includes the wall the port passes through
+            xx = x if element.surface == 'front' else back+bt-depth
+        if element.type == 'port' and bundle.vent_damper is not None:
+            # Resistive vent: a plain hole through the wall (L = wall thickness), damping material inside.
+            wall_px = ft if element.surface == 'front' else bt
+            hole_x = x if element.surface == 'front' else back
+            pad = 8.0
+            pad_x = front if element.surface == 'front' else back-pad
+            parts.append(f'<rect x="{hole_x:.1f}" y="{cy-opening/2:.1f}" width="{wall_px:.1f}" height="{opening:.1f}" class="hole"/>')
+            parts.append(f'<rect x="{pad_x:.1f}" y="{cy-opening/2:.1f}" width="{pad:.1f}" height="{opening:.1f}" class="damper"/>')
+            parts.append(f'<text x="{(front+8 if element.surface == "front" else back-pad-5):.1f}" y="{cy-opening/2-7:.1f}" '
+                         f'text-anchor="{"start" if element.surface == "front" else "end"}" class="dimtext">'
+                         f'{escape(element.id)} · Einsatz {bundle.vent_damper.specific_resistance_rayl:.0f} Rayl</text>')
+            continue
         parts.append(f'<rect x="{xx:.1f}" y="{cy-opening/2:.1f}" width="{depth:.1f}" height="{opening:.1f}" class="feature"/>')
         parts.append(f'<text x="{xx+5:.1f}" y="{cy-opening/2-7:.1f}" class="dimtext">{escape(element.id)}</text>')
         if (element.type == 'port' and bundle.port and bundle.port.shape == 'slot'
                 and bundle.folded_line is None):
             wall = _mm(c.panel_thickness_m)*scale
             for yy in (cy-opening/2-wall,cy+opening/2):
-                parts.append(f'<rect x="{front:.1f}" y="{yy:.1f}" width="{depth:.1f}" height="{wall:.1f}" class="panel"/>')
+                parts.append(f'<rect x="{front:.1f}" y="{yy:.1f}" width="{max(depth-ft,0.0):.1f}" height="{wall:.1f}" class="panel"/>')
     if bundle.coupler:
         k = bundle.coupler
         driver = next((e for e in bundle.front_elements if e.id == 'W1'), None)
@@ -163,14 +188,18 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         if driver:
             cut = _mm(k.driver_cutout_m)*scale
             depth = _mm(driver.mounting_depth_m)*scale
-            for xx in (front, ring_x+ring_t):
-                parts.append(f'<path d="M{xx:.1f} {cy-cut/2:.1f}L{xx+depth:.1f} {cy-cut/4:.1f}L{xx+depth:.1f} {cy+cut/4:.1f}L{xx:.1f} {cy+cut/2:.1f}Z" class="feature"/>')
+            # W2: signed extent, negative when its motor points into the coupler (magnet to magnet)
+            for xx, extent in ((front, depth), (ring_x+ring_t, _mm(k.w2_extent_m)*scale)):
+                parts.append(f'<path d="M{xx:.1f} {cy-cut/2:.1f}L{xx+extent:.1f} {cy-cut/4:.1f}L{xx+extent:.1f} {cy+cut/4:.1f}L{xx:.1f} {cy+cut/2:.1f}Z" class="feature"/>')
             parts.append(f'<text x="{front+5:.1f}" y="{cy-cut/2-8:.1f}" class="dimtext">W1</text>')
             parts.append(f'<text x="{ring_x+ring_t+5:.1f}" y="{cy-cut/2-8:.1f}" class="dimtext">W2</text>')
         parts.append(_dimension(front,ring_x,y+sh+72,f'Koppelrohr {_mm(k.length_m):.1f}'))
     for index, depth in enumerate(bundle.brace_depths_m, start=1):
         bx = front+_mm(depth)*scale
-        parts.append(f'<rect x="{bx:.1f}" y="{y+tt:.1f}" width="{_mm(c.panel_thickness_m)*scale:.1f}" height="{sh-tt-bot:.1f}" class="feature"/>')
+        # Window brace: the section through the opening shows only the border strips (top and bottom).
+        strip = min(_mm(bundle.brace.border_m if bundle.brace else c.panel_thickness_m)*scale, (sh-tt-bot)/3)
+        for yy in (y+tt, y+sh-bot-strip):
+            parts.append(f'<rect x="{bx:.1f}" y="{yy:.1f}" width="{_mm(c.panel_thickness_m)*scale:.1f}" height="{strip:.1f}" class="feature"/>')
         parts.append(f'<text x="{bx+4:.1f}" y="{y+tt+18:.1f}" class="dimtext">B{index}</text>')
         parts.append(_dimension(front,bx,y+sh+105+index*28,f'B{index} {_mm(depth):.1f}'))
     parts.append(_dimension(x,x+sd,y+sh+37,f'Außentiefe {d:.1f}'))
@@ -208,13 +237,22 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         if p.shape == 'slot' and bundle.folded_line is None:
             info.append(f'Kanalwände: Plattenstärke {_mm(c.panel_thickness_m):.1f}')
         if bundle.port_resistance_pa_s_m3 is not None:
-            info.extend((f'Aperiodischer Vent Soll: {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³',
+            info.extend((f'{"Kardioid-Rückvent" if bundle.vent_damper and bundle.vent_damper.surface == "back" else "Aperiodischer Vent"} Soll: {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³',
                          'Dämpfungseinsatz einsetzen; Widerstand am Prototyp messen'))
+            if bundle.vent_damper is not None:
+                v = bundle.vent_damper
+                info.append(f'Einsatz über {v.area_m2*10000:.1f} cm² Loch: ≈ {v.specific_resistance_rayl:.0f} Rayl (Pa·s/m)')
+                if v.qtc_effective is not None:
+                    info.append(f'Qtc geschlossen {v.qtc_closed:.2f} → mit Vent ≈ {v.qtc_effective:.2f} (QL {v.ql:.2f})')
     if bundle.rear_port:
         p = bundle.rear_port
         info.extend((f'Port BR2 Rückkammer: Ø {_mm(p.diameter_m or 0):.1f}',
                      f'Kanal physisch {_mm(p.physical_length_m):.1f} lang',
                      f'Fb2 {p.tuning_hz:.1f} Hz · Fläche {p.area_m2*10000:.1f} cm²'))
+    if bundle.damping:
+        dm = bundle.damping
+        info.extend((f'Dämmung Rückwand {_mm(dm.thickness_m):.0f} mm + Seiten hinter dem Chassis',
+                     f'≈ {dm.area_m2:.2f} m² Wolle/Schaum; {_mm(dm.clearance_to_driver_m):.0f} mm Abstand zum Magneten'))
     if bundle.brace:
         b = bundle.brace
         info.extend((f'{b.quantity} Fensterstrebe(n) B1…B{b.quantity}',

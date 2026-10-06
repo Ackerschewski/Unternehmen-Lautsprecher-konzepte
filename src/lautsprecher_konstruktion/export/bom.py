@@ -117,7 +117,10 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
             cardioid = bundle.project.enclosure.enclosure_type == "cardioid"
             items.append(BomItem("Kardioid-Rückvent" if cardioid else "Aperiodischer Vent", "BR1",
                 "Rückwärtiger Dämpfungseinsatz / Vent" if cardioid else "Dämpfungseinsatz / Vent", 1,
-                spec, f"Zielwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³; am Prototyp messen"))
+                spec, f"Zielwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³"
+                + (f" (≈ {bundle.vent_damper.specific_resistance_rayl:.0f} Rayl Strömungswiderstand des Einsatzes "
+                   f"über {p.area_m2*1e4:.1f} cm²)" if bundle.vent_damper else "")
+                + "; am Prototyp messen"))
         elif ((bundle.folded_line is not None and bundle.folded_line.family != "mltl")
               or bundle.tapped_horn is not None):
             items.append(BomItem("Fräsung", "BR1", "Linien-/Hornmündung in Frontplatte", 1,
@@ -150,6 +153,13 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
                 )
             )
 
+    if bundle.damping is not None and not any(
+            a.reference.upper().startswith("DÄMM") or "dämm" in a.description.casefold()
+            for a in project.accessories):
+        d = bundle.damping
+        items.append(BomItem("Dämmung", "DÄMM", "Dämmmaterial (Wolle oder Schaumstoff)", 1,
+            f"{d.area_m2:.2f} m² × {d.thickness_m*1000:.0f} mm",
+            "Rückwand und Seitenwände hinter dem Chassis; Magnet, Port und Membranweg frei lassen"))
     screw_count = sum(e.bolt_count for e in bundle.front_elements)
     if bundle.tapped_horn:
         screw_count += project.driver.bolt_count or 0

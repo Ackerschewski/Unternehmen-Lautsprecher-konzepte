@@ -1,7 +1,9 @@
-"""Segmented exponential horn on the cone front; sealed air volume on its rear."""
+"""Sectioned exponential horn on the cone front; sealed air volume on its rear.
+
+The transfer matrix uses the built (pyramid-frustum) areas of the sections."""
 from __future__ import annotations
 
-from math import exp, log, pi, sqrt
+from math import pi, sqrt
 
 import numpy as np
 
@@ -22,12 +24,8 @@ def simulate_front_horn(driver: Driver, rear_volume_m3: float,
     b=np.zeros_like(a)
     cc=np.zeros_like(a)
     d=np.ones_like(a)
-    ratio=horn.mouth_area_m2/horn.throat_area_m2
     gamma=(0.012+1j)*w/c
-    for index in range(24):
-        u=(index+0.5)/24
-        area=horn.throat_area_m2*exp(log(ratio)*u)
-        length=horn.axial_length_m/24
+    for area,length in horn.acoustic_segments():
         zc=rho*c/area
         ch=np.cosh(gamma*length)
         sh=np.sinh(gamma*length)

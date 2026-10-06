@@ -75,7 +75,9 @@ def _overlap(a: FrontElement, b: FrontElement) -> float:
 def check_layout(elements: tuple[FrontElement, ...], width_m: float, height_m: float,
                  depth_m: float, *, partition_inset_m: float = 0.0,
                  partition_top_m: float = 0.0,
-                 partition_bottom_m: float = 0.0) -> tuple[DesignWarning, ...]:
+                 partition_bottom_m: float = 0.0,
+                 port_wall_m: dict[str, float] | None = None) -> tuple[DesignWarning, ...]:
+    """``port_wall_m`` maps a surface to its wall thickness: a port's length includes that wall."""
     warnings: list[DesignWarning] = []
     if len({e.id for e in elements}) != len(elements):
         warnings.append(DesignWarning(code="DUPLICATE_ID", severity="error", message="Front-IDs sind nicht eindeutig."))
@@ -90,9 +92,12 @@ def check_layout(elements: tuple[FrontElement, ...], width_m: float, height_m: f
             warnings.append(DesignWarning(code="FRONT_EDGE", severity="error",
                 message=f"{e.id} unterschreitet den Front-Randabstand um {(e.clearance_m-margin)*1000:.1f} mm.",
                 value=margin*1000, limit=e.clearance_m*1000))
-        if e.mounting_depth_m > depth_m:
+        inside_depth = e.mounting_depth_m
+        if e.type == "port" and port_wall_m is not None:
+            inside_depth = max(0.0, inside_depth - port_wall_m.get(e.surface, 0.0))
+        if inside_depth > depth_m:
             warnings.append(DesignWarning(code="BACK_WALL", severity="error",
-                message=f"{e.id} kollidiert mit der Rückwand um {(e.mounting_depth_m-depth_m)*1000:.1f} mm."))
+                message=f"{e.id} kollidiert mit der Rückwand um {(inside_depth-depth_m)*1000:.1f} mm."))
         for x,y,r in bolt_holes(e):
             if min(x-r-left,right-x-r,y-r-bottom,top-y-r) < e.clearance_m:
                 warnings.append(DesignWarning(code="DRILL_EDGE", severity="warning",

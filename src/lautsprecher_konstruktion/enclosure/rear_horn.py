@@ -40,6 +40,7 @@ HORN_FAMILIES: dict[str, tuple[str, float]] = {
 }
 FACET_COUNTS = (1, 2, 3, 4, 6)   # straight boards per septum (kinks on a common depth grid)
 DEVIATION_GOAL = 0.06
+DEVIATION_LIMIT = 0.15
 RUN_COUNTS = (3, 5, 7, 9)   # odd: the last run ends at the front baffle
 
 
@@ -155,6 +156,26 @@ def _solve_candidate(cabinet: CabinetDimensions, family: str, runs: int, driver_
             else:
                 hi = mid
         mouth = (lo+hi)/2
+    def deviation(candidate_mouth: float) -> float:
+        try:
+            return _details(cabinet, kind, runs, throat, candidate_mouth, driver_area,
+                            FACET_COUNTS[-1]).max_area_deviation
+        except ValueError:
+            return 9.0
+
+    if deviation(mouth) > DEVIATION_LIMIT:
+        # strongly curved laws (tractrix flare) cannot be built from few straight boards:
+        # shrink the mouth until the built profile follows the law
+        lo, hi = throat*1.05, mouth
+        if deviation(lo) > DEVIATION_LIMIT:
+            return None
+        for _ in range(18):
+            mid = (lo+hi)/2
+            if deviation(mid) > DEVIATION_LIMIT:
+                hi = mid
+            else:
+                lo = mid
+        mouth = lo
     best = None
     for facets in FACET_COUNTS:
         try:
@@ -243,7 +264,10 @@ def rear_horn_notes(line, target_hz: float, vas_m3: float | None) -> list[tuple[
     if horn.law_kind == "scoop":
         notes.append((None, "Scoop: empirischer, parabolischer Flächenverlauf (kein Literaturgesetz); fc nur Näherung."))
     if horn.law_kind == "tractrix":
-        notes.append((None, "Tractrix: Mündungsfläche folgt aus Halsradius und Hornlänge; fc = c/(2π·a) ist durch die Gehäusegröße vorgegeben."))
+        notes.append((None, (
+            "Tractrix: fc = c/(2π·a) folgt aus dem Mündungsradius a; die Mündung wird durch Gehäusegröße und "
+            "baubare Brettabweichung begrenzt, ein Tiefbass-fc braucht eine Mündung von mehreren m² "
+            f"(hier fc {horn.cutoff_hz:.0f} Hz).")))
     if vas_m3:
         notes.append((None, (
             f"Kompressionskammer {horn.chamber_volume_m3*1000:.0f} l (Vas {vas_m3*1000:.0f} l), "

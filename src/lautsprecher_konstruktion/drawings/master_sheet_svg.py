@@ -77,11 +77,20 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
                            (x+fw,y+height-bottom,width-fw-bw,bottom)):
         parts.append(f'<rect x="{rx:.1f}" y="{ry:.1f}" width="{rw:.1f}" '
                      f'height="{rh:.1f}" class="material"/>')
+    if bundle.damping is not None:
+        lining = bundle.damping.thickness_m*1000*scale
+        parts.append(f'<rect x="{x+width-bw-lining:.1f}" y="{y+top:.1f}" width="{lining:.1f}" '
+                     f'height="{height-top-bottom:.1f}" style="fill:#f6ecc8;stroke:#b8963a;stroke-dasharray:4 3"/>')
+        parts.append(_text(x+width-bw-lining-66,y+height-bottom-8,
+                           f"Dämmung {bundle.damping.thickness_m*1000:.0f}","small"))
     if bundle.folded_line is not None:
         line = bundle.folded_line
         yy = y+top
         wall = cab.panel_thickness_m*1000*scale
-        for index, channel_h in enumerate(line.channel_heights_m[:-1]):
+        if line.horn is not None:
+            from lautsprecher_konstruktion.drawings.rear_horn_svg import horn_septa_svg
+            parts.extend(horn_septa_svg(line.horn, x+fw, y+top, scale, cab.panel_thickness_m, "material"))
+        for index, channel_h in enumerate(line.channel_heights_m[:-1] if line.horn is None else ()):
             gap = line.gap_m(index)*1000*scale
             yy += channel_h*1000*scale
             xx = x+fw if index%2 == 0 else x+fw+gap
@@ -115,7 +124,7 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
                 cy = y+(h_mm-element.y_m*1000)*scale
                 radius = (element.cutout_diameter_m or element.height)*500*scale
                 depth = element.mounting_depth_m*1000*scale
-                start = px+wall
+                start = px  # the duct passes through the partition; L includes its thickness
                 parts.append(f'<rect x="{start:.1f}" y="{cy-radius:.1f}" '
                              f'width="{depth:.1f}" height="{2*radius:.1f}" class="component"/>')
                 parts.append(_text(start+5,cy-radius-8,element.id,"callout"))
@@ -139,11 +148,18 @@ def _section(bundle: DesignBundle, x: float, y: float, scale: float,
         radius = (element.cutout_diameter_m or element.height)*500*scale
         depth = element.mounting_depth_m*1000*scale
         start = x+fw if element.surface == "front" else x+width-bw
+        if element.type == "port":  # L includes the wall the port passes through
+            start = x if element.surface == "front" else x+width
         end = start+depth if element.surface == "front" else start-depth
         if element.type == "port":
             parts.append(f'<rect x="{min(start,end):.1f}" y="{cy-radius:.1f}" '
                          f'width="{abs(end-start):.1f}" height="{2*radius:.1f}" '
                          'class="component"/>')
+            if bundle.vent_damper is not None:
+                pad = 6.0
+                pad_x = x+fw if element.surface == "front" else x+width-bw-pad
+                parts.append(f'<rect x="{pad_x:.1f}" y="{cy-radius:.1f}" width="{pad:.1f}" '
+                             f'height="{2*radius:.1f}" style="fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5"/>')
         else:
             parts.append(f'<path d="M{start:.1f} {cy-radius:.1f}L{end:.1f} '
                          f'{cy-radius*.55:.1f}L{end:.1f} {cy+radius*.55:.1f}'
@@ -287,8 +303,11 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
         parts.append(_text(60,internals_y+64,caption))
     if bundle.port_resistance_pa_s_m3 is not None:
         parts.append(_text(850,internals_y+64,
-            f"Aperiodischer Vent: Sollwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³; "
-            "Dämpfungseinsatz per Impedanzmessung abstimmen"))
+            f"{'Kardioid-Rückvent' if bundle.vent_damper and bundle.vent_damper.surface == 'back' else 'Aperiodischer Vent'}: "
+            f"Sollwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³"
+            + (f" ≈ {bundle.vent_damper.specific_resistance_rayl:.0f} Rayl über {bundle.vent_damper.area_m2*1e4:.0f} cm²"
+               if bundle.vent_damper else "")
+            + "; Dämpfungseinsatz per Impedanzmessung abstimmen"))
     if bundle.folded_line is not None:
         line = bundle.folded_line
         parts.append(_text(60,internals_y+94,

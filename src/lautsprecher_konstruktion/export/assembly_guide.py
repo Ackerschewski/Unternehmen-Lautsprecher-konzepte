@@ -75,7 +75,11 @@ def build_instructions(bundle: DesignBundle, cutting: CuttingPlan | None = None)
         if bundle.coupler:
             steps.append(Step("Isobarik-Koppelkammer bauen",
                 f"Ring laut `isobarik_montagering.dxf` fertigen, Koppelrohr (innen Ø {_mm(bundle.coupler.inner_diameter_m)}, "
-                f"Länge {_mm(bundle.coupler.length_m)}) luftdicht mit Front und Ring verbinden.",
+                f"Länge {_mm(bundle.coupler.length_m)}) luftdicht mit Front und Ring verbinden. "
+                + ("W2 wird umgedreht (Magnet an Magnet) von der Rückseite des Rings montiert, sein Magnet ragt durch den "
+                   "Ringausschnitt in die Koppelkammer; W2 elektrisch gegensinnig polen."
+                   if bundle.coupler.w2_reversed else
+                   "W2 wird von der Rückseite des Rings montiert und zeigt wie W1 nach vorn; gleiche Polung wie W1."),
                 "Kammer ist dicht; beide Chassis passen ohne Berührung hinein."))
         if bundle.front_horn:
             steps.append(Step("Hornplatten sägen",
@@ -118,8 +122,10 @@ def build_instructions(bundle: DesignBundle, cutting: CuttingPlan | None = None)
                 "Es gibt keine Leckage zwischen den Kammern."))
         if bundle.port:
             steps.append(Step("Port einbauen",
-                f"Port {bundle.port.shape} mit der berechneten Länge einbauen; Länge am Prototyp nachmessen. "
-                "Rohrkanten innen und außen verrunden und das Rohr dicht einkleben.",
+                f"Port {bundle.port.shape} einbauen: Die Länge {_mm(bundle.port.physical_length_m)} gilt ab der Außenseite "
+                "der Wand, durch die der Port läuft (Wanddicke gehört zur Länge); das Rohr schließt außen bündig ab und ragt "
+                f"innen {_mm(max(bundle.port.physical_length_m - bundle.cabinet.effective_front_thickness_m, 0.0))} in den Raum. "
+                "Länge am Prototyp nachmessen. Rohrkanten innen und außen verrunden und das Rohr dicht einkleben.",
                 "Portlänge stimmt mit der Stückliste."))
         if bundle.rear_port:
             steps.append(Step("Zweiten Port einbauen",
@@ -131,14 +137,21 @@ def build_instructions(bundle: DesignBundle, cutting: CuttingPlan | None = None)
                 "Membran bewegt sich frei; Zusatzmasse sitzt fest."))
         if bundle.port_resistance_pa_s_m3 is not None:
             steps.append(Step("Dämpfungseinsatz vorbereiten",
-                f"Zielwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³ anfangs mit Schaumstoff oder Dämmvlies einstellen; "
-                "am Prototyp prüfen.",
+                f"Zielwiderstand {bundle.port_resistance_pa_s_m3:.0f} Pa·s/m³"
+                + (f" (Material mit ≈ {bundle.vent_damper.specific_resistance_rayl:.0f} Rayl über der Ventfläche von "
+                   f"{bundle.vent_damper.area_m2*1e4:.0f} cm²)" if bundle.vent_damper else "")
+                + " anfangs mit Schaumstoff oder Dämmvlies einstellen und dicht über das Loch der "
+                f"{'Rückwand' if bundle.vent_damper and bundle.vent_damper.surface == 'back' else 'Front'} "
+                "spannen (Loch durch die Wand, kein Rohr); am Prototyp prüfen.",
                 "Nach der Messung Dämpfung nachjustieren."))
 
     if not bundle.baffle_mode:
         steps.append(Step(
             "Dämmung",
-            "Dämmmaterial gemäß Stückliste lose einlegen. Port, Treiberrückseite und Membranweg nicht blockieren; "
+            "Dämmmaterial gemäß Stückliste lose einlegen"
+            + (f" ({bundle.damping.thickness_m*1000:.0f} mm auf der Rückwand und den Seitenwänden hinter dem Chassis, "
+               f"≈ {bundle.damping.area_m2:.2f} m²)" if bundle.damping else "")
+            + ". Port, Treiberrückseite und Membranweg nicht blockieren; "
             "Dämmung verändert die Abstimmung leicht (nach Aufbau messen).",
             "Nichts berührt die Membran oder den Portauslass."))
     if bundle.crossover:

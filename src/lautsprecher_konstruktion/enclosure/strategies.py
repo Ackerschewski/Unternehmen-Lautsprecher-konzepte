@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from math import pi, sqrt
 from typing import Protocol
 
+from lautsprecher_konstruktion.acoustics.aperiodic import default_vent_resistance
 from lautsprecher_konstruktion.acoustics.sealed import SealedResult, solve_sealed
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.isobaric import equivalent_driver
@@ -79,9 +80,8 @@ class AperiodicStrategy:
         reference_hz = 343/(2*pi)*sqrt(area/(volume*effective_length))
         port = PortDesign("round",area,thickness,effective_length,
                           reference_hz,diameter_m=diameter)
-        compliance = volume/(1.204*343**2)
         resistance = (cfg.aperiodic_resistance_pa_s_m3 or
-                      1/(2*pi*driver.fs_hz*compliance))
+                      default_vent_resistance(driver, volume))
         return EnclosurePreparation(volume, port=port, resonator=port,
                                     front_volume_m3=volume,
                                     port_resistance_pa_s_m3=resistance)

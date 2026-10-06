@@ -1,8 +1,8 @@
 """Wall lining (damping) and resistive vent elements of closed-type boxes.
 
 The lining recommendation follows the common builder practice (Dickason, Small): a
-25 to 50 mm layer of wool or foam on the rear wall and the walls behind the driver,
-kept clear of the driver magnet and the cone. It is never counted as displacement:
+25 to 50 mm layer of wool or foam on the rear wall and the walls behind the driver
+(the planner uses the thin end, 25 mm), kept clear of the driver magnet and the cone. It is never counted as displacement:
 fibre fill acts as extra apparent volume, not as lost volume.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from lautsprecher_konstruktion.enclosure.rectangular import CabinetDimensions
 
-LINING_MAX_M = 0.05
+LINING_MAX_M = 0.025   # 1 inch, lower end of the usual 25 to 50 mm
 LINING_MIN_M = 0.01
 LINING_STEP_M = 0.005
 DRIVER_CLEARANCE_M = 0.02   # free air between lining and driver magnet / basket
