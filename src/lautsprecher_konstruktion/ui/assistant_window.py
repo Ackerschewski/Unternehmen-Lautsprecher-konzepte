@@ -583,6 +583,10 @@ class AssistantWindow(QMainWindow):
         self.canvas.draw_idle()
         if hasattr(self, "target_curve"):
             self.target_curve.clear_actual()
+            self.target_curve.set_candidate_curves(())
+            self.target_curve.set_influence_summary(
+                "Berechne Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
+            )
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
 
@@ -1304,10 +1308,6 @@ class AssistantWindow(QMainWindow):
             return
         bundle = design.bundle
         r = bundle.vented_response or bundle.sealed_response
-        if r is not None:
-            self.target_curve.set_actual_curve(r.frequencies_hz, r.response_db)
-        else:
-            self.target_curve.clear_actual()
         tokens = theme_tokens(self.mode)
         with matplotlib.rc_context(chart_rc(self.mode)):
             self.figure.clear()
@@ -1347,6 +1347,7 @@ class AssistantWindow(QMainWindow):
                         ax.axhline(limit[0], color=tokens["textPrimary"], linestyle="--", linewidth=1.2, label=limit[1])
                         ax.legend(loc="upper right")
         self.canvas.draw_idle()
+        self._update_sound_lab()
 
     def _show_panel_sheet(self, index: int) -> None:
         current = self._current()
@@ -1407,6 +1408,13 @@ class AssistantWindow(QMainWindow):
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
         self.variant_cards.set_designs(self.designs)
         self.empty_guide.setVisible(False)
+        project = bundle.project
+        if project.target_curve_points:
+            self.target_curve.restore_state(
+                project.target_curve_points,
+                preset=project.target_curve_preset,
+                analysis_mode=project.target_curve_mode,
+            )
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)
         self._set_state("info", "Expertenentwurf übernommen")
