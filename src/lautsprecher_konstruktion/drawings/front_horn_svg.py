@@ -5,10 +5,12 @@ from __future__ import annotations
 from html import escape
 from textwrap import wrap
 
+from lautsprecher_konstruktion.drawings.style import painted
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
+@painted
 def render_front_horn_svg(bundle: DesignBundle) -> str:
     horn=bundle.front_horn
     if horn is None:
@@ -35,11 +37,11 @@ def render_front_horn_svg(bundle: DesignBundle) -> str:
     outline=' '.join(f'{x:.1f},{y:.1f}' for x,y in upper+lower[::-1])
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
-        '<style>.title{font:700 31px Arial;fill:#173449}.head{font:700 20px Arial;fill:#173449}'
-        '.text{font:16px Arial;fill:#244456}.small{font:14px Arial;fill:#496779}'
-        '.box{fill:#e0e9ed;stroke:#24485d;stroke-width:2}.horn{fill:#eef7fa;stroke:#087aa2;stroke-width:2}'
-        '.cut{fill:none;stroke:#087aa2;stroke-width:2}.rule{stroke:#aabfc9;stroke-width:1}'
-        '.tick{stroke:#087aa2;stroke-width:1;stroke-dasharray:4 3}'
+        '<style>.title{font:700 31px Arial;fill:%INK%}.head{font:700 20px Arial;fill:%INK%}'
+        '.text{font:16px Arial;fill:%TEXT%}.small{font:14px Arial;fill:%MUTED%}'
+        '.box{fill:%SURFACE%;stroke:%TEXT%;stroke-width:2}.horn{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
+        '.cut{fill:none;stroke:%ACCENT%;stroke-width:2}.rule{stroke:%RULE%;stroke-width:1}'
+        '.tick{stroke:%ACCENT%;stroke-width:1;stroke-dasharray:4 3}'
         '</style><rect width="1600" height="1330" fill="white"/>',
         f'<text x="55" y="49" class="title">{escape(bundle.project.name)} · Front-Horn-Fertigung</text>',
         f'<text x="55" y="80" class="text">{escape(bundle.project.revision)} · alle Maße in mm · '

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from html import escape
 
+from lautsprecher_konstruktion.drawings.style import painted
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.enclosure.ports import PortDesign
 from lautsprecher_konstruktion.enclosure.rectangular import CabinetDimensions
@@ -44,6 +45,7 @@ def _dimension_vertical(x: float, y1: float, y2: float, text: str) -> str:
     )
 
 
+@painted
 def render_cabinet_svg(spec: CabinetDrawingInput) -> str:
     c = spec.cabinet
     w, h, d = _mm(c.width_m), _mm(c.height_m), _mm(c.depth_m)
@@ -55,9 +57,9 @@ def render_cabinet_svg(spec: CabinetDrawingInput) -> str:
     top_y = oy + fh + 150.0
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">',
-        ('<style>.obj{fill:none;stroke:#111;stroke-width:2}.cut{fill:none;stroke:#555;stroke-width:1.5}'
-        '.dim{stroke:#666;stroke-width:1}.txt{font:13px sans-serif;fill:#222}'
-        '.title{font:bold 22px sans-serif;fill:#111}.label{font:bold 15px sans-serif;fill:#111}</style>'),
+        ('<style>.obj{fill:none;stroke:%INK%;stroke-width:2}.cut{fill:none;stroke:%MUTED%;stroke-width:1.5}'
+        '.dim{stroke:%MUTED%;stroke-width:1}.txt{font:13px sans-serif;fill:%INK%}'
+        '.title{font:bold 22px sans-serif;fill:%INK%}.label{font:bold 15px sans-serif;fill:%INK%}</style>'),
         f'<text x="40" y="35" class="title">{escape(spec.title)}</text>',
         f'<text x="{ox}" y="{oy-20}" class="label">Vorderansicht</text>',
         f'<rect x="{ox}" y="{oy}" width="{fw}" height="{fh}" class="obj"/>',

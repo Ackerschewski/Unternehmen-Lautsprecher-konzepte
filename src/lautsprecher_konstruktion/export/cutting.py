@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
 
+from lautsprecher_konstruktion.drawings.style import hex_for, paint
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 # Conservative retail sheet sizes. They are planning assumptions, not supplier data.
@@ -324,25 +325,25 @@ def render_cutting_svg(plan: CuttingPlan, group_index: int, sheet_index: int) ->
          f'width="{width + 40:.0f}" height="{height + margin_top + 40:.0f}" font-family="DejaVu Sans, Arial">'),
         (f'<text x="20" y="26" font-size="16" font-weight="bold">{plan.material} {group.thickness_mm:.0f} mm · '
          f'Platte {sheet.index}/{len(group.sheets)} ({cfg.sheet_width_mm:.0f} × {cfg.sheet_height_mm:.0f} mm)</text>'),
-        (f'<text x="20" y="44" font-size="11" fill="#555">Sägeschnitt {cfg.kerf_mm:g} mm · '
+        (f'<text x="20" y="44" font-size="11" fill="%MUTED%">Sägeschnitt {cfg.kerf_mm:g} mm · '
          f'Verschnitt dieser Platte {used_percent:.1f} %</text>'),
-        (f'<rect x="20" y="{margin_top}" width="{width:.1f}" height="{height:.1f}" fill="#f4efe6" '
-         'stroke="#333" stroke-width="2"/>'),
+        (f'<rect x="20" y="{margin_top}" width="{width:.1f}" height="{height:.1f}" fill="%OCHRE_FILL%" '
+         'stroke="%INK%" stroke-width="2"/>'),
     ]
     for item in sheet.placed:
         x, y = 20 + item.x_mm * scale, margin_top + item.y_mm * scale
         w, h = item.width_mm * scale, item.height_mm * scale
-        out.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="#cfe3ee" '
-                   f'stroke="#166b91" stroke-width="1.5"/>')
+        out.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="%PANEL%" '
+                   f'stroke="%ACCENT%" stroke-width="1.5"/>')
         size = max(8.0, min(13.0, w / 12, h / 3))
         label = f"{item.part.part_id} {item.part.name}"
         out.append(f'<text x="{x + w / 2:.1f}" y="{y + h / 2 - 3:.1f}" font-size="{size:.1f}" text-anchor="middle" '
-                   f'fill="#172735">{_esc(label[:int(w / (size * 0.6)) + 1])}</text>')
+                   f'fill="%INK%">{_esc(label[:int(w / (size * 0.6)) + 1])}</text>')
         out.append(f'<text x="{x + w / 2:.1f}" y="{y + h / 2 + size:.1f}" font-size="{size:.1f}" '
-                   f'text-anchor="middle" fill="#172735">{item.width_mm:.0f} × {item.height_mm:.0f}'
+                   f'text-anchor="middle" fill="%INK%">{item.width_mm:.0f} × {item.height_mm:.0f}'
                    f'{" ↻" if item.rotated else ""}</text>')
     out.append("</svg>")
-    return "\n".join(out)
+    return paint("\n".join(out))
 
 
 def _dxf_pair(code: int, value: object) -> str:
@@ -400,7 +401,7 @@ def write_cutting_pdf(path: str | Path, plan: CuttingPlan, project_name: str) ->
 
     page_w, page_h = landscape(A3)
     canvas = Canvas(str(path), pagesize=(page_w, page_h))
-    ink, blue = HexColor("#172735"), HexColor("#166b91")
+    ink, blue = HexColor(hex_for("INK")), HexColor(hex_for("ACCENT"))
 
     def header(title: str, number: int) -> None:
         canvas.setFillColor(ink)
@@ -452,14 +453,14 @@ def write_cutting_pdf(path: str | Path, plan: CuttingPlan, project_name: str) ->
             cfg = group.settings
             scale = min((page_w - 100) / cfg.sheet_width_mm, (page_h - 190) / cfg.sheet_height_mm)
             x0, y0 = 50, page_h - 100
-            canvas.setFillColor(HexColor("#f4efe6"))
+            canvas.setFillColor(HexColor(hex_for("OCHRE_FILL")))
             canvas.setStrokeColor(ink)
             canvas.rect(x0, y0 - cfg.sheet_height_mm * scale, cfg.sheet_width_mm * scale,
                         cfg.sheet_height_mm * scale, fill=1, stroke=1)
             for item in sheet.placed:
                 w, h = item.width_mm * scale, item.height_mm * scale
                 px, py = x0 + item.x_mm * scale, y0 - item.y_mm * scale - h
-                canvas.setFillColor(HexColor("#cfe3ee"))
+                canvas.setFillColor(HexColor(hex_for("PANEL")))
                 canvas.setStrokeColor(blue)
                 canvas.rect(px, py, w, h, fill=1, stroke=1)
                 canvas.setFillColor(ink)

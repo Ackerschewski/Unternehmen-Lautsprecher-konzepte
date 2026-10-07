@@ -7,6 +7,7 @@ from textwrap import wrap
 
 import numpy as np
 
+from lautsprecher_konstruktion.drawings.style import painted
 from lautsprecher_konstruktion.enclosure.horn_geometry import HornDetails, SeptumGeometry
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -21,6 +22,7 @@ def _sep_y(sep: SeptumGeometry, x: float) -> float:
     return float(np.interp(x, xs, ys))
 
 
+@painted
 def horn_septa_svg(horn: HornDetails, inner_x: float, inner_y: float, scale: float, wall_m: float,
                    css: str, labels: bool = True) -> list[str]:
     """Inclined septa of a rear horn as polygons; scale is px/mm, origin = inner front/top corner."""
@@ -36,6 +38,7 @@ def horn_septa_svg(horn: HornDetails, inner_x: float, inner_y: float, scale: flo
     return parts
 
 
+@painted
 def render_rear_horn_svg(bundle: DesignBundle) -> str:
     line = bundle.folded_line
     if line is None or line.horn is None:
@@ -66,14 +69,14 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     sheet_height = max(sheet_height, 1100)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:#193448}.sub{font:15px sans-serif;fill:#496373}'
-        '.head{font:700 18px sans-serif;fill:#193448}.text{font:15px sans-serif;fill:#284455}'
-        '.dimtext{font:12px sans-serif;fill:#254a60}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
-        '.outline{fill:white;stroke:#193448;stroke-width:2}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.2}'
-        '.feature{fill:#c5e7f5;stroke:#16749a;stroke-width:1.5}.rule{stroke:#c8d6dd;stroke-width:1}'
-        '.chan{fill:#eef7fb;stroke:none}.chamber{fill:#fbf3df;stroke:none}.mouth{fill:#d9efd9;stroke:#2f7d32;stroke-width:1.5}'
-        '.law{fill:none;stroke:#16749a;stroke-width:2}.built{fill:none;stroke:#c05a1c;stroke-width:2}'
-        '.axis{stroke:#6d8795;stroke-width:1;fill:none}.path{fill:none;stroke:#16749a;stroke-width:1.6;stroke-dasharray:7 5}'
+        '<style>.title{font:700 27px sans-serif;fill:%INK%}.sub{font:15px sans-serif;fill:%MUTED%}'
+        '.head{font:700 18px sans-serif;fill:%INK%}.text{font:15px sans-serif;fill:%TEXT%}'
+        '.dimtext{font:12px sans-serif;fill:%TEXT%}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
+        '.outline{fill:white;stroke:%INK%;stroke-width:2}.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:1.2}'
+        '.feature{fill:%ACCENT_FILL%;stroke:%ACCENT%;stroke-width:1.5}.rule{stroke:%RULE%;stroke-width:1}'
+        '.chan{fill:%SURFACE%;stroke:none}.chamber{fill:%OCHRE_FILL%;stroke:none}.mouth{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.5}'
+        '.law{fill:none;stroke:%ACCENT%;stroke-width:2}.built{fill:none;stroke:%OCHRE%;stroke-width:2}'
+        '.axis{stroke:%MUTED%;stroke-width:1;fill:none}.path{fill:none;stroke:%ACCENT%;stroke-width:1.6;stroke-dasharray:7 5}'
         '</style>',
         f'<rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau Horn</text>',
@@ -155,7 +158,7 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     parts.append(f'<text x="{gx}" y="{gy+gh+18}" class="dimtext">0 = Hals</text>'
                  f'<text x="{gx+gw}" y="{gy+gh+18}" text-anchor="end" class="dimtext">s = {horn.length_m*1000:.0f} mm</text>')
     parts.append(f'<text x="{gx+6}" y="{gy+12}" class="dimtext">S max {amax/1.05*1e4:.0f} cm²</text>')
-    parts.append(f'<text x="{gx}" y="{gy+gh+38}" class="dimtext" fill="#16749a">blau: Gesetz · orange: gebaute Kanalflächen</text>')
+    parts.append(f'<text x="{gx}" y="{gy+gh+38}" class="dimtext" fill="%ACCENT%">blau: Gesetz · orange: gebaute Kanalflächen</text>')
     # info block
     ix, iy = 730.0, 130.0
     parts.append(f'<text x="{ix}" y="{iy}" class="head">Horn-Daten</text>')

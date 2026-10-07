@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from html import escape
 
+from lautsprecher_konstruktion.drawings.style import painted, title_block
 from lautsprecher_konstruktion.enclosure.folded_line import STUFFING_LABELS
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -19,6 +20,7 @@ def _dimension(x1: float, x2: float, y: float, caption: str) -> str:
             f'class="dimtext">{escape(caption)}</text>')
 
 
+@painted
 def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     if bundle.baffle_mode is not None:
         from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
@@ -42,16 +44,17 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     bot = _mm(c.bottom_thickness_m or c.panel_thickness_m)*scale
     front, back = x+ft, x+sd-bt
     row = max(670,y+sh+195)
-    sheet_height = max(1100, int(row+31+len(bundle.panels)*28+85))
+    sheet_height = max(1100, int(row+31+len(bundle.panels)*28+155))
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:#193448}.sub{font:15px sans-serif;fill:#496373}'
-        '.head{font:700 18px sans-serif;fill:#193448}.text{font:15px sans-serif;fill:#284455}'
-        '.dimtext{font:13px sans-serif;fill:#254a60}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
-        '.outline{fill:white;stroke:#193448;stroke-width:2}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.5}'
-        '.feature{fill:#c5e7f5;stroke:#16749a;stroke-width:1.5}.rule{stroke:#c8d6dd;stroke-width:1}'
-        '.lining{fill:#f6ecc8;stroke:#b8963a;stroke-width:1;stroke-dasharray:4 3}'
-        '.damper{fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5}.hole{fill:#fff;stroke:#34576a;stroke-width:1.5}'
+        '<style>.title{font:700 27px sans-serif;fill:%INK%}.sub{font:15px sans-serif;fill:%MUTED%}'
+        '.head{font:700 18px sans-serif;fill:%INK%}.text{font:15px sans-serif;fill:%TEXT%}'
+        '.dimtext{font:13px sans-serif;fill:%TEXT%}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
+        '.outline{fill:white;stroke:%INK%;stroke-width:2}.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:1.5}'
+        '.feature{fill:%ACCENT_FILL%;stroke:%ACCENT%;stroke-width:1.5}.rule{stroke:%RULE%;stroke-width:1}'
+        '.lining{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1;stroke-dasharray:4 3}'
+        '.damper{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1.5}.hole{fill:%WHITE%;stroke:%MUTED%;stroke-width:1.5}'
+        '.tb{font:600 12px sans-serif;fill:%MUTED%}.tbt{font:700 13px sans-serif;fill:%INK%}'
         f'</style><rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau</text>',
         f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Tiefe ab Innenseite Front · Querschnitt schematisch · gestrichelt: Schallweg der Linie</text>',
@@ -79,7 +82,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
                 x0 = front+(magnet+8 if index == 0 else 0)
                 opacity = {'light': .25, 'medium': .45, 'heavy': .65}[level]
                 parts.append(f'<rect x="{x0:.1f}" y="{top:.1f}" width="{back-x0:.1f}" '
-                             f'height="{_mm(channel_h)*scale:.1f}" fill="#d9b45a" '
+                             f'height="{_mm(channel_h)*scale:.1f}" fill="%OCHRE%" '
                              f'fill-opacity="{opacity}" class="stuffing"/>')
             top += _mm(channel_h)*scale+wall
         yy = y+tt
@@ -106,7 +109,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         last_x = front+6 if (len(centres)-1)%2 == 1 else back-6
         points.append((last_x, centres[-1]))
         path = " ".join(f"{px:.1f},{py:.1f}" for px, py in points)
-        parts.append(f'<polyline points="{path}" fill="none" stroke="#16749a" stroke-width="2" '
+        parts.append(f'<polyline points="{path}" fill="none" stroke="%ACCENT%" stroke-width="2" '
                      'stroke-dasharray="7 5"/>')
         parts.append(f'<text x="{back-4:.1f}" y="{y+tt+14:.1f}" text-anchor="end" class="dimtext">'
                      f'Treiberkammer · {_mm(line.channel_heights_m[0]):.0f} mm</text>')
@@ -276,5 +279,6 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="49" y="{yy:.1f}" class="text">{escape(panel_text)}</text>')
         parts.append(f'<path d="M45 {yy+7:.1f}H1155" class="rule"/>')
     parts.append(f'<text x="45" y="{sheet_height-32}" class="sub">Bohrbilder nur dort übernehmen, wo Herstellerdaten vorliegen. Material, Dichtungen und reale Maße vor Fertigung prüfen.</text>')
+    parts.append(title_block(45, sheet_height-110, 1110, bundle.project.name, bundle.project.revision, 'Innenaufbau', 'Maße in mm · Maßstab schematisch'))
     parts.append('</svg>')
     return ''.join(parts)

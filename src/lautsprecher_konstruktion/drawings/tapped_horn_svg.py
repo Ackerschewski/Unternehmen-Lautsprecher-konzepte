@@ -8,6 +8,7 @@ from textwrap import wrap
 
 import numpy as np
 
+from lautsprecher_konstruktion.drawings.style import painted
 from lautsprecher_konstruktion.enclosure.horn_geometry import SeptumGeometry
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -18,6 +19,7 @@ def _sep_y(sep: SeptumGeometry, x: float) -> float:
     return float(np.interp(x, xs, ys))
 
 
+@painted
 def render_tapped_horn_svg(bundle: DesignBundle) -> str:
     horn=bundle.tapped_horn
     if horn is None or horn.details is None:
@@ -56,14 +58,14 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
     front_mouth_y=(fy+top_t if horn.mouth_at_top else fy+h*scale-top_t-mouth_h_px)
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
-        '<style>.title{font:700 30px Arial;fill:#153346}.head{font:700 20px Arial;fill:#153346}'
-        '.text{font:16px Arial;fill:#27485b}.small{font:14px Arial;fill:#50697a}.tiny{font:12px Arial;fill:#254a60}'
-        '.panel{fill:#dce8ed;stroke:#264c60;stroke-width:2}.cut{fill:#f2fbfd;stroke:#067ba0;stroke-width:2}'
-        '.dim{stroke:#526f80;stroke-width:1.5;fill:none}.rule{stroke:#a8c0ca;stroke-width:1}'
-        '.chan{fill:#eef7fb}.mouth{fill:#d9efd9;stroke:#2f7d32;stroke-width:1.5}'
-        '.path{fill:none;stroke:#16749a;stroke-width:1.6;stroke-dasharray:7 5}'
-        '.law{fill:none;stroke:#16749a;stroke-width:2}.built{fill:none;stroke:#c05a1c;stroke-width:2}'
-        '.axis{stroke:#6d8795;stroke-width:1;fill:none}.tap{fill:#c0392b;stroke:none}'
+        '<style>.title{font:700 30px Arial;fill:%INK%}.head{font:700 20px Arial;fill:%INK%}'
+        '.text{font:16px Arial;fill:%TEXT%}.small{font:14px Arial;fill:%MUTED%}.tiny{font:12px Arial;fill:%TEXT%}'
+        '.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:2}.cut{fill:%WHITE%;stroke:%ACCENT%;stroke-width:2}'
+        '.dim{stroke:%MUTED%;stroke-width:1.5;fill:none}.rule{stroke:%RULE%;stroke-width:1}'
+        '.chan{fill:%SURFACE%}.mouth{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.5}'
+        '.path{fill:none;stroke:%ACCENT%;stroke-width:1.6;stroke-dasharray:7 5}'
+        '.law{fill:none;stroke:%ACCENT%;stroke-width:2}.built{fill:none;stroke:%OCHRE%;stroke-width:2}'
+        '.axis{stroke:%MUTED%;stroke-width:1;fill:none}.tap{fill:%CRITICAL%;stroke:none}'
         '</style><rect width="1600" height="1330" fill="white"/>',
         f'<text x="50" y="50" class="title">{escape(bundle.project.name)} · Tapped-Horn-Fertigung</text>',
         f'<text x="50" y="80" class="text">{escape(bundle.project.revision)} · Maße in mm · '
@@ -193,7 +195,7 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
             hx=inside_w/2+bolt*cos(angle)/2
             hy=horn.driver_depth_from_front_m*1000+bolt*sin(angle)/2
             parts.append(f'<circle cx="{px+hx*scale:.1f}" cy="{py+hy*scale:.1f}" '
-                         f'r="{max(2,hole*scale/2):.1f}" fill="white" stroke="#ba593b"/>')
+                         f'r="{max(2,hole*scale/2):.1f}" fill="white" stroke="%CRITICAL%"/>')
             parts.append(f'<text x="{55+(i%4)*375}" y="{row+(i//4)*21}" class="small">'
                          f'Bohrung {i+1}: X {hx:.1f} Y {hy:.1f}</text>')
     parts.append('</svg>')

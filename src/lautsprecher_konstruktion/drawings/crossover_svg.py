@@ -3,8 +3,10 @@ from __future__ import annotations
 from html import escape
 
 from lautsprecher_konstruktion.crossover.passive import CrossoverDesign
+from lautsprecher_konstruktion.drawings.style import painted
 
 
+@painted
 def render_crossover_svg(design: CrossoverDesign) -> str:
     """Render a workshop-oriented passive crossover overview.
 
@@ -36,9 +38,9 @@ def render_crossover_svg(design: CrossoverDesign) -> str:
     parts = [
         (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}">'),
-        ('<style>.wire{stroke:#111;stroke-width:2;fill:none}.box{fill:#fff;stroke:#111;stroke-width:1.5}'
+        ('<style>.wire{stroke:%INK%;stroke-width:2;fill:none}.box{fill:%WHITE%;stroke:%INK%;stroke-width:1.5}'
         '.title{font:bold 22px sans-serif}.label{font:bold 14px sans-serif}'
-        '.txt{font:13px sans-serif}.note{font:12px sans-serif;fill:#555}</style>'),
+        '.txt{font:13px sans-serif}.note{font:12px sans-serif;fill:%MUTED%}</style>'),
         f'<text x="30" y="34" class="title">{escape(design.name)} — {split_text}</text>',
         ('<text x="30" y="62" class="note">Elektrischer Startentwurf auf Basis nominaler '
         'resistiver Lasten; finale Abstimmung mit Messdaten.</text>'),

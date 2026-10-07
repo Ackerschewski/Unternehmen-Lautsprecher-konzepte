@@ -5,6 +5,7 @@ from __future__ import annotations
 from html import escape
 from textwrap import wrap
 
+from lautsprecher_konstruktion.drawings.style import painted
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -40,6 +41,7 @@ def _element_front(element: FrontElement, x: float, y: float,
     return shape+holes+f'<text x="{cx:.1f}" y="{cy+5:.1f}" text-anchor="middle" class="id">{escape(element.id)}</text>'
 
 
+@painted
 def render_assembly_svg(bundle: DesignBundle) -> str:
     if bundle.tapped_horn is not None:
         from lautsprecher_konstruktion.drawings.tapped_horn_svg import render_tapped_horn_svg
@@ -69,20 +71,20 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         f'height="{1100 if bundle.folded_line else 1020}" '
         f'viewBox="0 0 1200 {1100 if bundle.folded_line else 1020}">',
         '<defs><pattern id="material" width="8" height="8" patternUnits="userSpaceOnUse" '
-        'patternTransform="rotate(45)"><rect width="8" height="8" fill="#e1e9ed"/>'
-        '<path d="M0 0V8" stroke="#a4b5bf" stroke-width="2"/></pattern></defs>',
-        '<style>.title{font:700 27px sans-serif;fill:#122737}.subtitle{font:14px sans-serif;fill:#426071}'
-        '.label{font:700 19px sans-serif;fill:#122737}.note{font:15px sans-serif;fill:#263c49}'
-        '.small{font:13px sans-serif;fill:#426071}.panel{fill:url(#material);stroke:#1e3949;stroke-width:2}'
-        '.outline{fill:#fff;stroke:#1e3949;stroke-width:2}.flange{fill:#f3f7f9;stroke:#215a77;stroke-width:2}'
-        '.cutout{fill:none;stroke:#177ba5;stroke-width:2.2}.drill{fill:#fff;stroke:#b44b32;stroke-width:1.5}'
-        '.id{font:700 13px sans-serif;fill:#163c52}.dimension{fill:none;stroke:#516877;stroke-width:1.2}'
-        '.dimension-text{font:14px sans-serif;fill:#254253}.component{fill:#dceef7;stroke:#0875a6;stroke-width:2}'
-        '.lining{fill:#f6ecc8;stroke:#b8963a;stroke-width:1;stroke-dasharray:4 3}'
-        '.damper{fill:#f6ecc8;stroke:#b8963a;stroke-width:1.5}.hole{fill:#fff;stroke:#1e3949;stroke-width:2}'
-        '.brace{fill:#d7e6dc;stroke:#3a7555;stroke-width:1.6}.warning{font:700 14px sans-serif;fill:#a12c20}'
+        'patternTransform="rotate(45)"><rect width="8" height="8" fill="%SURFACE%"/>'
+        '<path d="M0 0V8" stroke="%MUTED%" stroke-width="2"/></pattern></defs>',
+        '<style>.title{font:700 27px sans-serif;fill:%INK%}.subtitle{font:14px sans-serif;fill:%MUTED%}'
+        '.label{font:700 19px sans-serif;fill:%INK%}.note{font:15px sans-serif;fill:%INK%}'
+        '.small{font:13px sans-serif;fill:%MUTED%}.panel{fill:url(#material);stroke:%INK%;stroke-width:2}'
+        '.outline{fill:%WHITE%;stroke:%INK%;stroke-width:2}.flange{fill:%SURFACE%;stroke:%TEXT%;stroke-width:2}'
+        '.cutout{fill:none;stroke:%ACCENT%;stroke-width:2.2}.drill{fill:%WHITE%;stroke:%CRITICAL%;stroke-width:1.5}'
+        '.id{font:700 13px sans-serif;fill:%INK%}.dimension{fill:none;stroke:%MUTED%;stroke-width:1.2}'
+        '.dimension-text{font:14px sans-serif;fill:%TEXT%}.component{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
+        '.lining{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1;stroke-dasharray:4 3}'
+        '.damper{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1.5}.hole{fill:%WHITE%;stroke:%INK%;stroke-width:2}'
+        '.brace{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.6}.warning{font:700 14px sans-serif;fill:%CRITICAL%}'
         '</style>',
-        f'<rect width="1200" height="{1100 if bundle.folded_line else 1020}" fill="#fff"/>',
+        f'<rect width="1200" height="{1100 if bundle.folded_line else 1020}" fill="%WHITE%"/>',
         f'<text x="45" y="45" class="title">{escape(bundle.project.name)}</text>',
         f'<text x="45" y="72" class="subtitle">{escape(bundle.project.revision)} · '
         f'{escape(bundle.project.enclosure.enclosure_type)} · '

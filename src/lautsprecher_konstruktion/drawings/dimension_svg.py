@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from html import escape
 
+from lautsprecher_konstruktion.drawings.style import painted, title_block
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -63,6 +64,7 @@ def dimension_rows(bundle: DesignBundle) -> tuple[tuple[str, str, float, float, 
     return tuple(rows)
 
 
+@painted
 def render_dimension_svg(bundle: DesignBundle) -> str:
     if bundle.baffle_mode is not None:
         from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
@@ -79,18 +81,18 @@ def render_dimension_svg(bundle: DesignBundle) -> str:
     fx, sy, sx = 105.0, 120.0, 615.0
     fw, fh, sd = w*scale, h*scale, d*scale
     row_y = max(710, sy+fh+192)
-    sheet_height = max(1100, int(row_y+49+len(bundle.front_elements)*28+85))
+    sheet_height = max(1100, int(row_y+49+len(bundle.front_elements)*28+155))
     front = tuple(e for e in bundle.front_elements if e.surface == 'front')
     back = tuple(e for e in bundle.front_elements if e.surface == 'back')
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:#193448}.label{font:700 18px sans-serif;fill:#193448}'
-        '.text{font:15px sans-serif;fill:#284455}.small{font:13px sans-serif;fill:#496373}'
-        '.dimtext{font:13px sans-serif;fill:#254a60}.id{font:700 14px sans-serif;fill:#153d59}'
-        '.outline{fill:white;stroke:#193448;stroke-width:2}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
-        '.flange{fill:#edf4f7;stroke:#39718f;stroke-width:1.5}.cut{fill:none;stroke:#007fa5;stroke-width:2}'
-        '.hole{fill:white;stroke:#bf503a;stroke-width:1.4}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.5}'
-        '.rule{stroke:#c8d6dd;stroke-width:1}</style>',
+        '<style>.title{font:700 27px sans-serif;fill:%INK%}.label{font:700 18px sans-serif;fill:%INK%}'
+        '.text{font:15px sans-serif;fill:%TEXT%}.small{font:13px sans-serif;fill:%MUTED%}'
+        '.dimtext{font:13px sans-serif;fill:%TEXT%}.id{font:700 14px sans-serif;fill:%INK%}'
+        '.outline{fill:white;stroke:%INK%;stroke-width:2}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
+        '.flange{fill:%SURFACE%;stroke:%MUTED%;stroke-width:1.5}.cut{fill:none;stroke:%ACCENT%;stroke-width:2}'
+        '.hole{fill:white;stroke:%CRITICAL%;stroke-width:1.4}.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:1.5}'
+        '.rule{stroke:%RULE%;stroke-width:1}.tb{font:600 12px sans-serif;fill:%MUTED%}.tbt{font:700 13px sans-serif;fill:%INK%}</style>',
         f'<rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Maßblatt</text>',
         f'<text x="45" y="70" class="text">{escape(bundle.project.revision)} · Alle Maße in mm · Bezug: linke untere Außenecke der jeweiligen Ansicht</text>',
@@ -174,5 +176,6 @@ def render_dimension_svg(bundle: DesignBundle) -> str:
     parts.append(f'<text x="45" y="{note_y}" class="small">Koordinaten sind Fertigmaße der berechneten Geometrie. Vor dem Fräsen Original-Datenblatt und reale Chassis prüfen.</text>')
     if back:
         parts.append(f'<text x="45" y="{note_y+22}" class="small">Rückwand-Einbauten sind in der Tabelle mit Fläche „back“ gekennzeichnet.</text>')
+    parts.append(title_block(45, sheet_height-70, 1110, bundle.project.name, bundle.project.revision, 'Maßblatt', 'Maße in mm · Maßstab schematisch'))
     parts.append('</svg>')
     return ''.join(parts)

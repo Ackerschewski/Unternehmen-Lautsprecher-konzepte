@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from html import escape
 
+from lautsprecher_konstruktion.drawings.style import painted, title_block
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -21,6 +22,7 @@ def panel_sheet_surfaces(bundle: DesignBundle) -> tuple[str, ...]:
     )
 
 
+@painted
 def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
     if surface not in SURFACE_NAMES:
         raise ValueError(f"Unknown surface: {surface}")
@@ -38,12 +40,12 @@ def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
     elements = tuple(e for e in bundle.front_elements if e.surface == surface)
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">',
-        '<style>.title{font:700 28px sans-serif;fill:#153349}.head{font:700 19px sans-serif;fill:#153349}'
-        '.text{font:15px sans-serif;fill:#29485a}.small{font:13px sans-serif;fill:#486477}'
-        '.panel{fill:#fff;stroke:#17394c;stroke-width:2.5}.cut{fill:#e4f5fb;stroke:#0879a6;stroke-width:2}'
-        '.flange{fill:none;stroke:#6e9aae;stroke-width:1.5;stroke-dasharray:5 4}'
-        '.hole{fill:#fff;stroke:#b7442f;stroke-width:1.8}.axis{stroke:#a6b9c4;stroke-width:1;stroke-dasharray:5 5}'
-        '.dim{stroke:#496577;stroke-width:1.3}.rule{stroke:#d4e0e6;stroke-width:1}</style>',
+        '<style>.title{font:700 28px sans-serif;fill:%INK%}.head{font:700 19px sans-serif;fill:%INK%}'
+        '.text{font:15px sans-serif;fill:%TEXT%}.small{font:13px sans-serif;fill:%MUTED%}'
+        '.panel{fill:%WHITE%;stroke:%PANEL_STROKE%;stroke-width:2.5}.cut{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
+        '.flange{fill:none;stroke:%MUTED%;stroke-width:1.5;stroke-dasharray:5 4}'
+        '.hole{fill:%WHITE%;stroke:%CRITICAL%;stroke-width:1.8}.axis{stroke:%MUTED%;stroke-width:1;stroke-dasharray:5 5}'
+        '.dim{stroke:%MUTED%;stroke-width:1.3}.rule{stroke:%RULE%;stroke-width:1}.tb{font:600 12px sans-serif;fill:%MUTED%}.tbt{font:700 13px sans-serif;fill:%INK%}</style>',
         '<rect width="1200" height="900" fill="white"/>',
         f'<text x="45" y="46" class="title">{escape(bundle.project.name)} · {SURFACE_NAMES[surface]}</text>',
         f'<text x="45" y="75" class="text">{escape(bundle.project.revision)} · Einzelteil / Fräsansicht · alle Maße in mm</text>',
@@ -90,6 +92,7 @@ def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
         f'<text x="650" y="154" class="text">Rohmaß {w:.1f} × {h:.1f} × {thick:.1f}</text>',
         f'<text x="45" y="805" class="small">{escape(SURFACE_NAMES[surface])}: Ansichts- und DXF-Koordinaten stimmen überein. Blau = Ausschnitt, gestrichelt = Flansch, Rot = bekannte Bohrungen.</text>',
         '<text x="45" y="831" class="small">Bei fehlenden Herstellermaßen keine Bohrungen ableiten. Vor CNC-Bearbeitung Chassis und Datenblatt prüfen.</text>',
+        title_block(45, 845, 1110, bundle.project.name, bundle.project.revision, 'Einzelteilplan · '+SURFACE_NAMES[surface], 'Maße in mm · DXF-Koordinaten'),
         '</svg>',
     ]
     return ''.join(parts)

@@ -9,15 +9,16 @@ from reportlab.pdfgen.canvas import Canvas
 
 from lautsprecher_konstruktion.drawings.dimension_svg import dimension_rows
 from lautsprecher_konstruktion.drawings.panel_sheet_svg import panel_sheet_surfaces
+from lautsprecher_konstruktion.drawings.style import hex_for
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.export.bom import BomItem, priced_subtotal
 from lautsprecher_konstruktion.export.pricing import budget_cost
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 PAGE_W, PAGE_H = landscape(A3)
-INK = HexColor('#172735')
-BLUE = HexColor('#166b91')
-MUTED = HexColor('#687782')
+INK = HexColor(hex_for("INK"))
+BLUE = HexColor(hex_for("ACCENT"))
+MUTED = HexColor(hex_for("MUTED"))
 
 
 def _header(c: Canvas, title: str, bundle: DesignBundle, number: int) -> None:
@@ -49,7 +50,7 @@ def _table(c: Canvas, headers: tuple[str, ...], rows: Sequence[tuple[str, ...]],
     x0 = 42.0
     c.setFillColor(BLUE)
     c.rect(x0, y-6, sum(widths), 22, fill=1, stroke=0)
-    c.setFillColor(HexColor('#ffffff'))
+    c.setFillColor(HexColor(hex_for("WHITE")))
     c.setFont('Helvetica-Bold', 9)
     x = x0
     for title, width in zip(headers, widths, strict=True):
@@ -62,7 +63,7 @@ def _table(c: Canvas, headers: tuple[str, ...], rows: Sequence[tuple[str, ...]],
         if y < 65:
             break
         if idx % 2 == 0:
-            c.setFillColor(HexColor('#edf3f6'))
+            c.setFillColor(HexColor(hex_for("SURFACE")))
             c.rect(x0, y-5, sum(widths), 20, fill=1, stroke=0)
         c.setFillColor(INK)
         x = x0
@@ -101,7 +102,7 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
     bt=cab.effective_back_thickness_m*1000*scale
     tt=(cab.top_thickness_m or cab.panel_thickness_m)*1000*scale
     bottom=(cab.bottom_thickness_m or cab.panel_thickness_m)*1000*scale
-    c.setFillColor(HexColor('#dce7ed'))
+    c.setFillColor(HexColor(hex_for("PANEL")))
     for px,py,pw,ph in ((sx,y,ft,fh),(sx+fd-bt,y,bt,fh),
                         (sx+ft,y+fh-tt,fd-ft-bt,tt),(sx+ft,y,fd-ft-bt,bottom)):
         c.rect(px,py,pw,ph,fill=1,stroke=1)
@@ -111,7 +112,7 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
     partition_x=None
     if bundle.partition_front_depth_m is not None:
         partition_x=inner_x+bundle.partition_front_depth_m*1000*scale
-        c.setFillColor(HexColor('#dce7ed'))
+        c.setFillColor(HexColor(hex_for("PANEL")))
         openings = sorted((y+(e.y_m*1000-(e.cutout_diameter_m or e.height)*500)*scale,
                            y+(e.y_m*1000+(e.cutout_diameter_m or e.height)*500)*scale)
                           for e in bundle.front_elements if e.surface=='partition')
@@ -125,7 +126,7 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
         c.setFont('Helvetica',8)
         c.drawString(inner_x+5,y+fh/2,'Frontkammer')
         c.drawString(partition_x+12,y+fh/2,'Rueckkammer')
-    c.setFillColor(HexColor('#dceff8'))
+    c.setFillColor(HexColor(hex_for("SURFACE")))
     for e in bundle.front_elements:
         cy=y+e.y_m*1000*scale
         opening=(e.cutout_diameter_m or e.height)*1000*scale
@@ -133,10 +134,10 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
         if e.surface=='front':
             if e.type=='port' and bundle.port is not None and bundle.port.shape=='slot':
                 wall=cab.panel_thickness_m*1000*scale
-                c.setFillColor(HexColor('#dce7ed'))
+                c.setFillColor(HexColor(hex_for("PANEL")))
                 c.rect(inner_x,cy-opening/2-wall,max(depth-ft,0),wall,fill=1,stroke=1)
                 c.rect(inner_x,cy+opening/2,max(depth-ft,0),wall,fill=1,stroke=1)
-                c.setFillColor(HexColor('#dceff8'))
+                c.setFillColor(HexColor(hex_for("SURFACE")))
             # A port's length L includes the wall it passes through: it starts at the outer face.
             c.rect(sx if e.type=='port' else inner_x,cy-opening/2,depth,opening,fill=1,stroke=1)
         elif e.surface=='back':
@@ -145,7 +146,7 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
             c.rect(partition_x,cy-opening/2,depth,opening,fill=1,stroke=1)
     c.setFillColor(INK)
     if bundle.brace:
-        c.setFillColor(HexColor('#dceadd'))
+        c.setFillColor(HexColor(hex_for("OK_FILL")))
         for depth in bundle.brace_depths_m:
             bx=inner_x+depth*1000*scale
             c.rect(bx,y+bottom,cab.panel_thickness_m*1000*scale,
@@ -165,7 +166,7 @@ def _drawing(c: Canvas, bundle: DesignBundle) -> None:
             ring_x=inner_x+length
             ring_t=k.ring_thickness_m*1000*scale
             wall=(outer-inner)/2
-            c.setFillColor(HexColor('#dce7ed'))
+            c.setFillColor(HexColor(hex_for("PANEL")))
             for yy in (cy-outer/2,cy+inner/2):
                 c.rect(inner_x,yy,length,wall,fill=1,stroke=1)
             for yy in (cy-outer/2,cy+k.driver_cutout_m*500*scale):
@@ -220,7 +221,7 @@ def _panel_drawing(c: Canvas, bundle: DesignBundle, surface: str) -> None:
             ew, eh = element.width*1000, element.height*1000
             c.rect(cx-ew*scale/2, cy-eh*scale/2, ew*scale, eh*scale)
             cut = f'{ew:.1f} x {eh:.1f}'
-        c.setStrokeColor(HexColor('#b7442f'))
+        c.setStrokeColor(HexColor(hex_for("CRITICAL")))
         for hx, hy, radius in bolt_holes(element):
             c.circle(x0+(hx*1000-offset_x)*scale,
                      y0+(hy*1000-offset_y)*scale, max(1.5,radius*1000*scale))
@@ -453,7 +454,7 @@ def _write_tapped_horn_pdf(path: str | Path, bundle: DesignBundle,
     assert det is not None
     top_y=iy+cab.internal_height_m*1000*scale          # inner top edge (PDF y points up)
     back_x=ix+cab.internal_depth_m*1000*scale           # runs are vertical, stacked from the back wall
-    c.setFillColor(HexColor('#e0ebef'))
+    c.setFillColor(HexColor(hex_for("SURFACE")))
     for sep in det.septa:
         pts=[(back_x-py_*1000*scale,top_y-px_*1000*scale) for px_,py_ in sep.points_m]
         outline=c.beginPath()
@@ -583,7 +584,7 @@ def _write_baffle_pdf(path: str | Path, bundle: DesignBundle,
     x,y=85.0,135.0
     _header(c,'Schallwand: Vorderansicht und Draufsicht',bundle,1)
     c.setStrokeColor(INK)
-    c.setFillColor(HexColor('#e0ebef'))
+    c.setFillColor(HexColor(hex_for("SURFACE")))
     c.rect(x,y,w*scale,h*scale,stroke=1,fill=1)
     c.setFillColor(INK)
     for element in bundle.front_elements:
@@ -596,7 +597,7 @@ def _write_baffle_pdf(path: str | Path, bundle: DesignBundle,
         else:
             c.rect(cx-element.width*500*scale,cy-element.height*500*scale,
                    element.width*1000*scale,element.height*1000*scale,stroke=1,fill=0)
-        c.setStrokeColor(HexColor('#a94836'))
+        c.setStrokeColor(HexColor(hex_for("CRITICAL")))
         for hx,hy,radius in bolt_holes(element):
             c.circle(x+hx*1000*scale,y+hy*1000*scale,
                      max(1.5,radius*1000*scale),stroke=1,fill=0)
@@ -607,7 +608,7 @@ def _write_baffle_pdf(path: str | Path, bundle: DesignBundle,
     c.drawString(x,y-28,f'Breite {w:.1f} mm')
     c.drawString(x+w*scale+16,y+h*scale/2,f'Hoehe {h:.1f} mm')
     px,py=650,PAGE_H-180
-    c.setFillColor(HexColor('#e0ebef'))
+    c.setFillColor(HexColor(hex_for("SURFACE")))
     c.rect(px,py,330,max(8,t*scale),stroke=1,fill=1)
     if bundle.baffle_wing_depth_m:
         wing=bundle.baffle_wing_depth_m*1000
