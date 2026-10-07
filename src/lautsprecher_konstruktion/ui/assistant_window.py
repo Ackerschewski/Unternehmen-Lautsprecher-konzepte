@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 from html import escape
-from pathlib import Path
 from threading import Event
 
 import matplotlib
-import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from pydantic import ValidationError
@@ -24,7 +22,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
-    QFileDialog,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -67,12 +64,8 @@ from lautsprecher_konstruktion.drawings.panel_sheet_svg import (
 )
 from lautsprecher_konstruktion.drawings.views import render_view_svg
 from lautsprecher_konstruktion.enclosure.registry import registry
-from lautsprecher_konstruktion.export.bom import build_bom, priced_subtotal
-from lautsprecher_konstruktion.export.package import export_project_package
-from lautsprecher_konstruktion.export.pricing import budget_cost
 from lautsprecher_konstruktion.library.store import ComponentLibrary
 from lautsprecher_konstruktion.optimization.profiles import PROFILES
-from lautsprecher_konstruktion.project.models import SpeakerProject
 from lautsprecher_konstruktion.services.automatic import (
     SPEAKER_TYPES,
     AutomaticDesignRequest,
@@ -80,18 +73,20 @@ from lautsprecher_konstruktion.services.automatic import (
     SpeakerDesign,
     automatic_design,
 )
-from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
+from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.ui.assistant_files import FileActionsMixin
 from lautsprecher_konstruktion.ui.cabinet_preview import CabinetPreview
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.layout_rules import planner_layout, secondary_plot_count
-from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
 from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.result_hero import KpiGrid, VariantStrip, comparison_sentences
+from lautsprecher_konstruktion.ui.result_text import bom_html, details_html
+from lautsprecher_konstruktion.ui.sound_lab import update_sound_lab
 from lautsprecher_konstruktion.ui.sound_plots import PLOT_KINDS, available_plots, draw_plot
 from lautsprecher_konstruktion.ui.status_banner import banner
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
@@ -135,7 +130,7 @@ def _spin(default: float, minimum: float, maximum: float, suffix: str,
     return control
 
 
-class AssistantWindow(QMainWindow):
+class AssistantWindow(FileActionsMixin, QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"Lautsprecher Konstruktion {REVISION}")
@@ -483,282 +478,9 @@ class AssistantWindow(QMainWindow):
                 "Zielkurve geändert · Randbedingungen prüfen und passenden Entwurf berechnen.",
             )
 
-    @staticmethod
-    def _sound_curve(
-        design: SpeakerDesign,
-    ) -> tuple[np.ndarray, np.ndarray, str] | None:
-        crossover = design.bundle.crossover_response
-        if crossover is not None and crossover.sum_acoustic_db is not None:
-            return (
-                np.asarray(crossover.frequencies_hz, dtype=float),
-                np.asarray(crossover.sum_acoustic_db, dtype=float),
-                "Ist · FRD/Weichensumme",
-            )
-        response = design.bundle.vented_response or design.bundle.sealed_response
-        if response is None:
-            return None
-        return (
-            np.asarray(response.frequencies_hz, dtype=float),
-            np.asarray(response.response_db, dtype=float),
-            "Ist · Gehäuse-/Tieftonsimulation",
-        )
-
-    @staticmethod
-    def _relative_curve(
-        frequencies: np.ndarray, levels: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-        valid = np.isfinite(frequencies) & np.isfinite(levels) & (frequencies > 0)
-        f = frequencies[valid]
-        v = levels[valid].astype(float, copy=True)
-        if not f.size:
-            return f, v
-        reference = (f >= 80.0) & (f <= 120.0)
-        v -= float(np.median(v[reference])) if np.any(reference) else float(np.median(v))
-        return f, v
-
-    @staticmethod
-    def _curve_value_at(
-        design: SpeakerDesign, frequency_hz: float
-    ) -> float | None:
-        data = AssistantWindow._sound_curve(design)
-        if data is None:
-            return None
-        f, v = AssistantWindow._relative_curve(data[0], data[1])
-        if not f.size or frequency_hz < f[0] or frequency_hz > f[-1]:
-            return None
-        return float(np.interp(np.log10(frequency_hz), np.log10(f), v))
-
-    @staticmethod
-    def _span_label(values: list[float], variants: int) -> str:
-        if variants < 2 or len(values) < 2:
-            return "keine belastbare Vergleichsvariante"
-        span = max(values)-min(values)
-        if span >= 2.5:
-            level = "stark"
-        elif span >= 0.75:
-            level = "mittel"
-        else:
-            level = "gering"
-        return f"{level} · {span:.1f} dB berechnete Spannweite"
-
     def _update_sound_lab(self, *_args: object) -> None:
-        if not hasattr(self, "target_curve"):
-            return
-        current = self._current()
-        if current is None:
-            self.target_curve.set_candidate_curves(())
-            self.target_curve.clear_actual()
-            self.target_curve.set_component_influence({})
-            self.target_curve.set_influence_summary(
-                "Berechne zuerst Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
-            )
-            return
+        update_sound_lab(self)
 
-        mode = self.target_curve.analysis_mode()
-        current_enclosure = current.project.enclosure.enclosure_type
-        current_driver = current.woofer.model
-
-        candidates = list(self.designs)
-        if mode == "enclosure":
-            candidates = [d for d in candidates if d.woofer.model == current_driver]
-        elif mode == "driver":
-            candidates = [
-                d for d in candidates
-                if d.project.enclosure.enclosure_type == current_enclosure
-            ]
-        elif mode == "crossover":
-            candidates = [
-                d for d in candidates
-                if d.bundle.crossover_response is not None
-                and d.bundle.crossover_response.sum_acoustic_db is not None
-            ]
-
-        curves: list[tuple[np.ndarray, np.ndarray]] = []
-        for design in candidates:
-            data = self._sound_curve(design)
-            if data is not None:
-                curves.append((data[0], data[1]))
-        self.target_curve.set_candidate_curves(curves)
-
-        current_curve = self._sound_curve(current)
-        if current_curve is not None:
-            self.target_curve.set_actual_curve(
-                current_curve[0], current_curve[1], label=current_curve[2]
-            )
-        else:
-            self.target_curve.clear_actual()
-
-        selected_frequency = self.target_curve.selected_frequency_hz()
-        current_tweeter = current.tweeter.model if current.tweeter else ""
-
-        enclosure_group = [
-            d for d in self.designs
-            if d.woofer.model == current_driver
-            and (d.tweeter.model if d.tweeter else "") == current_tweeter
-        ]
-        enclosure_signatures = {
-            d.project.enclosure.enclosure_type for d in enclosure_group
-        }
-        enclosure_values = [
-            value for d in enclosure_group
-            if (value := self._curve_value_at(d, selected_frequency)) is not None
-        ]
-
-        driver_group = [
-            d for d in self.designs
-            if d.project.enclosure.enclosure_type == current_enclosure
-        ]
-        driver_signatures = {d.woofer.model for d in driver_group}
-        driver_values = [
-            value for d in driver_group
-            if (value := self._curve_value_at(d, selected_frequency)) is not None
-        ]
-
-        crossover_group = [
-            d for d in self.designs
-            if d.woofer.model == current_driver
-            and d.project.enclosure.enclosure_type == current_enclosure
-            and d.bundle.crossover_response is not None
-            and d.bundle.crossover_response.sum_acoustic_db is not None
-        ]
-        crossover_signatures = {
-            (
-                d.project.crossover.topology,
-                round(d.project.crossover.crossover_hz, 1),
-                d.tweeter.model if d.tweeter else "",
-            )
-            for d in crossover_group
-        }
-        crossover_values = [
-            value for d in crossover_group
-            if (value := self._curve_value_at(d, selected_frequency)) is not None
-        ]
-
-        dsp_text = "keine belastbaren Hubdaten"
-        response = current.bundle.vented_response or current.bundle.sealed_response
-        xmax = current.bundle.project.driver.xmax_mm
-        if (
-            response is not None
-            and response.excursion_mm is not None
-            and xmax
-            and response.frequencies_hz[0] <= selected_frequency <= response.frequencies_hz[-1]
-        ):
-            excursion = float(np.interp(
-                np.log10(selected_frequency),
-                np.log10(response.frequencies_hz),
-                response.excursion_mm,
-            ))
-            if excursion > 0:
-                headroom = 20*np.log10(xmax/excursion)
-                dsp_text = (
-                    f"Hubgrenze erreicht ({headroom:.1f} dB Reserve)"
-                    if headroom <= 0
-                    else f"bis ca. +{headroom:.1f} dB Hubreserve"
-                )
-
-        self.target_curve.set_component_influence({
-            "enclosure": self._span_label(
-                enclosure_values, len(enclosure_signatures)
-            ),
-            "driver": self._span_label(driver_values, len(driver_signatures)),
-            "crossover": self._span_label(
-                crossover_values, len(crossover_signatures)
-            ),
-            "dsp": dsp_text,
-        })
-
-        notes: list[str] = []
-        outside = self.target_curve.outside_envelope()
-        if outside is not None:
-            notes.append(
-                f"Ziel bei {outside[0]:.0f} Hz liegt etwa {outside[1]:.1f} dB außerhalb "
-                "der aktuell berechneten Variantenhülle."
-            )
-
-        if mode == "crossover" and not candidates:
-            notes.append(
-                "Für eine belastbare Weichen-/Fullrange-Aussage fehlen FRD-Daten. "
-                "Vorhandene T/S-Daten reichen dafür absichtlich nicht."
-            )
-        elif mode == "dsp":
-            response = current.bundle.vented_response or current.bundle.sealed_response
-            xmax = current.bundle.project.driver.xmax_mm
-            if response is not None and response.excursion_mm is not None and xmax:
-                margins: list[tuple[float, float]] = []
-                rf = np.asarray(response.frequencies_hz, dtype=float)
-                ex = np.asarray(response.excursion_mm, dtype=float)
-                for frequency, target_db in self.target_curve.effective_points():
-                    if frequency < rf[0] or frequency > rf[-1] or target_db <= 0:
-                        continue
-                    excursion = float(np.interp(np.log10(frequency), np.log10(rf), ex))
-                    if excursion > 0:
-                        headroom_db = 20*np.log10(xmax/excursion)
-                        margins.append((frequency, headroom_db-target_db))
-                if margins:
-                    frequency, margin = min(margins, key=lambda item: item[1])
-                    if margin < 0:
-                        notes.append(
-                            f"DSP-Anhebung bei {frequency:.0f} Hz überschreitet die berechnete "
-                            f"Hubreserve um etwa {-margin:.1f} dB. Gehäuse/Chassis ändern statt nur boosten."
-                        )
-                    else:
-                        notes.append(
-                            f"Tiefton-DSP bleibt in den geprüften Punkten mindestens {margin:.1f} dB "
-                            "unter der berechneten Xmax-Grenze."
-                        )
-            else:
-                notes.append("DSP-Headroom ist ohne belastbare Hubdaten nicht quantifizierbar.")
-
-        if mode in {"overall", "enclosure", "driver", "influence"} and current_curve is not None:
-            cf, cv = self._relative_curve(current_curve[0], current_curve[1])
-            best: tuple[float, int, float, float] | None = None
-            targets = self.target_curve.effective_points()
-            for alt_index, alternative in enumerate(self.designs):
-                if alternative is current:
-                    continue
-                if mode == "enclosure" and alternative.woofer.model != current_driver:
-                    continue
-                if mode == "driver" and (
-                    alternative.project.enclosure.enclosure_type != current_enclosure
-                ):
-                    continue
-                alt_curve = self._sound_curve(alternative)
-                if alt_curve is None:
-                    continue
-                af, av = self._relative_curve(alt_curve[0], alt_curve[1])
-                for frequency, target_db in targets:
-                    if (
-                        not cf.size or not af.size
-                        or frequency < cf[0] or frequency > cf[-1]
-                        or frequency < af[0] or frequency > af[-1]
-                    ):
-                        continue
-                    current_db = float(np.interp(np.log10(frequency), np.log10(cf), cv))
-                    alternative_db = float(np.interp(np.log10(frequency), np.log10(af), av))
-                    improvement = abs(current_db-target_db)-abs(alternative_db-target_db)
-                    if improvement > 1.0 and (best is None or improvement > best[0]):
-                        best = (improvement, alt_index, frequency, alternative_db)
-            if best is not None:
-                improvement, alt_index, frequency, _alternative_db = best
-                alternative = self.designs[alt_index]
-                enclosure = registry.get(
-                    alternative.project.enclosure.enclosure_type
-                ).label
-                change = (
-                    f"anderes Gehäuse ({enclosure})"
-                    if alternative.woofer.model == current_driver
-                    else f"anderes Chassis ({alternative.woofer.model})"
-                )
-                notes.append(
-                    f"Bei {frequency:.0f} Hz liegt {alternative.label} rund {improvement:.1f} dB "
-                    f"näher am Ziel – hier wäre {change} die bessere Richtung."
-                )
-
-        if not notes:
-            notes.append(
-                f"{len(curves)} berechnete Kurve(n) bilden die aktuell belegbare Vergleichsbasis."
-            )
-        self.target_curve.set_influence_summary(" ".join(notes))
 
     def _set_state(self, role: str, text: str) -> None:
         """Status line with glyph and text (colour is never the only signal) and a role-coloured edge."""
@@ -1527,50 +1249,7 @@ class AssistantWindow(QMainWindow):
         c = bundle.cabinet
         f3 = bundle.sealed.f3_hz if bundle.sealed else (
             bundle.vented_response.f3_hz if bundle.vented_response else None)
-        lines = [f"<h2>{escape(design.label)}</h2>",
-            f"<p><b>Gehäuse:</b> {escape(registry.get(design.project.enclosure.enclosure_type).label)} · "
-            f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm<br>"
-            f"<b>Netto:</b> {bundle.target_net_volume_m3*1000:.1f} l · "
-            f"<b>F3:</b> {f3:.1f} Hz</p>" if f3 else "<p>F3 nicht berechenbar</p>",
-            f"<p><b>Tieftöner:</b> {escape(design.woofer.manufacturer)} {escape(design.woofer.model)}<br>"
-            f"<b>Hochtöner:</b> {escape(design.tweeter.model) if design.tweeter else '–'}<br>"
-            f"<b>Chassispreis:</b> {design.price:.2f} €</p>" if design.price is not None else
-            f"<p><b>Tieftöner:</b> {escape(design.woofer.manufacturer)} {escape(design.woofer.model)}<br>"
-            f"<b>Hochtöner:</b> {escape(design.tweeter.model) if design.tweeter else '–'}<br>"
-            "<b>Chassispreis:</b> nicht verfügbar</p>"]
-        lines.append("<p><b>Gesamtkalkulation inkl. 15 % Reserve:</b> "+
-            (f"{design.total_price_eur:.2f} €" if design.total_price_eur is not None else
-             "nicht vollständig bepreist")+"</p>")
-        if self.budget.value() and design.total_price_eur is not None:
-            lines.append(f"<p><b>Budget noch frei:</b> "
-                         f"{self.budget.value()-design.total_price_eur:.2f} €</p>")
-        if design.breakdown:
-            lines.append(f"<h3>Teilbewertung · {design.score:.0f}/100 aus {len(design.breakdown)} "
-                         "bewerteten Kriterien</h3><p>Keine Qualitätsfreigabe: nicht belegbare Kriterien "
-                         "fließen nicht ein.</p>")
-            names = {"bass": "Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
-                "port": "Portreserve", "delay": "Gruppenlaufzeit", "flatness": "Linearität",
-                "cost": "Budgetreserve", "target_curve": "Nähe zur Zielkurve"}
-            for metric in design.breakdown:
-                lines.append(f"<p><b>{names.get(metric.name, metric.name)}</b> "
-                    f"{metric.value:.0f}/100 "
-                    f"(Gewicht {metric.weight:g})<br>{escape(metric.evidence)}</p>")
-            missing = {"headroom", "port", "delay", "flatness"}-{
-                metric.name for metric in design.breakdown}
-            if bundle.port is None:
-                missing.discard("port")
-            if missing:
-                lines.append("<p><i>Nicht bewertet: "+", ".join(names[key] for key in sorted(missing))+
-                    ". Nicht verfügbare Werte werden nicht ergänzt.</i></p>")
-        lines.append("<h3>Warum dieser Entwurf?</h3><ul>"+
-            "".join(f"<li>{escape(reason)}</li>" for reason in design.reasons)+"</ul>")
-        if design.provisional_crossover:
-            lines.append("<p><b>Vorläufiger Frequenzweichenentwurf:</b> Für eine Endabstimmung "
-                "sind FRD/ZMA-Messungen am aufgebauten Lautsprecher nötig.</p>")
-        if bundle.warnings:
-            lines.append("<h3>Hinweise</h3><ul>"+
-                "".join(f"<li>{escape(message)}</li>" for message in bundle.warnings)+"</ul>")
-        self.details.setHtml("".join(lines))
+        self.details.setHtml(details_html(design, self.budget.value()))
         geometry_issue_count = sum(1 for issue in bundle.issues if issue.severity == "error")
         spl_text = f"{design.spl_limit_db:.0f} dB" if design.spl_limit_db is not None else "unbekannt"
         self.kpi_row.set_value("Maße", f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm",
@@ -1597,22 +1276,7 @@ class AssistantWindow(QMainWindow):
         self.panel_choice.blockSignals(False)
         self.panel_choice.setCurrentIndex(0)
         self._load_drawing_views(bundle)
-        subtotal, missing = priced_subtotal(design.bom)
-        planned_total = budget_cost(design.bom)
-        rows = "".join("<tr><td>"+escape(item.reference)+"</td><td>"+
-            escape(item.description)+"</td><td>"+str(item.quantity)+"</td><td>"+
-            (f"{item.unit_price_eur:.2f} €" if item.unit_price_eur is not None else "–")+
-            "</td><td>"+
-            (f"{item.line_total_eur:.2f} €" if item.line_total_eur is not None else "–")+
-            "</td><td>"+escape(item.price_kind)+"</td></tr>" for item in design.bom)
-        self.bom_view.setHtml("<h2>Stückliste</h2><table border='1' cellpadding='5'>"
-            "<tr><th>Ref.</th><th>Bauteil</th><th>Anzahl</th><th>Einzelpreis</th><th>Position</th><th>Art</th></tr>"+
-            rows+"</table><p><b>Bekannte Teilsumme: "+f"{subtotal:.2f} €"+
-            f"</b> · {missing} Positionen ohne Preis.</p>"+
-            (f"<p><b>Budgetansatz inkl. 15 % Reserve: {planned_total:.2f} €</b></p>"
-             if planned_total is not None else "<p>Budgetansatz nicht vollständig belegbar.</p>")+
-            "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
-            "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
+        self.bom_view.setHtml(bom_html(design))
         self._redraw_simulation()
         role, status = banner(design)
         geometry_errors = [issue.message for issue in bundle.issues if issue.severity == "error"]
@@ -1677,156 +1341,6 @@ class AssistantWindow(QMainWindow):
             self.panel_svg.load(QByteArray(render_panel_sheet_svg(
                 current.bundle, surface).encode("utf-8")))
             self._drawing_view_changed(self.drawing_tabs.currentIndex())
-
-    def _expert(self) -> None:
-        if self.expert_window is None:
-            self.expert_window = MainWindow()
-            self.expert_window.set_mode(self.mode)
-            self.expert_window.projectCalculated.connect(self._expert_updated)
-        current = self._current()
-        if current:
-            self.expert_window._apply_project(current.project)
-            self.expert_window.calculate()
-        self.expert_window.show()
-        self.expert_window.raise_()
-
-    def _expert_updated(self, bundle: DesignBundle) -> None:
-        bom = build_bom(bundle)
-        design = SpeakerDesign("Expertenentwurf", bundle.project, bundle,
-            bundle.project.driver, None, 0, (), ("Im Expertenmodus bearbeitet.",),
-            bom, None, None, False, budget_cost(bom))
-        self.designs = (design,)
-        self._stale = False
-        self._unsaved = True
-        self.variant_list.clear()
-        self.comparison.setRowCount(0)
-        self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
-        self.variant_cards.set_designs(self.designs)
-        self._show_start(False)
-        project = bundle.project
-        loaded_method = "target_curve" if project.target_curve_points or project.target_eq_bands else "classic"
-        self.design_method.blockSignals(True)
-        self.design_method.setCurrentIndex(self.design_method.findData(loaded_method))
-        self.design_method.blockSignals(False)
-        self._sync_method_cards()
-        self.create_button.setText(
-            "Passenden Entwurf zur Zielkurve berechnen"
-            if loaded_method == "target_curve" else "Entwurf erstellen"
-        )
-        if project.target_curve_points or project.target_eq_bands:
-            self.target_curve.restore_state(
-                project.target_curve_points,
-                preset=project.target_curve_preset,
-                analysis_mode=project.target_curve_mode,
-                bands=project.target_eq_bands,
-            )
-        self.save_button.setEnabled(True)
-        self.variant_list.setCurrentRow(0)
-        self._set_state("info", "Expertenentwurf übernommen")
-
-    def _library(self) -> None:
-        dialog = LibraryDialog(self.library, self)
-        dialog.exec()
-
-    def _demo(self) -> None:
-        choice = self.demo_choice.currentIndex()
-        if choice == 0:
-            return
-        presets = {
-            1: ("Regallautsprecher", "auto", 230, 420, 310, "neutral", None, None),
-            2: ("Subwoofer", "bass_reflex", 400, 600, 600, "deep_bass", None, None),
-            3: ("Subwoofer", "sealed", 400, 600, 600, "neutral", None, None),
-            4: ("Standlautsprecher", "auto", 340, 950, 450, "neutral", None, None),
-            5: ("Subwoofer", "auto", 300, 300, 200, "deep_bass", 20, 120),
-        }
-        speaker, enclosure, w, h, d, profile, f3, spl = presets[choice]
-        self.speaker_type.setCurrentText(speaker)
-        self.enclosure.setCurrentIndex(self.enclosure.findData(enclosure))
-        self.max_width.setValue(w)
-        self.max_height.setValue(h)
-        self.max_depth.setValue(d)
-        self.max_volume.setValue(0)
-        self.profile.setCurrentIndex(self.profile.findData(profile))
-        self.options.setChecked(f3 is not None or spl is not None)
-        self.target_f3.setValue(f3 or 0)
-        self.target_spl.setValue(spl or 0)
-        self.project_name.setText(self.demo_choice.currentText()+" · TESTDATEN")
-
-    def _save(self) -> None:
-        design = self._current()
-        if not design:
-            return
-        filename, _ = QFileDialog.getSaveFileName(self, "Projekt speichern",
-            design.project.name+".json", "Lautsprecherprojekt (*.json)")
-        if filename:
-            try:
-                Path(filename).write_text(design.project.model_dump_json(indent=2), encoding="utf-8")
-            except OSError as exc:
-                LOG.warning("Speichern fehlgeschlagen: %s", exc)
-                QMessageBox.warning(self, "Speichern fehlgeschlagen", str(exc))
-                return
-            self._unsaved = False
-            self.autosave.discard()
-            self.recent.add(filename)
-            self._refresh_recent_menu()
-            self.statusBar().showMessage(f"Projekt gespeichert: {filename}")
-
-    def _load(self) -> None:
-        filename, _ = QFileDialog.getOpenFileName(self, "Projekt laden", "", "Lautsprecherprojekt (*.json)")
-        if filename:
-            self.open_project_file(filename)
-
-    def open_project_file(self, filename: str | Path, *, remember: bool = True) -> bool:
-        """Load and calculate a saved project; returns False and informs the user on failure."""
-        if not self._confirm_discard():
-            return False
-        try:
-            project = SpeakerProject.model_validate_json(Path(filename).read_text(encoding="utf-8"))
-            bundle = calculate_project(project)
-        except (OSError, ValidationError, ValueError) as exc:
-            LOG.warning("Projekt laden fehlgeschlagen (%s): %s", filename, exc)
-            QMessageBox.warning(self, "Projekt laden fehlgeschlagen", str(exc))
-            return False
-        self._expert_updated(bundle)
-        if remember:
-            self._unsaved = False
-            self.recent.add(filename)
-            self._refresh_recent_menu()
-        self.statusBar().showMessage(f"Projekt geladen: {filename}")
-        return True
-
-    def _export(self) -> None:
-        design = self._current()
-        if not design:
-            return
-        folder = QFileDialog.getExistingDirectory(self, "Exportordner wählen")
-        if folder:
-            try:
-                package = export_project_package(design.bundle, folder,
-                    self.cutting_panel.settings(design.project.material))
-                self.statusBar().showMessage(f"Fertigungsunterlagen: {package}")
-                dialog = QMessageBox(self)
-                dialog.setWindowTitle("Fertigungsunterlagen bereit")
-                dialog.setIcon(QMessageBox.Icon.Information)
-                dialog.setText("Export abgeschlossen")
-                dialog.setInformativeText(
-                    f"Die Fertigungsunterlagen wurden erstellt.\n{package}"
-                )
-                open_button = dialog.addButton(
-                    "Ordner öffnen", QMessageBox.ButtonRole.ActionRole
-                )
-                dialog.addButton("Fertig", QMessageBox.ButtonRole.AcceptRole)
-                dialog.exec()
-                if dialog.clickedButton() is open_button:
-                    target = Path(package)
-                    QDesktopServices.openUrl(
-                        QUrl.fromLocalFile(str(target if target.is_dir() else target.parent))
-                    )
-            except (OSError, ValueError) as exc:
-                LOG.warning("Export fehlgeschlagen: %s", exc)
-                QMessageBox.warning(self, "Export fehlgeschlagen", str(exc))
-
-    # --- menu, help, recovery -------------------------------------------------
 
     def _action(self, text: str, slot: object, shortcut: str | None = None) -> QAction:
         action = QAction(text, self)
