@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 from lautsprecher_konstruktion.services.design import DesignBundle
-from lautsprecher_konstruktion.ui.tokens import DISPLAY_FONT, UI_FONT, theme
+from lautsprecher_konstruktion.ui.tokens import UI_FONT, theme
 
 
 class CabinetPreview(QWidget):
@@ -48,22 +48,16 @@ class CabinetPreview(QWidget):
         h_mm = cab.height_m*1000
         d_mm = cab.depth_m*1000
 
-        title_font = QFont(DISPLAY_FONT, 20)
-        painter.setFont(title_font)
-        painter.setPen(QColor(t["textPrimary"]))
-        painter.drawText(QRectF(area.left(), area.top(), area.width(), 34), Qt.AlignmentFlag.AlignLeft, "Entwurf")
-
-        caption_font = QFont(UI_FONT, 9)
-        painter.setFont(caption_font)
+        painter.setFont(QFont(UI_FONT, 10))
         painter.setPen(QColor(t["textSecondary"]))
         painter.drawText(
-            QRectF(area.left(), area.top()+34, area.width(), 24),
+            QRectF(area.left(), area.top(), area.width(), 22),
             Qt.AlignmentFlag.AlignLeft,
-            f"{w_mm:.0f} × {h_mm:.0f} × {d_mm:.0f} mm",
+            f"{w_mm:.0f} × {h_mm:.0f} × {d_mm:.0f} mm · Vorschau zur Orientierung",
         )
 
-        draw_top = area.top()+70
-        draw_h = max(80.0, area.height()-105)
+        draw_top = area.top()+28
+        draw_h = max(80.0, area.height()-56)
         perspective_x = min(60.0, draw_h*0.18)
         perspective_y = perspective_x*0.55
         usable_w = max(80.0, area.width()-perspective_x-20)
@@ -112,7 +106,7 @@ class CabinetPreview(QWidget):
         painter.setFont(QFont(UI_FONT, 8))
         painter.setPen(QColor(t["textSecondary"]))
         painter.drawText(
-            QRectF(area.left(), area.bottom()-24, area.width(), 20),
-            Qt.AlignmentFlag.AlignCenter,
-            "Visualisierung zur Orientierung · Fertigungsmaße stehen unter Zeichnungen",
+            QRectF(area.left(), area.bottom()-20, area.width(), 20),
+            Qt.AlignmentFlag.AlignLeft,
+            "Fertigungsmaße stehen unter Zeichnungen",
         )

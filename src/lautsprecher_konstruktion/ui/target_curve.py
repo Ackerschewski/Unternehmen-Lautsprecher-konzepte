@@ -88,18 +88,13 @@ class TargetCurveEditor(QWidget):
         layout.setSpacing(8)
 
         heading = QHBoxLayout()
-        text = QVBoxLayout()
-        title = QLabel("Zielkurve")
+        title = QLabel("Zielkurve · Sollwert")
         title.setObjectName("section")
-        text.addWidget(title)
-        note = QLabel(
+        title.setToolTip(
             "Sollwert für den Entwurf · 20 Hz–20 kHz. Ziehen, numerisch ändern oder "
             "parametrisches Zielband anwenden. Unbelegte Frequenzbereiche werden nicht erfunden."
         )
-        note.setObjectName("caption")
-        note.setWordWrap(True)
-        text.addWidget(note)
-        heading.addLayout(text, 1)
+        heading.addWidget(title, 1)
 
         heading.addWidget(QLabel("Preset"))
         self.preset = QComboBox()
@@ -126,7 +121,7 @@ class TargetCurveEditor(QWidget):
 
         self.figure = Figure(figsize=(10, 5), layout="constrained")
         self.canvas = FigureCanvasQTAgg(self.figure)
-        self.canvas.setMinimumHeight(310)
+        self.canvas.setMinimumHeight(300)
         layout.addWidget(self.canvas, 1)
 
         controls = QHBoxLayout()
@@ -148,11 +143,9 @@ class TargetCurveEditor(QWidget):
         self.readout = QLabel("20 Hz · 0,0 dB")
         self.readout.setObjectName("caption")
         controls.addWidget(self.readout)
-        controls.addStretch(1)
-        layout.addLayout(controls)
-
-        band = QHBoxLayout()
-        band.addWidget(QLabel("Parametrisches Zielband"))
+        controls.addSpacing(16)
+        controls.addWidget(QLabel("Zielband"))
+        band = controls
         self.band_frequency = QDoubleSpinBox()
         self.band_frequency.setRange(20, 20000)
         self.band_frequency.setValue(100)
@@ -175,7 +168,7 @@ class TargetCurveEditor(QWidget):
         apply_band.clicked.connect(self.apply_parametric_band)
         band.addWidget(apply_band)
         band.addStretch(1)
-        layout.addLayout(band)
+        layout.addLayout(controls)
 
         self.influence = QLabel(MODE_TEXT["overall"])
         self.influence.setObjectName("recommendation")
@@ -512,6 +505,7 @@ class TargetCurveEditor(QWidget):
         t = theme(self.mode)
         with matplotlib.rc_context(chart_rc(self.mode)):
             self.figure.clear()
+            self.figure.set_facecolor(t["surface"])
             ax = self.figure.add_subplot(1, 1, 1)
             ax.set_xscale("log")
             ax.set_xlim(20, 20000)

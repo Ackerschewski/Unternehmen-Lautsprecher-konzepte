@@ -148,6 +148,18 @@ class VariantCards(QWidget):
         )
 
     @staticmethod
+    def _facts(design: SpeakerDesign) -> str:
+        """Max-SPL, hub/port status and build effort: facts that decide between variants."""
+        bundle = design.bundle
+        codes = {issue.code for issue in bundle.issues}
+        spl = f"Max-SPL {design.spl_limit_db:.0f} dB" if design.spl_limit_db is not None else "Max-SPL unbekannt"
+        hub = "Hub ⚠" if codes & {"XMAX_EXCEEDED", "RADIATOR_XMAX"} else "Hub ✓"
+        port = ("Port ⚠" if "PORT_VELOCITY_HIGH" in codes else "Port ✓") if bundle.port is not None else "kein Port"
+        folds = bundle.folded_line.fold_count if bundle.folded_line is not None else 0
+        effort = f"{sum(p.quantity for p in bundle.panels)} Platten" + (f" · {folds} Faltungen" if folds else "")
+        return f"{spl} · {hub} · {port}\nBauaufwand {effort}"
+
+    @staticmethod
     def _tag(index: int, design: SpeakerDesign, baseline: SpeakerDesign) -> str:
         if index == 0:
             return "Empfehlung"
@@ -202,7 +214,8 @@ class VariantCards(QWidget):
                 f"{cab.width_m*1000:.0f} × {cab.height_m*1000:.0f} × {cab.depth_m*1000:.0f} mm"
                 f" · F3 n/a\n"
             )
-            text += f"{price} · Teilbewertung {design.score:.0f}/100"
+            text += f"{price} · Teilbew. {design.score:.0f}/100"
+            text += "\n" + self._facts(design)
             if index:
                 base_cab = baseline.bundle.cabinet
                 deltas: list[str] = []
@@ -227,7 +240,7 @@ class VariantCards(QWidget):
             button = QPushButton(text)
             button.setObjectName("variantCard")
             button.setCheckable(True)
-            button.setMinimumHeight(118)
+            button.setMinimumHeight(150)
             button.clicked.connect(lambda _checked=False, i=index: self.selected.emit(i))
             self._group.addButton(button)
             self._layout.addWidget(button, 1)

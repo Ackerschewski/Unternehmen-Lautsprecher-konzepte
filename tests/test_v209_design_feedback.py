@@ -69,17 +69,26 @@ def test_failure_clears_all_result_views(app: QApplication) -> None:
     assert not window.kpi_row.isVisible()
 
 
-def test_focus_mode_collapses_inputs_and_respects_reduced_motion(app: QApplication) -> None:
+def test_planner_drawer_collapses_with_result_and_reopens(app: QApplication) -> None:
     from lautsprecher_konstruktion.ui.assistant_window import AssistantWindow
 
     window = AssistantWindow()
     window.set_reduced_motion(True)
+    window.resize(1280, 720)
     window.show()
-    window.focus_button.setChecked(True)
+    assert window.wizard_panel.isVisible() and not window.planner_button.isVisible()
+    window.demo_choice.setCurrentIndex(1)
+    window._demo()
+    window.create_design()
+    assert window.worker is not None
+    window.worker.wait(180000)
+    app.processEvents()
+    assert window.designs and not window.wizard_panel.isVisible()  # 1280 px: result gets the room
+    assert window.planner_button.isVisible() and window.planner_button.text() == "Vorgaben ändern"
+    window.planner_button.setChecked(True)
+    assert window.wizard_panel.isVisible() and window.split.sizes()[0] > 250
+    window.planner_button.setChecked(False)
     assert not window.wizard_panel.isVisible()
-    window.focus_button.setChecked(False)
-    assert window.wizard_panel.isVisible()
-    assert window.split.sizes()[0] > 300
     window.set_reduced_motion(False)
 
 

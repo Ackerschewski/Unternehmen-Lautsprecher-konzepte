@@ -92,15 +92,18 @@ def test_default_simulation_shows_two_charts_and_more_on_request(app: QApplicati
     path.write_text(demo_project().model_dump_json(), encoding="utf-8")
     window.open_project_file(path)
     window._redraw_simulation()
-    assert len(window.figure.axes) == 2
-    window.more_charts.setChecked(True)
-    assert len(window.figure.axes) == 4
+    assert len(window.figure.axes) == 1  # one secondary chart on a laptop-sized window
+    window.plot_buttons["excursion"].click()
+    assert window._plot_choice == "excursion" and window.figure.axes[0].get_title().startswith("Hub")
+    window.resize(1800, 1000)
+    window._redraw_simulation()
+    assert len(window.figure.axes) == 2  # two on wide screens
 
 
 def test_tabs_are_grouped_and_there_is_no_theme_switch(app: QApplication) -> None:
     window = AssistantWindow()
     names = [window.tabs.tabText(i) for i in range(window.tabs.count())]
-    assert names == ["Planen", "Varianten", "Klang & Simulation", "Zeichnungen", "Fertigung"]
+    assert names == ["Planen", "Varianten", "Klang", "Zeichnungen", "Fertigung"]
     assert window.export_button.objectName() == "primary" and window.create_button.objectName() == "primary"
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
     assert titles == ["Datei", "Werkzeuge", "Ansicht", "Hilfe"]

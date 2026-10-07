@@ -20,6 +20,7 @@ from PySide6.QtGui import (
     QKeySequence,
 )
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -36,6 +37,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -46,7 +48,6 @@ from PySide6.QtWidgets import (
 )
 
 from lautsprecher_konstruktion import REVISION
-from lautsprecher_konstruktion.acoustics.response import sealed_response_db
 from lautsprecher_konstruktion.appdata import (
     Autosave,
     RecentProjects,
@@ -82,12 +83,16 @@ from lautsprecher_konstruktion.services.automatic import (
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
 from lautsprecher_konstruktion.ui.cabinet_preview import CabinetPreview
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
+from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
+from lautsprecher_konstruktion.ui.layout_rules import planner_layout, secondary_plot_count
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
 from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
+from lautsprecher_konstruktion.ui.result_hero import KpiGrid, VariantStrip, comparison_sentences
+from lautsprecher_konstruktion.ui.sound_plots import PLOT_KINDS, available_plots, draw_plot
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import set_area, status_line
@@ -171,16 +176,18 @@ class AssistantWindow(QMainWindow):
         title_font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 97)  # tight display tracking
         title.setFont(title_font)
         headings.addWidget(title)
-        subtitle = QLabel("Aus Wunschmaßen wird ein nachvollziehbarer Lautsprecherentwurf.")
-        subtitle.setObjectName("subtitle")
-        headings.addWidget(subtitle)
+        self.subtitle = QLabel("Aus Wunschmaßen wird ein nachvollziehbarer Lautsprecherentwurf.")
+        self.subtitle.setObjectName("subtitle")
+        headings.addWidget(self.subtitle)
         head.addLayout(headings, 1)
-        self.focus_button = QPushButton("Zeichnung groß anzeigen")
-        self.focus_button.setCheckable(True)
-        self.focus_button.setVisible(False)
-        self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
-        self.focus_button.toggled.connect(self.set_focus_mode)
-        head.addWidget(self.focus_button)
+        self.planner_button = QPushButton("Vorgaben ändern")
+        self.planner_button.setObjectName("ghost")
+        self.planner_button.setCheckable(True)
+        self.planner_button.setVisible(False)
+        self.planner_button.setToolTip("Vorgaben ein- oder ausklappen (Strg+D). Das Ergebnis behält den Vorrang.")
+        self.planner_button.toggled.connect(self._planner_toggled)
+        head.addWidget(self.planner_button)
+        self._planner_user: bool | None = None
         outer.addLayout(head)
 
         self.split = split = QSplitter(Qt.Orientation.Horizontal)
@@ -192,6 +199,7 @@ class AssistantWindow(QMainWindow):
         split.setStretchFactor(1, 1)
         split.setSizes([380, 1040])
         self._connect_inputs()
+        self._update_dimension_preview()
         outer.addWidget(split, 1)
         self.setCentralWidget(root)
         self._build_menu()
@@ -230,6 +238,7 @@ class AssistantWindow(QMainWindow):
             self.preview.set_mode(mode)
         if hasattr(self, "dimension_preview"):
             self.dimension_preview.set_mode(mode)
+            self.start_preview.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
@@ -284,23 +293,90 @@ class AssistantWindow(QMainWindow):
             self.profile_cards.set_value(str(self.profile.currentData()))
 
     def _update_dimension_preview(self, *_args: object) -> None:
+        dims = (self.max_width.value(), self.max_height.value(), self.max_depth.value())
         if hasattr(self, "dimension_preview"):
-            self.dimension_preview.set_dimensions(
-                self.max_width.value(), self.max_height.value(), self.max_depth.value()
-            )
+            self.dimension_preview.set_dimensions(*dims)
+        if hasattr(self, "start_preview"):
+            self.start_preview.set_dimensions(*dims)
+
+    def _show_start(self, on: bool) -> None:
+        """Start/calculating state shows the guide and a live sketch; a result shows hero and key figures."""
+        self.empty_guide.setVisible(on)
+        self.start_preview.setVisible(on)
+        self.result_body.setVisible(not on)  # the impossible state hides it again after this call
 
     def _result_tab_changed(self, index: int) -> None:
         current_page = self.tabs.widget(index)
         if current_page is not None:
             fade_in(current_page, reduced=self.reduced_motion)
-        on_drawings = self.tabs.tabText(index) == "Zeichnungen"
-        self.focus_button.setVisible(on_drawings)
-        if on_drawings and self.drawing_mode.currentData() == "read":
-            if not self.focus_button.isChecked():
-                self.focus_button.setChecked(True)
+        self._planner_user = None  # a tab change returns to the automatic rule for that workspace
+        self.state.setVisible(self._view_name() != "drawings")  # the workspace gets the height; the status bar keeps the text
+        self._apply_planner_layout()
+        if self.tabs.tabText(index) == "Zeichnungen":
             self._drawing_view_changed(self.drawing_tabs.currentIndex())
-        elif not on_drawings and self.focus_button.isChecked():
-            self.focus_button.setChecked(False)
+
+    def _view_name(self) -> str:
+        return "drawings" if self.tabs.tabText(self.tabs.currentIndex()) == "Zeichnungen" else "other"
+
+    def _apply_planner_layout(self, *, animate: bool = True) -> None:
+        """Planning column: wide while entering data, collapsed once a result needs the room."""
+        if not hasattr(self, "split"):
+            return
+        layout = planner_layout(self.width(), has_result=bool(self.designs), view=self._view_name(),
+                                user_open=self._planner_user)
+        self.planner_button.setVisible(bool(self.designs))
+        self.planner_button.blockSignals(True)
+        self.planner_button.setChecked(layout.open)
+        self.planner_button.blockSignals(False)
+        self.planner_button.setText("Vorgaben einklappen" if layout.open else "Vorgaben ändern")
+        total = sum(self.split.sizes()) or max(self.width(), 1)
+        start = self.split.sizes()[0]
+        self.wizard_panel.setMinimumWidth(0 if not layout.open else min(layout.width, 300))
+
+        def apply(width: int) -> None:
+            self.split.setSizes([width, max(total - width, 1)])
+
+        def done() -> None:
+            self.wizard_panel.setVisible(layout.open)
+            if self._view_name() == "drawings":
+                self._drawing_view_changed(self.drawing_tabs.currentIndex())
+
+        if layout.open:
+            self.wizard_panel.setVisible(True)
+        animate_value(self.split, start, layout.width, apply,
+                      reduced=self.reduced_motion or not animate, finished=done)
+
+    def _planner_toggled(self, open_: bool) -> None:
+        self._planner_user = open_
+        self._apply_planner_layout()
+
+    def resizeEvent(self, event: object) -> None:
+        super().resizeEvent(event)  # type: ignore[arg-type]
+        self._apply_compact(self.height() < 820)
+        self._apply_planner_layout(animate=False)  # layout only: never triggers a calculation
+        if hasattr(self, "_resize_timer") and self.designs:
+            self._resize_timer.start()
+
+    def _apply_compact(self, compact: bool) -> None:
+        """Laptop heights: tighter header and controls so the workspace keeps the room."""
+        if bool(self.property("compact")) == compact or not hasattr(self, "recommendation_summary"):
+            return
+        self.setProperty("compact", compact)
+        self.subtitle.setVisible(not compact)
+        self.recommendation_summary.setVisible(not compact)
+        for widget in (self, *self.findChildren(QWidget)):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
+    def _apply_suggestion(self, field: str, value: float) -> None:
+        """Enter a verified suggestion into its input and calculate again."""
+        if field not in ("max_depth", "max_volume", "target_f3", "budget", "target_spl"):
+            return
+        if field in ("target_f3", "target_spl"):
+            self.options.setChecked(True)  # these inputs live in the optional requirements
+        getattr(self, field).setValue(value)
+        self._planner_user = None
+        self.create_design()
 
     def _toggle_details(self, on: bool) -> None:
         self.details.setVisible(on)
@@ -317,33 +393,36 @@ class AssistantWindow(QMainWindow):
         if on:
             self._apply_column_choice()
 
-    def _drawing_mode_changed(self, _index: int = 0) -> None:
-        read_mode = self.drawing_mode.currentData() == "read"
+    def _read_mode(self) -> bool:
+        return not self.print_sheet.isChecked()
+
+    def _drawing_mode_changed(self, _checked: bool = False) -> None:
+        read_mode = self._read_mode()
         self.drawing_hint.setText(
-            "Lesemodus: Front, Seite und Schnitt werden als bildschirmoptimierte Einzelansichten gezeigt."
+            "Bildschirmansicht: eine technische Ansicht, automatisch eingepasst."
             if read_mode else
-            "Druckblatt: Gesamt-, Maß- und Innenblatt im vollständigen Seitenlayout."
+            "Druckblatt: Gesamt-, Maß- und Innenblatt im vollständigen Seitenlayout (wie im PDF)."
         )
+        self.print_sheet.setToolTip(self.drawing_hint.text())
         labels = (
-            ("Front", "Seite", "Schnitt", "Einzelteile")
+            ("Front", "Seite", "Schnitt", "Innenaufbau", "Einzelteile")
             if read_mode else
-            ("Gesamtblatt", "Maßblatt", "Innenblatt", "Einzelteilblatt")
+            ("Gesamtblatt", "Maßblatt", "Innenblatt", "Innenaufbau", "Einzelteilblatt")
         )
         for index, label in enumerate(labels):
             self.drawing_tabs.setTabText(index, label)
+        self.drawing_tabs.setTabVisible(3, read_mode)  # the print mode already shows the full interior sheet
         current = self._current()
         if current is not None:
             self._load_drawing_views(current.bundle)
-        if (read_mode and self.tabs.tabText(self.tabs.currentIndex()) == "Zeichnungen"
-                and not self.focus_button.isChecked()):
-            self.focus_button.setChecked(True)
         self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
     def _load_drawing_views(self, bundle: DesignBundle) -> None:
-        if self.drawing_mode.currentData() == "read":
+        if self._read_mode():
             self.svg.load(QByteArray(render_view_svg(bundle, "front").encode("utf-8")))
             self.dimension_svg.load(QByteArray(render_view_svg(bundle, "side").encode("utf-8")))
             self.internal_svg.load(QByteArray(render_view_svg(bundle, "section").encode("utf-8")))
+            self.interior_svg.load(QByteArray(render_internal_dimensions_svg(bundle, screen=True).encode("utf-8")))
         else:
             self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
             self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
@@ -352,17 +431,22 @@ class AssistantWindow(QMainWindow):
         self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
     def _drawing_view_changed(self, _index: int = 0) -> None:
+        # Every sheet fits the available area: a single view is never shown at page width and cropped.
         view = self.drawing_tabs.currentWidget()
         if isinstance(view, ZoomableSvgView):
-            if self.drawing_mode.currentData() == "read":
-                view.fit_width()
-            else:
-                view.fit()
+            view.fit()
         elif view is not None and hasattr(self, "panel_svg"):
-            if self.drawing_mode.currentData() == "read":
-                self.panel_svg.fit_width()
-            else:
-                self.panel_svg.fit()
+            self.panel_svg.fit()
+
+    def _toggle_fullscreen(self, on: bool) -> None:
+        if on:
+            self.showFullScreen()
+        else:
+            self.showNormal()
+        for view in (self.svg, self.dimension_svg, self.internal_svg, self.interior_svg, self.panel_svg):
+            view.fullscreen_button.blockSignals(True)
+            view.fullscreen_button.setChecked(on)
+            view.fullscreen_button.blockSignals(False)
 
     def _design_method_changed(self, _index: int = 0) -> None:
         target_mode = self.design_method.currentData() == "target_curve"
@@ -702,12 +786,19 @@ class AssistantWindow(QMainWindow):
             "Nach der Berechnung stehen hier die wichtigsten Gründe für die Empfehlung."
         )
         self.empty_guide.setText(self._empty_guide_default)
-        self.empty_guide.setVisible(True)
+        self._show_start(True)
         if hasattr(self, "preview"):
             self.preview.set_bundle(None)
         self.kpi_row.setVisible(False)
+        self.kpi_row.clear()
+        self.variant_strip.clear()
+        self.variant_strip.setVisible(False)
+        self.variant_why.setVisible(False)
+        self.diagnostic.setVisible(False)
+        self._set_result_tabs_enabled(True)
+        self._planner_user = None
         empty = QByteArray(b"<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>")
-        for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
+        for view in (self.svg, self.dimension_svg, self.internal_svg, self.interior_svg, self.panel_svg):
             view.load(empty)
         self.panel_choice.clear()
         self.bom_view.clear()
@@ -723,6 +814,13 @@ class AssistantWindow(QMainWindow):
             )
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
+        self._apply_planner_layout()
+
+    def _set_result_tabs_enabled(self, enabled: bool) -> None:
+        """Without a design the tabs that only show design data are disabled instead of showing empty areas."""
+        for index in range(self.tabs.count()):
+            if self.tabs.tabText(index) in ("Varianten", "Zeichnungen", "Fertigung"):
+                self.tabs.setTabEnabled(index, enabled)
 
     def _mark_stale(self, *_args: object) -> None:
         if self.designs:
@@ -976,7 +1074,12 @@ class AssistantWindow(QMainWindow):
         self.empty_guide = QLabel(self._empty_guide_default)
         self.empty_guide.setWordWrap(True)
         self.empty_guide.setObjectName("emptyState")
+        self.empty_guide.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         ov.addWidget(self.empty_guide)
+        # Start state: the live sketch of the entered space replaces an empty result frame.
+        self.start_preview = DimensionPreview(self.mode)
+        self.start_preview.setMinimumHeight(260)
+        ov.addWidget(self.start_preview, 1)
 
         # Hidden selector keeps the established selection API and project logic.
         self.variant_list = QListWidget()
@@ -990,6 +1093,7 @@ class AssistantWindow(QMainWindow):
         result_layout.setSpacing(16)
 
         self.preview = CabinetPreview(self.mode)
+        self.preview.setMinimumSize(420, 340)
         result_layout.addWidget(self.preview, 7)
 
         side = QFrame()
@@ -1002,17 +1106,7 @@ class AssistantWindow(QMainWindow):
         self.selected_title.setWordWrap(True)
         side_layout.addWidget(self.selected_title)
 
-        self.kpi_row = QWidget()
-        kpi_layout = QVBoxLayout(self.kpi_row)
-        kpi_layout.setContentsMargins(0, 0, 0, 0)
-        kpi_layout.setSpacing(6)
-        self.kpis: dict[str, QLabel] = {}
-        for key in ("Maße", "Tiefbass F3", "Preisstatus", "Datenqualität", "Prüfstatus"):
-            label = QLabel()
-            label.setObjectName("kpi")
-            label.setWordWrap(True)
-            kpi_layout.addWidget(label)
-            self.kpis[key] = label
+        self.kpi_row = KpiGrid(("Maße", "Tiefbass F3", "Max-SPL", "Preis", "Datenqualität", "Warnungen"))
         self.kpi_row.setVisible(False)
         side_layout.addWidget(self.kpi_row)
 
@@ -1026,6 +1120,7 @@ class AssistantWindow(QMainWindow):
         self.details_toggle = QPushButton("Warum empfohlen? · Technische Details")
         self.details_toggle.setCheckable(True)
         self.details_toggle.toggled.connect(self._toggle_details)
+        side_layout.addStretch(1)
         side_layout.addWidget(self.details_toggle)
         self.details = QTextBrowser()
         self.details.setVisible(False)
@@ -1033,7 +1128,15 @@ class AssistantWindow(QMainWindow):
         side_layout.addWidget(self.details, 1)
         result_layout.addWidget(side, 4)
 
+        self.variant_strip = VariantStrip()
+        self.variant_strip.selected.connect(self._select_variant_from_card)
+        self.variant_strip.setVisible(False)
+        ov.addWidget(self.variant_strip)
         ov.addWidget(result_body, 1)
+        self.diagnostic = DiagnosticCard()
+        self.diagnostic.apply.connect(self._apply_suggestion)
+        self.diagnostic.setVisible(False)
+        ov.addWidget(self.diagnostic, 1)
         self.tabs.addTab(overview, "Planen")
 
         # VARIANTEN – cards first, full engineering table only on request.
@@ -1046,10 +1149,19 @@ class AssistantWindow(QMainWindow):
         )
         compare_intro.setObjectName("caption")
         compare_intro.setWordWrap(True)
+        compare_intro.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         compare_layout.addWidget(compare_intro)
         self.variant_cards = VariantCards()
         self.variant_cards.selected.connect(self._select_variant_from_card)
+        self.variant_cards.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         compare_layout.addWidget(self.variant_cards)
+
+        self.variant_why = QLabel()
+        self.variant_why.setObjectName("recommendation")
+        self.variant_why.setWordWrap(True)
+        self.variant_why.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        self.variant_why.setVisible(False)
+        compare_layout.addWidget(self.variant_why)
 
         self.all_columns = QCheckBox("Alle technischen Daten anzeigen")
         self.all_columns.toggled.connect(self._toggle_technical_table)
@@ -1069,7 +1181,8 @@ class AssistantWindow(QMainWindow):
             lambda row, _column: self.variant_list.setCurrentRow(row)
         )
         self.comparison.setVisible(False)
-        compare_layout.addWidget(self.comparison, 1)
+        compare_layout.addWidget(self.comparison, 10)
+        compare_layout.addStretch(1)  # keeps the cards at the top instead of spreading the free space
         self.tabs.addTab(compare, "Varianten")
 
         # KLANG – target-first workflow plus detailed technical charts.
@@ -1077,47 +1190,73 @@ class AssistantWindow(QMainWindow):
         self.sound_tab = simulation
         sim_layout = QVBoxLayout(simulation)
         sim_layout.setContentsMargins(0, 8, 0, 0)
-        sound_views = QTabWidget()
-        sound_views.setDocumentMode(True)
+        # One scrollable workspace: main graph first, one selectable secondary chart below it.
+        sound_scroll = QScrollArea()
+        sound_scroll.setWidgetResizable(True)
+        sound_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        sound_body = QWidget()
+        sound_layout = QVBoxLayout(sound_body)
+        sound_layout.setContentsMargins(0, 0, 8, 0)
+        sound_layout.setSpacing(10)
         self.target_curve = TargetCurveEditor(self.mode)
-        sound_views.addTab(self.target_curve, "Zielkurve")
-        technical = QWidget()
-        technical_layout = QVBoxLayout(technical)
-        self.more_charts = QCheckBox("Weitere Diagramme (Port, Gruppenlaufzeit)")
-        self.more_charts.toggled.connect(self._redraw_simulation)
-        technical_layout.addWidget(self.more_charts)
-        self.figure = Figure(figsize=(9, 6), layout="constrained")
+        self.target_curve.setMinimumHeight(500)
+        self.target_curve.setMaximumHeight(600)  # main graph stays dominant but leaves the secondary chart reachable
+        sound_layout.addWidget(self.target_curve)
+        secondary = QWidget()
+        secondary_layout = QVBoxLayout(secondary)
+        secondary_layout.setContentsMargins(0, 4, 0, 0)
+        selector = QHBoxLayout()
+        selector.addWidget(QLabel("Weitere Ansicht"))
+        self.plot_buttons: dict[str, QPushButton] = {}
+        self.plot_group = QButtonGroup(self)
+        self.plot_group.setExclusive(True)
+        for key, label in PLOT_KINDS:
+            button = QPushButton(label)
+            button.setObjectName("variantChip")
+            button.setCheckable(True)
+            button.clicked.connect(lambda _c=False, k=key: self._plot_selected(k))
+            self.plot_group.addButton(button)
+            selector.addWidget(button)
+            self.plot_buttons[key] = button
+        selector.addStretch(1)
+        secondary_layout.addLayout(selector)
+        self.figure = Figure(figsize=(9, 3), layout="constrained")
         self.canvas = FigureCanvasQTAgg(self.figure)
-        technical_layout.addWidget(self.canvas, 1)
-        sound_views.addTab(technical, "Technische Simulation")
-        sim_layout.addWidget(sound_views, 1)
-        self.tabs.addTab(simulation, "Klang & Simulation")
+        self.canvas.setMinimumHeight(260)
+        secondary_layout.addWidget(self.canvas, 1)
+        sound_layout.addWidget(secondary)
+        sound_scroll.setWidget(sound_body)
+        self._plot_choice = "excursion"
+        self.plot_buttons["excursion"].setChecked(True)
+        self._resize_timer = QTimer(self)  # chart redraw after a resize is debounced; it never recalculates
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(120)
+        self._resize_timer.timeout.connect(self._redraw_simulation)
+        sim_layout.addWidget(sound_scroll, 1)
+        self.tabs.addTab(simulation, "Klang")
 
         # ZEICHNUNGEN – explicit screen reading vs. print-sheet mode.
         drawing_root = QWidget()
         drawing_layout = QVBoxLayout(drawing_root)
         drawing_layout.setContentsMargins(0, 8, 0, 0)
-        drawing_bar = QHBoxLayout()
-        drawing_bar.addWidget(QLabel("Darstellung"))
-        self.drawing_mode = QComboBox()
-        self.drawing_mode.addItem("Lesemodus · groß und direkt lesbar", "read")
-        self.drawing_mode.addItem("Druckblatt · Seitenlayout prüfen", "print")
-        self.drawing_mode.currentIndexChanged.connect(self._drawing_mode_changed)
-        drawing_bar.addWidget(self.drawing_mode)
-        self.drawing_hint = QLabel("Lesemodus nutzt automatisch die verfügbare Breite.")
-        self.drawing_hint.setObjectName("caption")
-        drawing_bar.addWidget(self.drawing_hint, 1)
-        drawing_layout.addLayout(drawing_bar)
+        self.print_sheet = QCheckBox("Druckblatt anzeigen")
+        self.print_sheet.setToolTip("Vollständige Blattkomposition mit Titelblock und Tabellen für PDF und Export")
+        self.print_sheet.toggled.connect(self._drawing_mode_changed)
+        self.drawing_hint = QLabel()  # kept for the mode description (tooltip of the toggle)
+        self.drawing_hint.setVisible(False)
 
         self.drawing_tabs = QTabWidget()
         self.drawing_tabs.setDocumentMode(True)
         self.drawing_tabs.currentChanged.connect(self._drawing_view_changed)
+        self.drawing_tabs.setCornerWidget(self.print_sheet, Qt.Corner.TopRightCorner)
         self.svg = ZoomableSvgView()
         self.drawing_tabs.addTab(self.svg, "Front")
         self.dimension_svg = ZoomableSvgView()
         self.drawing_tabs.addTab(self.dimension_svg, "Seite")
         self.internal_svg = ZoomableSvgView()
         self.drawing_tabs.addTab(self.internal_svg, "Schnitt")
+        self.interior_svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.interior_svg, "Innenaufbau")
         panel = QWidget()
         panel_layout = QVBoxLayout(panel)
         self.panel_choice = QComboBox()
@@ -1126,6 +1265,8 @@ class AssistantWindow(QMainWindow):
         self.panel_svg = ZoomableSvgView()
         panel_layout.addWidget(self.panel_svg, 1)
         self.drawing_tabs.addTab(panel, "Einzelteile")
+        for view in (self.svg, self.dimension_svg, self.internal_svg, self.interior_svg, self.panel_svg):
+            view.fullscreenToggled.connect(self._toggle_fullscreen)
         drawing_layout.addWidget(self.drawing_tabs, 1)
         self.tabs.addTab(drawing_root, "Zeichnungen")
 
@@ -1162,6 +1303,7 @@ class AssistantWindow(QMainWindow):
 
         self.tabs.currentChanged.connect(self._result_tab_changed)
         layout.addWidget(self.tabs, 1)
+        self._show_start(True)
 
         # File operations remain available through menu/shortcuts and autosave.
         self.save_button = QPushButton("Projekt speichern")
@@ -1217,7 +1359,7 @@ class AssistantWindow(QMainWindow):
         self.progress.setValue(0)
         self.progress.setVisible(True)
         self.progress_label.setText("Varianten werden berechnet… 0 %")
-        self.empty_guide.setVisible(True)
+        self._show_start(True)
         self.empty_guide.setText(
             "<h2>Entwurf wird berechnet</h2>"
             "<p>Chassis und Gehäusefamilien werden geprüft. Danach folgen Geometrie, "
@@ -1266,8 +1408,10 @@ class AssistantWindow(QMainWindow):
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
             self._set_state("success", f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
             self.variant_list.setVisible(False)
-            self.empty_guide.setVisible(False)
+            self._show_start(False)
             self.variant_cards.set_designs(result.designs)
+            self.variant_strip.set_designs(result.designs)
+            self.variant_strip.setVisible(True)
             self.comparison.setRowCount(len(result.designs))
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
@@ -1299,21 +1443,13 @@ class AssistantWindow(QMainWindow):
                 "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. "
                 "Die wirksamsten Änderungen stehen unter „Planen“.",
             )
-            reasons = "".join(f"<li>{escape(item)}</li>" for item in result.rejection_reasons)
-            changes = "".join(f"<li>{escape(item)}</li>" for item in result.suggested_constraint_changes)
             self._clear_results()
             self._stale = True
-            self.empty_guide.setVisible(False)
-            self.selected_title.setText("Nicht machbar")
-            self.recommendation_summary.setText(
-                "Die aktuellen Randbedingungen schließen alle geprüften Varianten aus. "
-                "Öffne die technischen Details für Ursachen und konkrete Änderungsvorschläge."
-            )
-            self.details.setHtml(
-                f"<h2>Nicht machbar</h2><b>Gründe</b><ul>{reasons}</ul>"
-                f"<b>Mögliche Änderungen</b><ul>{changes}</ul>"
-            )
-            self.details_toggle.setChecked(True)
+            self._show_start(False)
+            self.result_body.setVisible(False)
+            self.diagnostic.show_result(result)
+            self.diagnostic.setVisible(True)
+            self._set_result_tabs_enabled(False)
             self.tabs.setCurrentIndex(0)
             self.save_button.setEnabled(False)
             self.export_button.setEnabled(False)
@@ -1321,6 +1457,7 @@ class AssistantWindow(QMainWindow):
             self.progress_label.setText("Berechnung abgebrochen")
             self._set_state("warning", "Berechnung abgebrochen")
         self.statusBar().showMessage(self.state.text())
+        self._apply_planner_layout()
 
     def _failed(self, message: str) -> None:
         self.create_button.setEnabled(True)
@@ -1334,6 +1471,7 @@ class AssistantWindow(QMainWindow):
             "Statusmeldung und im Protokoll unter Hilfe.</p>"
         )
         self._set_state("danger", f"{message} Nächster Schritt: Vorgaben prüfen oder die Protokolldatei (Hilfe) ansehen.")
+        self._apply_planner_layout()
 
     def _current(self) -> SpeakerDesign | None:
         index = self.variant_list.currentRow()
@@ -1345,8 +1483,15 @@ class AssistantWindow(QMainWindow):
         design = self.designs[index]
         bundle = design.bundle
         self.variant_cards.select(index)
+        self.variant_strip.select(index)
+        baseline = self.designs[0]
+        why = (design.reasons if index == 0 else comparison_sentences(design, baseline))
+        self.variant_why.setText(
+            f"<b>{escape(design.label)} – {'Warum empfohlen?' if index == 0 else 'Warum besser oder schlechter als A?'}</b>"
+            "<br>" + "<br>".join(f"• {escape(item)}" for item in why))
+        self.variant_why.setVisible(True)
         fade_in(self.result_body, reduced=self.reduced_motion)
-        self.empty_guide.setVisible(False)
+        self._show_start(False)
         self.selected_title.setText(design.label)
         reasons = tuple(design.reasons[:3])
         self.recommendation_summary.setText(
@@ -1404,17 +1549,21 @@ class AssistantWindow(QMainWindow):
                 "".join(f"<li>{escape(message)}</li>" for message in bundle.warnings)+"</ul>")
         self.details.setHtml("".join(lines))
         geometry_issue_count = sum(1 for issue in bundle.issues if issue.severity == "error")
-        self.kpis["Maße"].setText(f"<b>Maße</b><br>{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × "
-                                  f"{c.depth_m*1000:.0f} mm")
-        self.kpis["Tiefbass F3"].setText(f"<b>Tiefbass F3</b><br>{f'{f3:.0f} Hz' if f3 else 'nicht berechenbar'}")
-        self.kpis["Preisstatus"].setText("<b>Preisstatus</b><br>" + (
-            f"{design.total_price_eur:.0f} € inkl. Reserve" if design.total_price_eur is not None
-            else "unvollständig bepreist"))
-        self.kpis["Datenqualität"].setText("<b>Datenqualität</b><br>" + (
-            "vorläufige Weiche" if design.provisional_crossover else "Herstellerdaten, Quelle je Chassis prüfen"))
-        self.kpis["Prüfstatus"].setText("<b>Prüfstatus</b><br>" + (
-            f"✕ {geometry_issue_count} Geometriefehler" if geometry_issue_count else
-            f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine Hinweise"))
+        spl_text = f"{design.spl_limit_db:.0f} dB" if design.spl_limit_db is not None else "unbekannt"
+        self.kpi_row.set_value("Maße", f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm",
+                               f"Netto {bundle.target_net_volume_m3*1000:.1f} l")
+        self.kpi_row.set_value("Tiefbass F3", f"{f3:.0f} Hz" if f3 else "nicht berechenbar",
+                               "−3 dB, relativ, Kleinsignalmodell")
+        self.kpi_row.set_value("Max-SPL", spl_text,
+                               "Thermische Obergrenze aus Empfindlichkeit und Belastbarkeit; Hub und Port begrenzen früher")
+        self.kpi_row.set_value("Preis", f"{design.total_price_eur:.0f} € inkl. Reserve"
+                               if design.total_price_eur is not None else "unvollständig",
+                               "Händlerpreise sind Momentaufnahmen; unbekannte Preise gelten nie als günstiger")
+        self.kpi_row.set_value("Datenqualität", "vorläufige Weiche" if design.provisional_crossover
+                               else "Herstellerdaten", "Quelle je Chassis prüfen; ohne FRD/ZMA keine Mittel-/Hochtonaussage")
+        self.kpi_row.set_value("Warnungen", f"✕ {geometry_issue_count} Fehler" if geometry_issue_count else
+                               f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine",
+                               "Export nur ohne Geometriefehler")
         self.kpi_row.setVisible(True)
         self.comparison.selectRow(index)
         self.panel_choice.blockSignals(True)
@@ -1457,55 +1606,49 @@ class AssistantWindow(QMainWindow):
         else:
             self._set_state("danger" if geometry_errors else "warning" if bundle.warnings else "success", status)
 
+    def _plot_selected(self, key: str) -> None:
+        self._plot_choice = key
+        self._redraw_simulation()
+
     def _redraw_simulation(self, *_args: object) -> None:
-        """Default: frequency response and excursion (two charts); the others on request."""
+        """Secondary chart of the selected kind; the main graph is the target-curve editor."""
         design = self._current()
-        if design is None:
-            if hasattr(self, "target_curve"):
-                self.target_curve.clear_actual()
-            return
-        bundle = design.bundle
-        r = bundle.vented_response or bundle.sealed_response
+        bundle = design.bundle if design is not None else None
+        availability = available_plots(bundle)
+        for key, button in self.plot_buttons.items():
+            ok, reason = availability[key]
+            button.setEnabled(ok)
+            button.setToolTip("" if ok else reason)
+        if self._plot_choice not in availability or not availability[self._plot_choice][0]:
+            fallback = next((k for k, (ok, _r) in availability.items() if ok), None)
+            if fallback is not None:
+                self._plot_choice = fallback
+                self.plot_buttons[fallback].setChecked(True)
         tokens = theme_tokens(self.mode)
+        kinds = [self._plot_choice]
+        if secondary_plot_count(self.width()) > 1:  # wide screens: a second chart next to the first
+            kinds += [k for k, (ok, _r) in availability.items() if ok and k != self._plot_choice][:1]
         with matplotlib.rc_context(chart_rc(self.mode)):
             self.figure.clear()
             self.figure.set_facecolor(tokens["surface"])
-            wide = self.more_charts.isChecked()
-            panels = [("Tiefton · relativ", "Pegel [dB]", None, None),
-                      ("Membranauslenkung", "mm", r.excursion_mm if r is not None else None,
-                       (bundle.project.driver.xmax_mm, "Xmax"))]
-            if wide:
-                panels += [("Port / Passivmembran", "m/s", r.port_velocity_m_s if r is not None else None,
-                            (17.0, "Richtwert 17 m/s") if bundle.port else None),
-                           ("Gruppenlaufzeit", "ms", r.group_delay_ms if r is not None else None, None)]
-            for index, (title, ylabel, values, limit) in enumerate(panels, start=1):
-                ax = self.figure.add_subplot(2, 2, index) if wide else self.figure.add_subplot(1, 2, index)
-                ax.set_title(title)
-                ax.set_xlabel("Frequenz [Hz]")
-                ax.set_ylabel(ylabel)
-                ax.set_xlim(10, 500)
-                if index == 1:
-                    if r is not None:
-                        ax.semilogx(r.frequencies_hz, r.response_db, linewidth=2)
-                    else:
-                        frequencies = np.geomspace(10, 500, 400)
-                        ax.semilogx(frequencies, sealed_response_db(bundle.acoustic_driver,
-                            bundle.target_net_volume_m3, frequencies), linewidth=2)
-                    ax.axhline(-3.0, color=tokens["textSecondary"], linestyle=":", linewidth=1)
-                    ax.text(0.99, 0.04, "−3 dB", transform=ax.transAxes, ha="right", fontsize=9,
+            for index, kind in enumerate(kinds, start=1):
+                ax = self.figure.add_subplot(1, len(kinds), index)
+                if bundle is None:
+                    ax.text(.5, .5, "Berechne einen Entwurf, um weitere Ansichten zu sehen.", ha="center",
+                            va="center", transform=ax.transAxes, color=tokens["textSecondary"])
+                    ax.set_axis_off()
+                    continue
+                try:
+                    draw_plot(ax, bundle, kind, tokens)
+                except ValueError as exc:
+                    ax.text(.5, .5, str(exc), ha="center", va="center", transform=ax.transAxes,
                             color=tokens["textSecondary"])
-                elif values is None:
-                    note = ("Kein Port in diesem Gehäuse" if (bundle.sealed is not None and title.startswith("Port"))
-                            else "Mess-/Treiberwerte fehlen")
-                    ax.text(.5, .5, note, ha="center", va="center", transform=ax.transAxes,
-                            color=tokens["textSecondary"])
-                elif r is not None:
-                    ax.semilogx(r.frequencies_hz, values, linewidth=1.8)
-                    if limit is not None and limit[0] is not None:
-                        ax.axhline(limit[0], color=tokens["textPrimary"], linestyle="--", linewidth=1.2, label=limit[1])
-                        ax.legend(loc="upper right")
+                    ax.set_axis_off()
         self.canvas.draw_idle()
-        self._update_sound_lab()
+        if design is not None:
+            self._update_sound_lab()
+        elif hasattr(self, "target_curve"):
+            self.target_curve.clear_actual()
 
     def _show_panel_sheet(self, index: int) -> None:
         current = self._current()
@@ -1516,30 +1659,6 @@ class AssistantWindow(QMainWindow):
             self.panel_svg.load(QByteArray(render_panel_sheet_svg(
                 current.bundle, surface).encode("utf-8")))
             self._drawing_view_changed(self.drawing_tabs.currentIndex())
-
-    def set_focus_mode(self, on: bool) -> None:
-        """Collapse the input column so drawings and results get the full width."""
-        sizes = self.split.sizes()
-        total = sum(sizes) or 1
-        target = 0 if on else max(330, round(total * 0.28))
-        self.wizard_panel.setMinimumWidth(0 if on else 320)
-
-        def apply(width: int) -> None:
-            self.split.setSizes([width, total - width])
-
-        def done() -> None:
-            self.wizard_panel.setVisible(not on)
-            self._drawing_view_changed(self.drawing_tabs.currentIndex())
-
-        if not on:
-            self.wizard_panel.setVisible(True)
-        animate_value(self.split, sizes[0], target, apply, reduced=self.reduced_motion, finished=done)
-        self.focus_button.setText("Eingaben zeigen" if on else "Zeichnung groß anzeigen")
-        if on:
-            for index in range(self.tabs.count()):
-                if self.tabs.tabText(index) == "Zeichnungen":
-                    self.tabs.setCurrentIndex(index)
-                    break
 
     def _expert(self) -> None:
         if self.expert_window is None:
@@ -1565,7 +1684,7 @@ class AssistantWindow(QMainWindow):
         self.comparison.setRowCount(0)
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
         self.variant_cards.set_designs(self.designs)
-        self.empty_guide.setVisible(False)
+        self._show_start(False)
         project = bundle.project
         loaded_method = "target_curve" if project.target_curve_points else "classic"
         self.design_method.blockSignals(True)
@@ -1711,7 +1830,7 @@ class AssistantWindow(QMainWindow):
         tools.addAction(self._action("&Expertenmodus", self._expert))
         tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
         view = bar.addMenu("&Ansicht")
-        view.addAction(self._action("&Zeichnungsmodus", lambda: self.focus_button.toggle(), "Ctrl+D"))
+        view.addAction(self._action("&Vorgaben ein-/ausklappen", lambda: self.planner_button.toggle(), "Ctrl+D"))
         look = view.addMenu("&Erscheinungsbild")
         self.theme_group = QActionGroup(self)
         self.theme_actions: dict[str, QAction] = {}

@@ -2,6 +2,7 @@
 # ruff: noqa: ISC004
 from __future__ import annotations
 
+import re
 from html import escape
 
 from lautsprecher_konstruktion.drawings.style import painted, title_block
@@ -21,7 +22,8 @@ def _dimension(x1: float, x2: float, y: float, caption: str) -> str:
 
 
 @painted
-def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
+def render_internal_dimensions_svg(bundle: DesignBundle, *, screen: bool = False) -> str:
+    """Interior sheet. ``screen=True`` crops the view to the section drawing (same geometry, larger on screen)."""
     if bundle.baffle_mode is not None:
         from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
         return render_baffle_svg(bundle)
@@ -281,4 +283,12 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     parts.append(f'<text x="45" y="{sheet_height-32}" class="sub">Bohrbilder nur dort übernehmen, wo Herstellerdaten vorliegen. Material, Dichtungen und reale Maße vor Fertigung prüfen.</text>')
     parts.append(title_block(45, sheet_height-110, 1110, bundle.project.name, bundle.project.revision, 'Innenaufbau', 'Maße in mm · Maßstab schematisch'))
     parts.append('</svg>')
-    return ''.join(parts)
+    svg = ''.join(parts)
+    if screen:
+        # Screen reading view: only the section with its dimension chains; tables and notes stay on the print sheet.
+        x0, y0 = 20.0, 85.0
+        crop_w, crop_h = x+sd+130-x0, y+sh+115-y0
+        svg = re.sub(r'<svg [^>]*>',
+                     f'<svg xmlns="http://www.w3.org/2000/svg" width="{crop_w:.0f}" height="{crop_h:.0f}" '
+                     f'viewBox="{x0:.0f} {y0:.0f} {crop_w:.0f} {crop_h:.0f}">', svg, count=1)
+    return svg

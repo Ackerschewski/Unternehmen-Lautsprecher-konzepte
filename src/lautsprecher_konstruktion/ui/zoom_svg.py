@@ -1,7 +1,7 @@
 """Resizable, zoomable SVG sheet with a real fit-to-window action."""
 from __future__ import annotations
 
-from PySide6.QtCore import QByteArray, QEvent, Qt
+from PySide6.QtCore import QByteArray, QEvent, Qt, Signal
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
 
 
 class ZoomableSvgView(QWidget):
+    fullscreenToggled = Signal(bool)
+
     def __init__(self) -> None:
         super().__init__()
         self.sheet = QSvgWidget()
@@ -28,11 +30,12 @@ class ZoomableSvgView(QWidget):
         self._fit = True
         self._reading = False
         bar = QHBoxLayout()
-        for label, callback in (("−", lambda: self.zoom(1 / 1.25)),
-                                ("+", lambda: self.zoom(1.25)),
-                                ("Einpassen", self.fit),
-                                ("Seitenbreite", self.fit_width),
-                                ("100 %", self.actual_size)):
+        # one clear set of controls: fit, 100 %, minus, plus, editable percentage, full screen
+        fit_button = QPushButton("Einpassen")
+        fit_button.clicked.connect(self.fit)
+        bar.addWidget(fit_button)
+        for label, callback in (("100 %", self.actual_size), ("−", lambda: self.zoom(1 / 1.25)),
+                                ("+", lambda: self.zoom(1.25))):
             button = QPushButton(label)
             button.clicked.connect(callback)
             bar.addWidget(button)
@@ -47,6 +50,11 @@ class ZoomableSvgView(QWidget):
         self.zoom_label.setObjectName("hint")
         bar.addWidget(self.zoom_label)
         bar.addStretch()
+        self.fullscreen_button = QPushButton("Vollbild")
+        self.fullscreen_button.setCheckable(True)
+        self.fullscreen_button.setToolTip("Fenster im Vollbild anzeigen (Esc oder erneut klicken beendet es)")
+        self.fullscreen_button.toggled.connect(self.fullscreenToggled)
+        bar.addWidget(self.fullscreen_button)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(bar)

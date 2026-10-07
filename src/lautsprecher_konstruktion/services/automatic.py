@@ -92,12 +92,86 @@ class SpeakerDesign:
 
 
 @dataclass(frozen=True)
+class Diagnostic:
+    """One violated constraint with measured numbers; ``field`` names the request input that can be changed.
+
+    ``needed`` is the best value any tested candidate reached (the smallest change that gets closest), so a
+    suggestion never promises more than the solver has shown. ``suggested`` is the value to enter for ``field``.
+    """
+
+    key: str
+    title: str
+    available: float
+    needed: float
+    unit: str
+    field: str | None = None
+    suggested: float | None = None
+    action: str = ""
+
+    @property
+    def delta(self) -> float:
+        return self.needed - self.available
+
+
+@dataclass(frozen=True)
 class AutomaticDesignResult:
     status: Literal["ok", "impossible", "cancelled"]
     designs: tuple[SpeakerDesign, ...]
     rejection_reasons: tuple[str, ...]
     suggested_constraint_changes: tuple[str, ...]
     candidates_tested: int
+    diagnostics: tuple[Diagnostic, ...] = ()
+
+
+def _diagnostics(request: AutomaticDesignRequest, reach: dict[str, float],
+                 volume_depth_m: float | None) -> tuple[Diagnostic, ...]:
+    """Measured constraint misses of the tested candidates, most actionable first."""
+    items: list[Diagnostic] = []
+    depth = reach.get("depth")
+    if depth is not None and depth > request.max_depth_m:
+        suggested = ceil(depth * 1000 / 5) * 5  # round up to 5 mm so the suggestion actually fits
+        items.append(Diagnostic(
+            "depth", "Die Tiefe reicht für das benötigte Volumen nicht",
+            request.max_depth_m * 1000, depth * 1000, "mm", "max_depth", float(suggested),
+            f"Tiefe auf {suggested} mm setzen"))
+    elif volume_depth_m is not None and volume_depth_m > request.max_depth_m and depth is None:
+        suggested = ceil(volume_depth_m * 1000 / 5) * 5
+        items.append(Diagnostic(
+            "depth", "Die Tiefe reicht für das kleinste geprüfte Volumen nicht",
+            request.max_depth_m * 1000, volume_depth_m * 1000, "mm", "max_depth", float(suggested),
+            f"Tiefe auf {suggested} mm setzen"))
+    outer = reach.get("outer_l")
+    if outer is not None and request.max_outer_volume_l:
+        suggested = ceil(outer)
+        items.append(Diagnostic(
+            "outer_l", "Das Außenvolumen ist zu klein",
+            request.max_outer_volume_l, outer, "l", "max_volume", float(suggested),
+            f"Außenvolumen auf {suggested} l setzen"))
+    f3 = reach.get("f3")
+    if f3 is not None and request.target_f3_hz is not None and f3 > request.target_f3_hz:
+        suggested = ceil(f3)
+        items.append(Diagnostic(
+            "f3", "Der gewünschte Tiefbass ist nicht erreichbar",
+            request.target_f3_hz, f3, "Hz", "target_f3", float(suggested),
+            f"Ziel-F3 auf {suggested} Hz setzen"))
+    budget = reach.get("budget")
+    if budget is not None and request.budget is not None and budget > request.budget:
+        suggested = ceil(budget)
+        items.append(Diagnostic(
+            "budget", "Das Budget reicht nicht",
+            request.budget, budget, "€", "budget", float(suggested),
+            f"Budget auf {suggested} € setzen"))
+    spl = reach.get("spl")
+    if spl is not None and request.target_spl_db is not None and -spl < request.target_spl_db:
+        reached = -spl  # stored negated so that "min" keeps the highest thermal limit
+        suggested = int(reached)  # round down: a higher value than the limit would still fail
+        items.append(Diagnostic(
+            "spl", "Der gewünschte Pegel liegt über der thermischen Grenze der Chassis",
+            request.target_spl_db, reached, "dB", "target_spl", float(suggested),
+            f"Max-SPL-Ziel auf {suggested} dB setzen"))
+    # largest relative miss first: it is the main reason
+    items.sort(key=lambda item: -abs(item.delta) / max(item.available, 1e-9))
+    return tuple(items)
 
 
 def _clamp(value: float) -> float:
@@ -392,6 +466,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
     rejected: Counter[str] = Counter()
     tested = 0
     volumes_tested: list[float] = []
+    reach: dict[str, float] = {}  # best value reached per violated constraint (smallest miss)
     two_way = request.way_count == 2 or (request.way_count is None and
         "subwoofer" not in request.speaker_type.casefold() and
         "breitband" not in request.speaker_type.casefold())
@@ -545,50 +620,60 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                         if any(issue.code in {"XMAX_EXCEEDED", "RADIATOR_XMAX"} for issue in bundle.issues):
                             rejected["Xmax von Treiber oder Passivmembran überschritten"] += 1
                             continue
+                        # Collect every violated constraint instead of stopping at the first one: a candidate
+                        # that misses exactly one constraint tells how far the user's input is from feasible.
+                        violations: list[tuple[str | None, str, float | None]] = []
                         if bundle.cabinet.depth_m > request.max_depth_m+1e-6:
-                            rejected["Benötigtes Innenvolumen passt nicht in die maximale Tiefe"] += 1
-                            continue
+                            violations.append(("depth", "Benötigtes Innenvolumen passt nicht in die maximale Tiefe",
+                                               bundle.cabinet.depth_m))
                         outer_l = (bundle.cabinet.width_m*bundle.cabinet.height_m*
                                    bundle.cabinet.depth_m*1000)
                         if request.max_outer_volume_l and outer_l > request.max_outer_volume_l:
-                            rejected["Maximales Außenvolumen überschritten"] += 1
-                            continue
+                            violations.append(("outer_l", "Maximales Außenvolumen überschritten", outer_l))
                         f3 = bundle.sealed.f3_hz if bundle.sealed else (
                             bundle.vented_response.f3_hz if bundle.vented_response else None)
                         if request.target_f3_hz is not None and (f3 is None or f3 > request.target_f3_hz):
-                            rejected["Gewünschter Tiefbass ist nicht erreichbar"] += 1
-                            continue
+                            violations.append(("f3", "Gewünschter Tiefbass ist nicht erreichbar", f3))
                         if f3 is not None and f3 > _reasonable_f3_limit(request):
-                            rejected["F3 für den gewählten Lautsprechertyp zu hoch"] += 1
-                            continue
+                            violations.append((None, "F3 für den gewählten Lautsprechertyp zu hoch", None))
                         if f3 is None or (request.sound_profile == "deep_bass" and
                                           f3 > woofer.fs_hz*1.5):
-                            rejected["Klangprofil: Tiefbassziel nicht erreicht oder F3 unbekannt"] += 1
-                            continue
+                            violations.append((None, "Klangprofil: Tiefbassziel nicht erreicht oder F3 unbekannt", None))
                         if bundle.vented_response is not None:
                             sim = bundle.vented_response
                             band = _operating_band(request, sim.frequencies_hz)
                             if sim.excursion_mm is not None and woofer.xmax_mm and float(np.max(sim.excursion_mm[band])) > woofer.xmax_mm:
-                                rejected["Xmax bei der gewählten Verstärkerleistung überschritten"] += 1
-                                continue
+                                violations.append((None, "Xmax bei der gewählten Verstärkerleistung überschritten", None))
                             if sim.port_velocity_m_s is not None and bundle.port and float(np.max(sim.port_velocity_m_s[band])) > 17:
-                                rejected["Portgeschwindigkeit über 17 m/s"] += 1
-                                continue
+                                violations.append((None, "Portgeschwindigkeit über 17 m/s", None))
                         selected_drivers = (woofer, tweeter) if tweeter else (woofer,)
                         price = (sum(driver.price * (2 if driver is woofer and bundle.coupler else 1)
                                      for driver in selected_drivers if driver.price is not None)
                             if all(driver.price is not None and driver.currency == "EUR"
                                    for driver in selected_drivers) else None)
-                        bom = build_bom(bundle)
-                        total_price = budget_cost(bom)
+                        total_price = None
+                        bom: tuple[BomItem, ...] = ()
+                        if not violations or request.budget is not None:
+                            bom = build_bom(bundle)
+                            total_price = budget_cost(bom)
                         if request.budget is not None and (total_price is None or total_price > request.budget):
-                            rejected["Budget für Material, Weiche, Zubehör und Reserve nicht belegbar oder überschritten"] += 1
-                            continue
+                            violations.append(("budget",
+                                "Budget für Material, Weiche, Zubehör und Reserve nicht belegbar oder überschritten",
+                                total_price))
                         spl_limit = (woofer.sensitivity_db_1w_1m + 10*log10(woofer.power_rms_w)
                                      if woofer.sensitivity_db_1w_1m and woofer.power_rms_w else None)
                         if request.target_spl_db is not None and (spl_limit is None or
                                 request.target_spl_db > spl_limit or bundle.sealed is not None):
-                            rejected["Gewünschter SPL über thermischer Obergrenze oder Daten fehlen"] += 1
+                            soft_spl = (spl_limit is not None and bundle.sealed is None
+                                        and request.target_spl_db > spl_limit)
+                            violations.append(("spl" if soft_spl else None,
+                                "Gewünschter SPL über thermischer Obergrenze oder Daten fehlen",
+                                -spl_limit if soft_spl and spl_limit is not None else None))
+                        if violations:
+                            key_, reason_, value_ = violations[0]
+                            rejected[reason_] += 1
+                            if len(violations) == 1 and key_ is not None and value_ is not None:
+                                reach[key_] = min(reach.get(key_, 9e9), value_)
                             continue
                         score, breakdown = _score(bundle, request, profile, total_price)
                         why = [f"{woofer.model}: Geometrie passt und F3 {f3:.1f} Hz.",
@@ -628,7 +713,8 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
             "Maximale Breite, Höhe oder Tiefe erhöhen.",
                        "Klangprofil oder Ziel-F3 lockern.",
                        "Verstärkerleistung bzw. SPL-Ziel reduzieren oder weitere Komponenten importieren."]
-        return AutomaticDesignResult("impossible", (), reasons, tuple(suggestions), tested)
+        return AutomaticDesignResult("impossible", (), reasons, tuple(suggestions), tested,
+                                     _diagnostics(request, reach, needed_depth))
     designs.sort(key=lambda item: (-item.score,
         item.bundle.cabinet.width_m*item.bundle.cabinet.height_m*item.bundle.cabinet.depth_m,
         item.woofer.model, item.project.enclosure.enclosure_type))

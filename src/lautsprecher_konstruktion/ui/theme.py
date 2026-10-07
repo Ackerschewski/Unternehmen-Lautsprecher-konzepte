@@ -108,6 +108,32 @@ def stylesheet(mode: str = "light") -> str:
             background:{t['band']}; color:{t['textPrimary']};
             border-radius:{rc}px; padding:12px 14px;
         }}
+        QPushButton#variantChip {{background:{t['surfaceElevated']}; color:{t['textPrimary']};
+            border:1px solid {t['border']}; border-radius:{rc}px; padding:6px 12px; text-align:left;
+            font-weight:500; font-size:12px; min-height:34px;}}
+        QPushButton#variantChip:hover {{background:{t['band']}; border-color:{t['borderStrong']};}}
+        QPushButton#variantChip:checked {{background:{t['accentSubtle']}; border:2px solid {t['accent']};
+            padding:5px 11px;}}
+        QFrame#kpiCard {{background:{t['surfaceElevated']}; border:1px solid {t['border']}; border-radius:{rc}px;}}
+        QLabel#kpiLabel {{color:{t['textSecondary']}; font-size:11px; font-weight:600; background:transparent;}}
+        QLabel#kpiValue {{color:{t['textPrimary']}; font-size:15px; font-weight:600; background:transparent;}}
+        QFrame#diagnosticCard {{background:{t['surfaceElevated']}; border:1px solid {t['border']};
+            border-left:4px solid {t['danger']}; border-radius:{rk}px;}}
+        QLabel#diagnosticMain {{font-size:16px; font-weight:600; background:transparent;}}
+        QPushButton#suggestion {{background:{t['accentSubtle']}; color:{t['textPrimary']};
+            border:1px solid {t['accent']}; text-align:left; padding:10px 16px;}}
+        QPushButton#suggestion:hover {{background:{t['band']};}}
+        QMainWindow[compact="true"] QLabel#title {{font-size:28px;}}
+        QMainWindow[compact="true"] QLineEdit, QMainWindow[compact="true"] QComboBox,
+        QMainWindow[compact="true"] QDoubleSpinBox, QMainWindow[compact="true"] QSpinBox {{
+            min-height:20px; padding:3px 10px;}}
+        QMainWindow[compact="true"] QPushButton {{min-height:18px; padding:5px 14px;}}
+        QMainWindow[compact="true"] QPushButton#primary {{padding:7px 14px;}}
+        QMainWindow[compact="true"] QPushButton#variantChip {{min-height:30px; padding:3px 10px;}}
+        QMainWindow[compact="true"] QLabel#statusLine {{padding:6px 14px;}}
+        QLabel#pageTitle {{font-family:{display}; font-size:28px; font-weight:400; background:transparent;}}
+        QTabBar::tab:disabled {{color:{t['disabledText']};}}
+        QTabBar::tab:disabled:hover {{color:{t['disabledText']};}}
         QCheckBox {{spacing:8px; min-height:24px;}}
         QCheckBox::indicator {{width:18px; height:18px; border:1px solid {t['borderStrong']};
             border-radius:{RADIUS_BADGE}px; background:{t['surface']};}}
