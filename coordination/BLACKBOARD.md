@@ -1,5 +1,22 @@
 # Blackboard — V-02.00.00
 
+## NEXT AFTER TASK-0027: TASK-0028 · V3.3 Visual Acceptance Sprint
+
+- **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
+- Verbindliches Paket: `coordination/tasks/TASK-0028.md`.
+- Grundlage sind die V3-Evidence-Screens auf `claude/modest-bell-guqoxu`, Commit `5a3c9ada565b593bb02cd24cb03adb06cb0a2345`.
+- Hauptprobleme aus der Sichtprüfung:
+  - permanente linke Eingabespalte nimmt nach Berechnung zu viel Platz;
+  - doppelte/sekundäre Navigation ist zu prominent;
+  - Variantenvergleich fällt in eine klassische Tabelle zurück;
+  - Zeichnungs-Lesemodus bleibt faktisch zu klein;
+  - Sound Lab schneidet bei 1280×720 sekundäre Plots ab;
+  - Dark-Mode-Ergebniskarten sind zu papierweiß;
+  - Impossible-State nutzt die Fläche schlecht und zeigt Maßnahmen nicht zuerst.
+- Ziel: responsive Arbeitsfläche, große Ergebnis-/3D-/Drawing-/Sound-Flächen, kompakter Inspector, echte Cards statt Tabellen-Default, First-Class Impossible State.
+- Nach TASK-0027 selbstständig ausführen; nicht nach jedem Teilpaket auf ein neues "mach weiter" warten.
+- Neue Evidence-Serie unter `coordination/feedback/evidence/2026-10-07-v3-3/` ist Pflicht.
+
 ## NEXT: TASK-0027 · Product Depth Sprint — EQ, UI, Library, 3D, Dämmung
 
 - **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
