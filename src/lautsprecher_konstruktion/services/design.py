@@ -77,6 +77,11 @@ from lautsprecher_konstruktion.enclosure.tapped_horn import (
     tapped_baffle_displacement_m3,
     tapped_horn_notes,
 )
+from lautsprecher_konstruktion.enclosure.treatment import (
+    AcousticTreatment,
+    check_treatments,
+    derived_treatments,
+)
 from lautsprecher_konstruktion.project.models import CrossoverConfig, SpeakerProject
 from lautsprecher_konstruktion.warnings import DesignWarning
 
@@ -114,6 +119,7 @@ class DesignBundle:
     sealed_response: VentedResponse | None = None
     damping: WallLining | None = None
     vent_damper: VentDamper | None = None
+    treatments: tuple[AcousticTreatment, ...] = ()  # planner defaults plus the project's own damping objects
 
     @property
     def acoustic_driver(self) -> Driver:
@@ -479,7 +485,7 @@ def _calculate_tapped_project(project: SpeakerProject) -> DesignBundle:
     warnings.extend(issue.message for issue in issues)
     return DesignBundle(project.model_copy(update={'front_elements':layout}),target,
         cabinet,cut_list(cabinet, cfg.joint_style)+horn.panels,port,None,None,None,displacement,
-        tuple(warnings),issues=tuple(issues),front_elements=layout,
+        tuple(warnings),issues=tuple(issues),front_elements=layout,treatments=project.treatments,
         vented_response=response,tapped_horn=horn)
 
 
@@ -1078,6 +1084,10 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         issues.append(DesignWarning(code="CARDIOID_MODEL_LIMIT",severity="info",
             message="Kardioid: polares Zweiquellenmodell mit festem Dämpfungsverzug; Richtwirkung und Verzögerung am Prototyp messen."))
 
+    treatments = derived_treatments(damping, vent_damper) + project.treatments
+    treatment_issues = check_treatments(cfg.enclosure_type, project.treatments)
+    issues.extend(treatment_issues)
+    warnings.extend(w.message for w in treatment_issues)
     return DesignBundle(
         project=project.model_copy(update={"front_elements":layout}),
         target_net_volume_m3=target_net_volume_m3,
@@ -1107,6 +1117,7 @@ def calculate_project(project: SpeakerProject) -> DesignBundle:
         brace_depths_m=brace_positions,
         damping=damping,
         vent_damper=vent_damper,
+        treatments=treatments,
         folded_line=folded_line,
         front_horn=front_horn,
     )

@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from lautsprecher_konstruktion.enclosure.treatment import TreatmentKind
 from lautsprecher_konstruktion.export.cutting import CuttingPlan, plan_cutting
 from lautsprecher_konstruktion.export.weight import estimate_weight
 from lautsprecher_konstruktion.services.design import DesignBundle
@@ -146,11 +147,13 @@ def build_instructions(bundle: DesignBundle, cutting: CuttingPlan | None = None)
                 "Nach der Messung Dämpfung nachjustieren."))
 
     if not bundle.baffle_mode:
+        listing = "; ".join(
+            f"{t.label_de()}" + (f" ({t.area_m2:.2f} m² × {t.thickness_m*1000:.0f} mm)" if t.area_m2 else f" ({t.thickness_m*1000:.0f} mm)")
+            + (f", freihalten: {t.keepout_note}" if t.keepout_note else "")
+            for t in bundle.treatments if t.kind is not TreatmentKind.VENT_FILL)
         steps.append(Step(
             "Dämmung",
-            "Dämmmaterial gemäß Stückliste lose einlegen"
-            + (f" ({bundle.damping.thickness_m*1000:.0f} mm auf der Rückwand und den Seitenwänden hinter dem Chassis, "
-               f"≈ {bundle.damping.area_m2:.2f} m²)" if bundle.damping else "")
+            "Dämmmaterial gemäß Stückliste lose einlegen" + (f": {listing}" if listing else "")
             + ". Port, Treiberrückseite und Membranweg nicht blockieren; "
             "Dämmung verändert die Abstimmung leicht (nach Aufbau messen).",
             "Nichts berührt die Membran oder den Portauslass."))

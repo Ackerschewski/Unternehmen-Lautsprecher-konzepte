@@ -4,6 +4,11 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 
+from lautsprecher_konstruktion.enclosure.treatment import (
+    KIND_LABELS_DE,
+    POSITION_LABELS_DE,
+    AcousticTreatment,
+)
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
@@ -153,13 +158,12 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
                 )
             )
 
-    if bundle.damping is not None and not any(
-            a.reference.upper().startswith("DÄMM") or "dämm" in a.description.casefold()
-            for a in project.accessories):
-        d = bundle.damping
-        items.append(BomItem("Dämmung", "DÄMM", "Dämmmaterial (Wolle oder Schaumstoff)", 1,
-            f"{d.area_m2:.2f} m² × {d.thickness_m*1000:.0f} mm",
-            "Rückwand und Seitenwände hinter dem Chassis; Magnet, Port und Membranweg frei lassen"))
+    user_has_damping = any(a.reference.upper().startswith("DÄMM") or "dämm" in a.description.casefold()
+                           for a in project.accessories)
+    for t in bundle.treatments:
+        if t.derived and user_has_damping:
+            continue  # an accessory the user typed in replaces the planner's recommendation
+        items.append(treatment_bom_item(t))
     screw_count = sum(e.bolt_count for e in bundle.front_elements)
     if bundle.tapped_horn:
         screw_count += project.driver.bolt_count or 0
@@ -256,3 +260,17 @@ def write_crossover_bom_csv(path: str | Path, bundle: DesignBundle) -> None:
             for c in bundle.crossover.components:
                 writer.writerow([c.reference, c.kind, c.target_display_value, c.display_value, c.branch,
                                  c.connection, 1, "", "Startentwurf - Bauteiltoleranz und Belastbarkeit prüfen"])
+
+
+def treatment_bom_item(t: AcousticTreatment) -> BomItem:
+    """One BOM line per treatment; the price stays empty unless the project supplied a price per m²."""
+    size = f"{t.area_m2:.2f} m² × {t.thickness_m*1000:.0f} mm" if t.area_m2 is not None else f"{t.thickness_m*1000:.0f} mm"
+    details = [t.material, size] + ([f"≈ {t.mass_kg:.2f} kg"] if t.mass_kg is not None else [])
+    notes = "; ".join(x for x in (t.note, f"Freihalten: {t.keepout_note}" if t.keepout_note else "") if x)
+    if t.cost_eur is not None and t.area_m2:
+        unit = t.cost_eur
+        kind = "Planpreis"
+    else:  # the planner's own lining keeps the catalogue plan price; a user-defined one without a price stays unknown
+        unit, kind = None, "retail" if t.derived else "fehlt"
+    return BomItem("Dämmung", t.id, KIND_LABELS_DE[t.kind] + " · " + POSITION_LABELS_DE.get(t.position, t.position),
+                   1, " · ".join(details), notes, unit, "", kind)

@@ -43,7 +43,7 @@ def price_bom(bundle: DesignBundle, items: tuple[BomItem, ...]) -> tuple[BomItem
         if item.unit_price_eur is not None:
             result.append(item)
             continue
-        if item.category == "Treiber":
+        if item.category == "Treiber" or item.price_kind == "fehlt":  # explicitly unknown stays unknown
             result.append(replace(item, price_kind="fehlt"))
             continue
         source = ""

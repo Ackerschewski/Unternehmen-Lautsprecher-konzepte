@@ -8,6 +8,7 @@ from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
+from lautsprecher_konstruktion.enclosure.treatment import AcousticTreatment
 from lautsprecher_konstruktion.targets.eq import EQBand
 
 
@@ -118,6 +119,7 @@ class SpeakerProject(BaseModel):
     crossover: CrossoverConfig = CrossoverConfig()
     front_elements: tuple[FrontElement, ...] = ()
     accessories: tuple[ProjectAccessory, ...] = ()
+    treatments: tuple[AcousticTreatment, ...] = ()  # user-defined damping; planner defaults are derived at build time
     target_curve_schema_version: int = Field(default=1, ge=1)
     target_curve_points: tuple[tuple[float, float], ...] = ()
     target_curve_preset: str = "neutral"
