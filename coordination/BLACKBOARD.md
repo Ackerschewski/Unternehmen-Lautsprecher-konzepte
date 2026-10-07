@@ -6,6 +6,12 @@
 - Wurzelursache der unlesbaren Zeichnungen gefunden und behoben: Qt-SVG ignoriert die CSS-Kurzschreibweise `font:`.
 - Evidence: `coordination/feedback/evidence/2026-10-07-v3-3/`; Report: `docs/application/BUILD_REPORT_TASK_0028.md`. Windows/DPI: NOT_RUN.
 
+## TASK-0030 · Solver Validation & Reference Lab – umgesetzt (USER_TEST_REQUIRED)
+
+- Deskriptoren, Vertrauensstufen, 65 Referenzfälle (83 Erwartungen), Harness mit Referenzstand und Diff, Validierungsmatrix, Dialog „Modellvertrauen“, Ranking-Regel für experimentelle Modelle, Export-Status. Verteilung: 2 Referenz geprüft, 9 Formel geprüft, 18 Experimentell, 0 Prototyp.
+- Report: `docs/application/BUILD_REPORT_TASK_0030.md`; Evidence: `coordination/feedback/evidence/2026-10-07-v3-5-solver-trust/`. Windows/DPI und Prototypmessung: NOT_RUN.
+- Nächste Pakete: TASK-0031 (Bibliothek), TASK-0032 (Geometriekern).
+
 ## TASK-0029 · Product Truth & Depth Sprint – umgesetzt (USER_TEST_REQUIRED)
 
 - Alle 15 Definition-of-Done-Punkte erfüllt und getestet: Preiswahrheit, erklärbare Zielerfüllung, glatte Zielkurve, echte EQ-Bänder, Bibliotheks-Readiness und Coverage-Report, Dämmung als Projektobjekt (Stückliste/Zeichnung/3D), 3D-MVP, Variantenchips, Kombinations-Relaxation, gruppierte Fertigung, deutsche Stückliste, Evidence `coordination/feedback/evidence/2026-10-07-v3-4/`.

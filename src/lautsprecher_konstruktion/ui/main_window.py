@@ -59,6 +59,7 @@ from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
+from lautsprecher_konstruktion.ui.trust_dialog import TrustDialog
 
 
 class MainWindow(QMainWindow):
@@ -149,6 +150,10 @@ class MainWindow(QMainWindow):
         self.prototype_button = QPushButton("Prototyp vergleichen…")
         self.prototype_button.clicked.connect(self._compare_prototype)
         action_row.addWidget(self.prototype_button)
+        self.trust_button = QPushButton("Modellvertrauen…")
+        self.trust_button.setToolTip("Vertrauensstufe, Quellen und Grenzen der Berechnungsmodelle")
+        self.trust_button.clicked.connect(lambda: TrustDialog(self).exec())
+        action_row.addWidget(self.trust_button)
         layout.addLayout(action_row)
         return container
 

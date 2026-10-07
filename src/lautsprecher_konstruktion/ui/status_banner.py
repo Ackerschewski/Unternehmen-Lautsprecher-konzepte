@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from lautsprecher_konstruktion.enclosure.registry import registry
 from lautsprecher_konstruktion.services.automatic import SpeakerDesign
+from lautsprecher_konstruktion.validation.solvers import trust_of
+from lautsprecher_konstruktion.validation.trust import TrustLevel
 
 
 def key_figure(design: SpeakerDesign) -> str:
@@ -26,11 +28,14 @@ def banner(design: SpeakerDesign) -> tuple[str, str]:
              f"{cab.width_m*1000:.0f}×{cab.height_m*1000:.0f}×{cab.depth_m*1000:.0f} mm"]
     figure = key_figure(design)
     parts.append(figure if figure else "Tiefbass nicht berechenbar")
+    experimental = trust_of(design.project.enclosure.enclosure_type) is TrustLevel.EXPERIMENTAL
+    if experimental:
+        parts.append("experimentelles Modell")
     errors = [issue.message for issue in bundle.issues if issue.severity == "error"]
     warnings = len(bundle.warnings)
     if errors:
         parts.append(f"{len(errors)} Fehler · Export gesperrt: {errors[0]}")
     if warnings:
         parts.append(f"{warnings} Hinweis" + ("e" if warnings != 1 else ""))
-    role = "danger" if errors else "warning" if warnings else "success"
+    role = "danger" if errors else "warning" if warnings or experimental else "success"
     return role, " · ".join(parts)

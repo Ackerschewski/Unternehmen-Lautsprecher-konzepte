@@ -24,6 +24,7 @@ from lautsprecher_konstruktion.services.automatic import (
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
+from lautsprecher_konstruktion.ui.trust_dialog import TrustDialog
 
 LOG = get_logger("ui")
 AUTOSAVE_INTERVAL_MS = 60_000
@@ -80,6 +81,9 @@ class FileActionsMixin:
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)
         self._set_state("info", "Expertenentwurf übernommen")
+
+    def _trust(self) -> None:
+        TrustDialog(self).exec()
 
     def _library(self) -> None:
         dialog = LibraryDialog(self.library, self)
@@ -205,6 +209,7 @@ class FileActionsMixin:
         tools.addAction(self._action("&Bibliothek", self._library))
         tools.addAction(self._action("&Expertenmodus", self._expert))
         tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
+        tools.addAction(self._action("&Modellvertrauen…", self._trust))
         view = bar.addMenu("&Ansicht")
         view.addAction(self._action("&Vorgaben ein-/ausklappen", lambda: self.planner_button.toggle(), "Ctrl+D"))
         look = view.addMenu("&Erscheinungsbild")

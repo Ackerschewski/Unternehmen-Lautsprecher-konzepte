@@ -30,6 +30,13 @@ DriverCatalog/FRD/ZMA -> SpeakerProject (Schema 3)
 
 Erweiterungspunkte: weitere Treibertypen sind im Modell vorbereitet; zusätzliche Filterzweige sollten als echte Netlist statt weiterer fester 2-Wege-Topologien implementiert werden. Materialkatalog und Messdatenmodelle sind UI-unabhängig.
 
+## Ergänzungen TASK-0030 (Solver-Vertrauen)
+
+- `validation/trust.py` (Stufen, Fallarten, Deskriptor), `validation/solvers.py` (Deskriptoren aller 29 Solver), `validation/reference.py` (Fälle, Harness, Diff, Referenzstand), `validation/cases.py` und `validation/independent.py` (Fälle und unabhängige Formeln), `validation/matrix.py`, `validation/reference_cli.py`. Alles UI-frei und `mypy --strict`.
+- `acoustics/waveguide.py`: gemeinsame Kettenmatrix und Mundlast der Kanal-Solver.
+- Die Automatik sortiert experimentelle Modelle hinter geprüfte (`services/automatic.py`); Chips, Banner, Detailtext, Export (`modellvertrauen.json`) und der Dialog `ui/trust_dialog.py` zeigen die Stufe.
+- Projektdateien speichern keine Solverdaten; der Modellstatus ist der des Programmstands beim Export.
+
 ## Ergänzungen V3.4 (TASK-0029)
 
 - `services/price_status.py` (Preiswahrheit), `services/variant_metrics.py` (Chips, Balken, Datenabdeckung, Empfehlungshinweis), `services/relaxation.py` (verifizierte Kombinationsvorschläge) sind UI-unabhängig und mypy-strikt.

@@ -10,6 +10,8 @@ from enum import StrEnum
 
 from lautsprecher_konstruktion.services.automatic import SpeakerDesign
 from lautsprecher_konstruktion.services.price_status import PriceInfo, cheaper_than, price_info
+from lautsprecher_konstruktion.validation.solvers import trust_of
+from lautsprecher_konstruktion.validation.trust import TrustLevel
 
 
 class Tone(StrEnum):
@@ -92,6 +94,8 @@ def chips_for(design: SpeakerDesign, baseline: SpeakerDesign | None = None) -> t
         chips.append(Chip("warnings", f"⚠ {m.warning_count} Hinweise", Tone.WARN))
     else:
         chips.append(Chip("warnings", "✓ keine Warnungen", Tone.OK))
+    if trust_of(design.project.enclosure.enclosure_type) is TrustLevel.EXPERIMENTAL:
+        chips.insert(0, Chip("trust", "Experimentelles Modell", Tone.WARN))
     if baseline is not None and baseline is not design and cheaper_than(m.price, price_info(baseline.bom)):
         chips.insert(0, Chip("cheaper", "Günstiger als A", Tone.OK))
     return tuple(chips)

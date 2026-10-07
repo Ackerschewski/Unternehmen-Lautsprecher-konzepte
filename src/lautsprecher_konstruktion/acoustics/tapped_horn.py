@@ -6,6 +6,7 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.acoustics.waveguide import radiation_load
 from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.tapped_horn import TappedHorn
@@ -39,8 +40,7 @@ def simulate_tapped_horn(driver: Driver, horn: TappedHorn,
         admittance[:,right,left]+=-1/(zc*sh)
     mouth_area=horn.mouth_width_m*horn.mouth_height_m
     radius=sqrt(mouth_area/pi)
-    ka=w*radius/c
-    radiation=rho*c/mouth_area*(0.25*ka*ka+0.61j*ka)
+    radiation=radiation_load(f,mouth_area,radius)
     admittance[:,nodes-1,nodes-1]+=1/radiation
     rear,front=horn.tap_nodes
     injection=np.zeros((len(f),nodes),dtype=complex)

@@ -11,6 +11,7 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.acoustics.waveguide import duct_chain, radiation_load, terminated
 from lautsprecher_konstruktion.arrays import ComplexArray, FloatArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.folded_line import (
@@ -29,23 +30,13 @@ def simulate_folded_line(driver: Driver, line: FoldedLine, power_w: float,
     w = 2*pi*f
     s = 1j*w
     rho,c = 1.204,343.0
-    segments = line.segments()
-    a = np.ones_like(f,dtype=complex)
-    b = np.zeros_like(a)
-    cc = np.zeros_like(a)
-    d = np.ones_like(a)
-    for area,length,stuffing in segments:
-        # Per-zone attenuation (approximation); stuffing speed reduction is not modelled.
-        gamma = (STUFFING_LOSS[stuffing]+1j)*w/c
-        zc = rho*c/area
-        ch = np.cosh(gamma*length)
-        sh = np.sinh(gamma*length)
-        aa,bb,ccc,dd = ch,zc*sh,sh/zc,ch
-        a,b,cc,d = a*aa+b*ccc,a*bb+b*dd,cc*aa+d*ccc,cc*bb+d*dd
+    chain = duct_chain(((area, length, STUFFING_LOSS[stuffing]) for area, length, stuffing in line.segments()), w)
     closed = line.family == "transmission_line_closed"
+    zin: ComplexArray
+    flow_factor: ComplexArray
     if closed:
-        zin = a/cc
-        flow_factor = np.zeros_like(a)
+        zin = chain[0]/chain[2]
+        flow_factor = np.zeros_like(zin)
         outlet_area = None
     else:
         if outlet is not None and line.family == "mltl":
@@ -56,10 +47,8 @@ def simulate_folded_line(driver: Driver, line: FoldedLine, power_w: float,
         else:
             outlet_area = line.mouth_width_m*line.mouth_height_m
             radius = mouth_equivalent_radius_m(line)
-            ka = w*radius/c
-            load = np.asarray(rho*c/outlet_area*(0.25*ka**2+0.61j*ka), dtype=complex)
-        zin = (a*load+b)/(cc*load+d)
-        flow_factor = 1/(cc*load+d)
+            load = radiation_load(f, outlet_area, radius)
+        zin, flow_factor = terminated(chain, load)
 
     complete = all(v is not None for v in (driver.sd_m2,driver.re_ohm,driver.qes))
     sd = driver.sd_m2 if driver.sd_m2 is not None else 1.0

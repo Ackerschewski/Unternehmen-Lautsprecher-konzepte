@@ -1,0 +1,2 @@
+Alle Referenzfälle bestanden, keine Abweichung vom Referenzstand.
+83 Erwartungen, 65 Fälle

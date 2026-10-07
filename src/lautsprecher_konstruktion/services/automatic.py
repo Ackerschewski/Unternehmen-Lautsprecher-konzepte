@@ -35,6 +35,8 @@ from lautsprecher_konstruktion.services.design import DesignBundle, calculate_pr
 from lautsprecher_konstruktion.services.price_status import cheaper_than, price_info
 from lautsprecher_konstruktion.targets.eq import EQBand
 from lautsprecher_konstruktion.targets.smooth import target_level_db
+from lautsprecher_konstruktion.validation.solvers import trust_of
+from lautsprecher_konstruktion.validation.trust import TrustLevel
 
 BAFFLE_FAMILIES = frozenset({"infinite_baffle", "open_baffle", "dipole"})
 
@@ -732,7 +734,8 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                        "Verstärkerleistung bzw. SPL-Ziel reduzieren oder weitere Komponenten importieren."]
         return AutomaticDesignResult("impossible", (), reasons, tuple(suggestions), tested,
                                      _diagnostics(request, reach, needed_depth), tuple(soft_misses))
-    designs.sort(key=lambda item: (-item.score,
+    # Models without a verified trust level never take the favourite spot while a verified one exists.
+    designs.sort(key=lambda item: (trust_of(item.project.enclosure.enclosure_type) is TrustLevel.EXPERIMENTAL, -item.score,
         item.bundle.cabinet.width_m*item.bundle.cabinet.height_m*item.bundle.cabinet.depth_m,
         item.woofer.model, item.project.enclosure.enclosure_type))
 
@@ -765,7 +768,8 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
         for item in candidates:
             signature = key(item)
             if signature not in used:
-                selected.append((label, item))
+                experimental = trust_of(item.project.enclosure.enclosure_type) is TrustLevel.EXPERIMENTAL
+                selected.append((label + (" · experimentell" if experimental else ""), item))
                 used.add(signature)
                 return
 

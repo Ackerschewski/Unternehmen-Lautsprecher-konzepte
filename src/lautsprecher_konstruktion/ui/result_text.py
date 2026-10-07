@@ -15,6 +15,7 @@ from lautsprecher_konstruktion.services.variant_metrics import (
     metrics_of,
     model_status,
 )
+from lautsprecher_konstruktion.validation.solvers import descriptor
 
 
 def details_html(design: SpeakerDesign, budget_eur: float) -> str:
@@ -54,6 +55,10 @@ def details_html(design: SpeakerDesign, budget_eur: float) -> str:
         m = metrics_of(design)
         lines.append(f"<p><b>Zusätzlich, nicht im Score:</b> Datenabdeckung {m.coverage_percent} % · "
                      f"Bauaufwand {m.effort_panels} Platten</p>")
+    solver = descriptor(design.project.enclosure.enclosure_type)
+    lines.append(f"<h3>Modellvertrauen · {escape(solver.trust.label_de)}</h3><p>{escape(solver.trust.meaning_de)}</p>"
+                 f"<p>Modell: {escape(solver.family)} (Version {escape(solver.model_version)}). "
+                 f"Wichtigste Grenze: {escape(solver.main_limitation.text if solver.main_limitation else '–')}</p>")
     lines.append("<h3>Warum dieser Entwurf?</h3><ul>"+
         "".join(f"<li>{escape(reason)}</li>" for reason in design.reasons)+"</ul>")
     if design.provisional_crossover:

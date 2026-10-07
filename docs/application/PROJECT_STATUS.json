@@ -1,6 +1,6 @@
 {
   "version": "V-02.07.00",
-  "task_id": "TASK-0029",
+  "task_id": "TASK-0030",
   "status": "USER_TEST_REQUIRED",
   "owner": "Claude Code",
   "acceptance": [
@@ -13,9 +13,13 @@
     "variant chips and mini comparison",
     "verified multi-constraint relaxation proposals",
     "grouped manufacturing view with price badges",
-    "new evidence series 2026-10-07-v3-4"
+    "new evidence series 2026-10-07-v3-4",
+    "solver descriptors and trust levels for all 29 solvers",
+    "65 reference cases with sources and justified tolerances",
+    "reference harness with versioned baseline and diff",
+    "experimental models never ranked as favourite"
   ],
-  "tests": "457 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen; see BUILD_REPORT_TASK_0029.md",
+  "tests": "478 pytest cases; see BUILD_REPORT_TASK_0030.md; Ruff, mypy --strict (non-UI), Linux offscreen",
   "remaining": [
     "Windows/DPI 100/125/150 % (NOT_RUN)",
     "DSP response curve and sum in sound lab (TASK-0034)",
@@ -23,6 +27,8 @@
     "STEP export",
     "3D for baffles, horns, folded lines; collision check (TASK-0032)",
     "full German coverage of cutting plan part names and older solver notes",
+    "prototype measurements for PROTOTYPE_VALIDATED (TASK-0035)",
+    "reference cases for tapped horn, cardioid, MLTL and 6th-order bandpass",
     "owner approval"
   ],
   "ui_generation": "V3.4"

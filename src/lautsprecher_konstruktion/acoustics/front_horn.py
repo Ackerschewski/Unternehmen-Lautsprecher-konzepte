@@ -8,6 +8,8 @@ from math import pi, sqrt
 import numpy as np
 
 from lautsprecher_konstruktion.acoustics.vented import VentedResponse
+from lautsprecher_konstruktion.acoustics.waveguide import duct_chain, radiation_load, terminated
+from lautsprecher_konstruktion.arrays import ComplexArray
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.front_horn import FrontHorn
 
@@ -20,22 +22,10 @@ def simulate_front_horn(driver: Driver, rear_volume_m3: float,
     w=2*pi*f
     s=1j*w
     rho,c=1.204,343.0
-    a=np.ones_like(f,dtype=complex)
-    b=np.zeros_like(a)
-    cc=np.zeros_like(a)
-    d=np.ones_like(a)
-    gamma=(0.012+1j)*w/c
-    for area,length in horn.acoustic_segments():
-        zc=rho*c/area
-        ch=np.cosh(gamma*length)
-        sh=np.sinh(gamma*length)
-        aa,bb,ccc,dd=ch,zc*sh,sh/zc,ch
-        a,b,cc,d=a*aa+b*ccc,a*bb+b*dd,cc*aa+d*ccc,cc*bb+d*dd
+    chain=duct_chain(((area,length,0.012) for area,length in horn.acoustic_segments()),w)
     radius=sqrt(horn.mouth_area_m2/pi)
-    ka=w*radius/c
-    radiation=rho*c/horn.mouth_area_m2*(0.25*ka*ka+0.61j*ka)
-    zin=(a*radiation+b)/(cc*radiation+d)
-    flow_factor=1/(cc*radiation+d)
+    radiation=radiation_load(f,horn.mouth_area_m2,radius)
+    zin,flow_factor=terminated(chain,radiation)
     complete=all(v is not None for v in (driver.sd_m2,driver.re_ohm,driver.qes))
     sd=driver.sd_m2 if driver.sd_m2 is not None else 1.0
     cs=driver.vas_m3/(rho*c*c*sd*sd)
@@ -50,6 +40,7 @@ def simulate_front_horn(driver: Driver, rear_volume_m3: float,
         qms=driver.qes*driver.qts/(driver.qes-driver.qts)
     mechanical=ws*ms/qms+s*ms+1/(s*cs)+sd*sd*(zin+1/(s*cb))
     impedance=excursion=velocity=mach=spl=None
+    cone_speed: ComplexArray
     if complete:
         assert driver.re_ohm is not None and driver.qes is not None
         bl=sqrt(ws*ms*driver.re_ohm/driver.qes)
@@ -58,7 +49,7 @@ def simulate_front_horn(driver: Driver, rear_volume_m3: float,
         cone_speed=bl*(sqrt(power_w*driver.re_ohm)/impedance)/mechanical
         excursion=abs(cone_speed/s)*1000
     else:
-        cone_speed=1/mechanical
+        cone_speed=np.asarray(1/mechanical,dtype=complex)
     mouth_flow=sd*cone_speed*flow_factor
     pressure=s*rho*mouth_flow/(2*pi)
     magnitude=np.maximum(abs(pressure),np.finfo(float).tiny)

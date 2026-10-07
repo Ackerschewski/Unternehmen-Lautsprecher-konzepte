@@ -1,5 +1,9 @@
 # Nutzerhandbuch — V3.4 (TASK-0029)
 
+## Modellvertrauen (TASK-0030)
+
+Unter „Werkzeuge → Modellvertrauen…“ steht für jeden Gehäusetyp, wie weit der Berechnung zu trauen ist: *Experimentell*, *Formel geprüft*, *Referenz geprüft* oder *Am Prototyp validiert* (noch keiner). Gehäusetypen mit experimentellem Modell werden nie als Empfehlung „A“ vorgeschlagen, solange ein geprüftes Modell passt, und sind mit „experimentell“ gekennzeichnet. Ergebnisse sind dann Richtwerte; am Prototyp messen. Der Export enthält `modellvertrauen.json`.
+
 ## Neu in V3.4
 
 - **Zielkurve mit EQ-Bändern:** Im Reiter „Klang“ lässt sich die Zielkurve glatt formen. „Band hinzufügen“ legt ein parametrisches Band (Glocke, Low-/High-Shelf, Low-/High-Pass, Notch) an; Frequenz und Gain per Ziehen, alle Werte im Band-Inspector, Rückgängig/Wiederholen. Die Kurve ist die **Zielvorgabe**, keine simulierte DSP-Kette.

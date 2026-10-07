@@ -112,3 +112,13 @@ UI-Tests laufen mit `QT_QPA_PLATFORM=offscreen` (Linux: `libegl1`, `libgl1`).
 - **Tests:** `tests/conftest.py` lässt jeden Test fehlschlagen, in dem ein Qt-Slot eine Ausnahme wirft (PySide6 würde sie sonst nur ausgeben). Tab-Namen mit `&&` für ein sichtbares `&` (`3D && Konstruktion`).
 - **Qt-SVG:** nur Längsform der Schriftangaben (`font-size` usw.), nur der erste `<style>`-Block wird gelesen.
 
+## Solver-Validierung (TASK-0030)
+
+- **Alles prüfen:** `python -m lautsprecher_konstruktion.validation.reference_cli` (≈ 6 s, Exit 1 bei Fehlern oder Abweichung vom Referenzstand, `--json` für CI). Matrix neu erzeugen: `python -m lautsprecher_konstruktion.validation.matrix`.
+- **Neuer Solver oder neue Familie:** Deskriptor in `validation/solvers.py` (Quellen, Grenzen, Stufe) und mindestens ein Referenzfall in `validation/cases.py`. Die Erwartung wird in `validation/independent.py` ohne Aufruf des Solvers berechnet. Ein Test erzwingt Deskriptor und Fall für jeden registrierten Typ.
+- **Stufe vergeben:** nie höher als belegt (Test). Beförderungsregeln stehen in `docs/application/VALIDATION_MATRIX.md`. Literaturwerte brauchen Quelle, Zahl und begründete Toleranz; Werte nie aus der Solverausgabe übernehmen.
+- **Referenzstand ändern:** nur mit `--accept-baseline --reason "…" --reviewer "Name"`; nie, um rote Tests grün zu machen. Ändern sich Fall-Definitionen, schlägt der Hash-Test an und ein Review ist nötig.
+- **Quellen:** Small (1972, 1973, 1974), Thiele (1971), Olson (1951), Beranek (1954), Levine und Schwinger (1948), Geddes (1989); je Typ in der Matrix.
+- **Konventionen** (F3, Vb, Fb, SPL) stehen zentral in `validation/solvers.CONVENTIONS`.
+- **Kanalkern:** `acoustics/waveguide.py` wird von Folded-Line-, Front-Horn- und Tapped-Horn-Solver genutzt. Änderungen dort immer mit den Kanalkern-Fällen (`duct.*`) und dem Vorher/Nachher-Vergleich aller 29 Familien prüfen.
+

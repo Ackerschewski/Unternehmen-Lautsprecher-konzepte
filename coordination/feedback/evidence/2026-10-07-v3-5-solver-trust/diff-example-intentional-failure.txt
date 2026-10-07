@@ -1,0 +1,3 @@
+ABSICHTLICH FALSCHER ERWARTUNGSWERT (F3/Fc bei Qtc 0,5: 1,6 statt 1,554) zur Demonstration des Diffs
+
+FAIL  sealed.f3_over_fc_table · f3_over_fc_q0.5: erwartet 1.6 , erhalten 1.55377 (Toleranz ±0.002) [FAIL]

@@ -45,6 +45,8 @@ from lautsprecher_konstruktion.export.cutting import (
 from lautsprecher_konstruktion.export.pdf_report import write_pdf_report
 from lautsprecher_konstruktion.export.weight import estimate_weight
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.validation.solvers import descriptor
+from lautsprecher_konstruktion.validation.trust import trust_record
 
 
 def _csv(path: Path, header: tuple[str, ...], rows: list[tuple[object, ...]]) -> None:
@@ -214,5 +216,9 @@ def export_project_package(bundle: DesignBundle, directory: str | Path,
         summary.insert(4,f'Passivmembran-Zusatzmasse: {bundle.radiator.added_mass_kg*1000:.1f} g')
     if bundle.front_chamber_volume_m3 is not None and bundle.rear_chamber_volume_m3 is not None:
         summary.insert(4,f'Front-/Rückkammer: {bundle.front_chamber_volume_m3*1000:.1f}/{bundle.rear_chamber_volume_m3*1000:.1f} l')
+    solver = descriptor(bundle.project.enclosure.enclosure_type)
+    summary.extend(('', f'Modellvertrauen: {solver.trust.label_de} ({solver.family}, Modellversion {solver.model_version})',
+                    solver.trust.meaning_de, *(f'- Grenze ({item.scope}): {item.text}' for item in solver.limitations)))
+    (package/'modellvertrauen.json').write_text(json.dumps(trust_record(solver), indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
     (package/'projektzusammenfassung.txt').write_text('\n'.join(summary),encoding='utf-8')
     return package

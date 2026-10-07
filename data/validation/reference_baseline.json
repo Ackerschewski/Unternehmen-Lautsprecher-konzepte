@@ -1,0 +1,226 @@
+{
+ "definition_hash": "5ee1a84ac62645f7",
+ "harness_version": 1,
+ "history": [
+  {
+   "definition_hash": "5ee1a84ac62645f7",
+   "reason": "Erster geprüfter Referenzstand von TASK-0030; alle Fälle bestehen gegen Literatur und geschlossene Formeln",
+   "reviewer": "Claude Code (TASK-0030)"
+  }
+ ],
+ "values": {
+  "aperiodic.closed_limit": {
+   "qeff_over_qtc_closed": 0.9999999936594433
+  },
+  "aperiodic.leakage_q": {
+   "corner_ratio": 1.0,
+   "qeff_ratio": 1.0,
+   "ql_ratio": 1.0
+  },
+  "aperiodic.response_closed_form": {
+   "max_diff_db": 0.000249263288814916
+  },
+  "baffle.dipole_sine": {
+   "max_diff_db": 7.105427357601002e-15
+  },
+  "baffle.infinite_closed_limit": {
+   "max_diff_db": 1.0658141036401503e-14
+  },
+  "baffle.open_baffle_sine": {
+   "max_diff_db": 7.105427357601002e-15
+  },
+  "bandpass_4.closed_form": {
+   "max_diff_db": 1.4210854715202004e-14
+  },
+  "bandpass_6_parallel.limit_blocked_vent": {
+   "max_diff_db": 1.8757105578970368e-05
+  },
+  "bandpass_6_series.limit_blocked_duct": {
+   "max_diff_db": 3.08470839947006e-05
+  },
+  "bass_reflex.b4_alignment": {
+   "f3_over_fs": 1.0006343590942162,
+   "peak_db": 1.156887964403764e-06
+  },
+  "bass_reflex.helmholtz_port": {
+   "tuning_hz": 35.0
+  },
+  "bass_reflex.qb3_fit": {
+   "f3_hz": 32.49510566225132
+  },
+  "bass_reflex.small_polynomial": {
+   "max_diff_db": 2.1316282072803006e-14
+  },
+  "consistency.aperiodic": {
+   "response_finite": 1.0
+  },
+  "consistency.bandpass_4": {
+   "response_finite": 1.0
+  },
+  "consistency.bandpass_6_parallel": {
+   "response_finite": 1.0
+  },
+  "consistency.bandpass_6_series": {
+   "response_finite": 1.0
+  },
+  "consistency.bass_reflex": {
+   "response_finite": 1.0
+  },
+  "consistency.cardioid": {
+   "response_finite": 1.0
+  },
+  "consistency.compound_push_pull": {
+   "response_finite": 1.0
+  },
+  "consistency.dipole": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_conical": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_exponential": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_folded": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_front": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_hyperbolic": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_rear": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_scoop": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_tapped": {
+   "response_finite": 1.0
+  },
+  "consistency.horn_tractrix": {
+   "response_finite": 1.0
+  },
+  "consistency.infinite_baffle": {
+   "response_finite": 1.0
+  },
+  "consistency.isobaric_sealed": {
+   "response_finite": 1.0
+  },
+  "consistency.isobaric_vented": {
+   "response_finite": 1.0
+  },
+  "consistency.labyrinth": {
+   "response_finite": 1.0
+  },
+  "consistency.mltl": {
+   "response_finite": 1.0
+  },
+  "consistency.open_baffle": {
+   "response_finite": 1.0
+  },
+  "consistency.passive_radiator": {
+   "response_finite": 1.0
+  },
+  "consistency.sealed": {
+   "response_finite": 1.0
+  },
+  "consistency.tqwt": {
+   "response_finite": 1.0
+  },
+  "consistency.transmission_line_closed": {
+   "response_finite": 1.0
+  },
+  "consistency.transmission_line_open": {
+   "response_finite": 1.0
+  },
+  "consistency.transmission_line_tapered": {
+   "response_finite": 1.0
+  },
+  "duct.exponential_horn": {
+   "max_rel_error": 5.141342813663585e-05
+  },
+  "duct.uniform_closed": {
+   "max_rel_error": 1.602196056464888e-14
+  },
+  "duct.uniform_open": {
+   "max_rel_error": 5.069691706391263e-15
+  },
+  "isobaric.equivalent_parallel.compound_push_pull": {
+   "fs_ratio": 1.0,
+   "qes_ratio_expected": 1.0,
+   "qts_ratio": 1.0,
+   "re_ratio": 1.0,
+   "vas_ratio": 0.5
+  },
+  "isobaric.equivalent_series.isobaric_sealed": {
+   "fs_ratio": 1.0,
+   "qes_ratio_expected": 1.0,
+   "qts_ratio": 1.0,
+   "re_ratio": 1.0,
+   "vas_ratio": 0.5
+  },
+  "isobaric.equivalent_series.isobaric_vented": {
+   "fs_ratio": 1.0,
+   "qes_ratio_expected": 1.0,
+   "qts_ratio": 1.0,
+   "re_ratio": 1.0,
+   "vas_ratio": 0.5
+  },
+  "line.recompute.horn_conical": {
+   "max_rel_error": 5.779494393048467e-15
+  },
+  "line.recompute.horn_exponential": {
+   "max_rel_error": 2.6884602066982557e-15
+  },
+  "line.recompute.horn_folded": {
+   "max_rel_error": 3.837992590871954e-15
+  },
+  "line.recompute.horn_front": {
+   "max_rel_error": 1.1352817367275883e-15
+  },
+  "line.recompute.horn_hyperbolic": {
+   "max_rel_error": 3.5184053532596154e-15
+  },
+  "line.recompute.horn_rear": {
+   "max_rel_error": 2.522915468660955e-15
+  },
+  "line.recompute.horn_scoop": {
+   "max_rel_error": 3.2961324446605304e-15
+  },
+  "line.recompute.horn_tractrix": {
+   "max_rel_error": 7.100810615851031e-15
+  },
+  "line.recompute.labyrinth": {
+   "max_rel_error": 1.094978907339797e-15
+  },
+  "line.recompute.tqwt": {
+   "max_rel_error": 2.619065453249045e-15
+  },
+  "line.recompute.transmission_line_closed": {
+   "max_rel_error": 2.6476679556109916e-16
+  },
+  "line.recompute.transmission_line_open": {
+   "max_rel_error": 1.0957087236333691e-15
+  },
+  "line.recompute.transmission_line_tapered": {
+   "max_rel_error": 1.6542129991354382e-15
+  },
+  "passive_radiator.response_closed_form": {
+   "max_diff_db": 6.750155989720952e-14
+  },
+  "passive_radiator.tuning_roundtrip": {
+   "tuning_hz": 35.0
+  },
+  "sealed.f3_over_fc_table": {
+   "f3_over_fc_q0.5": 1.5537739740300374,
+   "f3_over_fc_q0.7071": 1.000009590229925,
+   "f3_over_fc_q1.0": 0.7861513777574233
+  },
+  "sealed.small_relations": {
+   "fc_from_box_volume": 1.0,
+   "qtc_from_box_volume": 0.7071
+  }
+ }
+}
