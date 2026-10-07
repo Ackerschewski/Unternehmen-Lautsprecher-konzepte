@@ -10,12 +10,9 @@ from matplotlib.figure import Figure
 from pydantic import ValidationError
 from PySide6.QtCore import QByteArray, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import (
-    QAction,
-    QActionGroup,
     QDesktopServices,
     QFont,
     QGuiApplication,
-    QKeySequence,
 )
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -74,12 +71,17 @@ from lautsprecher_konstruktion.services.automatic import (
     automatic_design,
 )
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.services.price_status import price_info
 from lautsprecher_konstruktion.ui.assistant_files import FileActionsMixin
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard, RelaxationWorker
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.layout_rules import planner_layout, secondary_plot_count
 from lautsprecher_konstruktion.ui.main_window import MainWindow
+from lautsprecher_konstruktion.ui.manufacturing_view import (
+    ExportFormatList,
+    ManufacturingSummaryView,
+)
 from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
 from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
@@ -310,6 +312,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.empty_guide.setVisible(on)
         self.start_preview.setVisible(on)
         self.result_body.setVisible(not on)  # the impossible state hides it again after this call
+        if hasattr(self, "subtitle"):
+            self.subtitle.setVisible(on and not bool(self.property("compact")))  # a result needs the height more than the tagline
 
     def _result_tab_changed(self, index: int) -> None:
         current_page = self.tabs.widget(index)
@@ -368,7 +372,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         if bool(self.property("compact")) == compact or not hasattr(self, "recommendation_summary"):
             return
         self.setProperty("compact", compact)
-        self.subtitle.setVisible(not compact)
+        self.subtitle.setVisible(not compact and self.empty_guide.isVisibleTo(self))
         self.recommendation_summary.setVisible(not compact)
         for widget in (self, *self.findChildren(QWidget)):
             widget.style().unpolish(widget)
@@ -398,6 +402,15 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.relax_worker.found.connect(self.diagnostic.show_relaxations)
         self.relax_worker.failed.connect(lambda message: self.diagnostic.search_note.setText(f"Suche fehlgeschlagen: {message}"))
         self.relax_worker.start()
+
+    def _kpi_activated(self, key: str) -> None:
+        """A key figure leads to where it is explained: warnings and data quality to the details, price to production."""
+        if key == "Preis":
+            self.tabs.setCurrentWidget(self.tabs.widget(4))
+            return
+        if key in ("Warnungen", "Datenqualität", "Maße", "Tiefbass F3", "Max-SPL"):
+            self.details_toggle.setChecked(True)
+            self.details.find("Hinweise" if key == "Warnungen" else "Teilbewertung")
 
     def _toggle_details(self, on: bool) -> None:
         self.details.setVisible(on)
@@ -539,6 +552,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         if hasattr(self, "preview"):
             self.preview.set_bundle(None)
         self.kpi_row.setVisible(False)
+        self.kpi_row.activated.connect(self._kpi_activated)
         self.kpi_row.clear()
         self.variant_strip.clear()
         self.variant_strip.setVisible(False)
@@ -553,6 +567,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.panel_choice.clear()
         self.bom_view.clear()
         self.cutting_panel.set_bundle(None)
+        self.mfg_summary.update_from(None, None)
         self.figure.clear()
         self.canvas.draw_idle()
         if hasattr(self, "target_curve"):
@@ -1046,6 +1061,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         manufacturing = QWidget()
         manufacturing_layout = QVBoxLayout(manufacturing)
         manufacturing_layout.setContentsMargins(0, 8, 0, 0)
+        self.mfg_summary = ManufacturingSummaryView()
+        manufacturing_layout.addWidget(self.mfg_summary)
         self.manufacturing_tabs = QTabWidget()
         self.manufacturing_tabs.setDocumentMode(True)
         self.bom_view = QTextBrowser()
@@ -1064,6 +1081,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         export_info.setWordWrap(True)
         export_info.setObjectName("caption")
         export_layout.addWidget(export_info)
+        self.export_formats = ExportFormatList()
+        export_layout.addWidget(self.export_formats)
         export_layout.addStretch(1)
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
         self.export_button.setObjectName("primary")
@@ -1292,8 +1311,9 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
                                "−3 dB, relativ, Kleinsignalmodell")
         self.kpi_row.set_value("Max-SPL", spl_text,
                                "Thermische Obergrenze aus Empfindlichkeit und Belastbarkeit; Hub und Port begrenzen früher")
+        priced = price_info(design.bom)
         self.kpi_row.set_value("Preis", f"{design.total_price_eur:.0f} € inkl. Reserve"
-                               if design.total_price_eur is not None else "unvollständig",
+                               if design.total_price_eur is not None else priced.label_de(),
                                "Händlerpreise sind Momentaufnahmen; unbekannte Preise gelten nie als günstiger")
         self.kpi_row.set_value("Datenqualität", *data_quality(design))
         self.kpi_row.set_value("Warnungen", f"✕ {geometry_issue_count} Fehler" if geometry_issue_count else
@@ -1309,7 +1329,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.panel_choice.blockSignals(False)
         self.panel_choice.setCurrentIndex(0)
         self._load_drawing_views(bundle)
-        self.bom_view.setHtml(bom_html(design))
+        self.bom_view.setHtml(bom_html(design, theme_tokens(self.mode)))
+        self.mfg_summary.update_from(design, self.cutting_panel.plan)
         self._redraw_simulation()
         role, status = banner(design)
         geometry_errors = [issue.message for issue in bundle.issues if issue.severity == "error"]
@@ -1374,62 +1395,6 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
             self.panel_svg.load(QByteArray(render_panel_sheet_svg(
                 current.bundle, surface).encode("utf-8")))
             self._drawing_view_changed(self.drawing_tabs.currentIndex())
-
-    def _action(self, text: str, slot: object, shortcut: str | None = None) -> QAction:
-        action = QAction(text, self)
-        if shortcut:
-            action.setShortcut(QKeySequence(shortcut))
-        action.triggered.connect(slot)
-        return action
-
-    def _build_menu(self) -> None:
-        bar = self.menuBar()
-        file_menu = bar.addMenu("&Datei")
-        file_menu.addAction(self._action("Projekt &laden…", self._load, "Ctrl+O"))
-        self.recent_menu = file_menu.addMenu("&Zuletzt geöffnet")
-        file_menu.addAction(self._action("Projekt &speichern…", self._save, "Ctrl+S"))
-        file_menu.addAction(self._action("Fertigungsunterlagen &exportieren…", self._export, "Ctrl+E"))
-        file_menu.addSeparator()
-        file_menu.addAction(self._action("&Beenden", self.close, "Ctrl+Q"))
-        tools = bar.addMenu("&Werkzeuge")
-        tools.addAction(self._action("&Bibliothek", self._library))
-        tools.addAction(self._action("&Expertenmodus", self._expert))
-        tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
-        view = bar.addMenu("&Ansicht")
-        view.addAction(self._action("&Vorgaben ein-/ausklappen", lambda: self.planner_button.toggle(), "Ctrl+D"))
-        look = view.addMenu("&Erscheinungsbild")
-        self.theme_group = QActionGroup(self)
-        self.theme_actions: dict[str, QAction] = {}
-        for key, label in (("system", "&System"), ("light", "&Hell"), ("dark", "&Dunkel")):
-            action = QAction(label, self, checkable=True)
-            action.setChecked(self.theme_choice == key)
-            action.triggered.connect(lambda _checked=False, k=key: self.set_theme_choice(k))
-            self.theme_group.addAction(action)
-            look.addAction(action)
-            self.theme_actions[key] = action
-        self.motion_action = QAction("&Animationen reduzieren", self, checkable=True)
-        self.motion_action.setChecked(self.reduced_motion)
-        self.motion_action.toggled.connect(self.set_reduced_motion)
-        view.addAction(self.motion_action)
-        help_menu = bar.addMenu("&Hilfe")
-        help_menu.addAction(self._action("&Kurzanleitung und Über…", self._help, "F1"))
-        help_menu.addAction(self._action("&Protokollordner öffnen", self._open_log_folder))
-        self._refresh_recent_menu()
-
-    def _refresh_recent_menu(self) -> None:
-        self.recent_menu.clear()
-        items = self.recent.items()
-        for path in items:
-            self.recent_menu.addAction(self._action(
-                path.name, lambda _=False, target=path: self.open_project_file(target)))
-        if items:
-            self.recent_menu.addSeparator()
-            self.recent_menu.addAction(self._action("Liste leeren", self._clear_recent))
-        self.recent_menu.setEnabled(bool(items))
-
-    def _clear_recent(self) -> None:
-        self.recent.clear()
-        self._refresh_recent_menu()
 
     def _help(self) -> None:
         HelpDialog(self).exec()

@@ -5,9 +5,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import (
-    QDesktopServices,
-)
+from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
     QFileDialog,
     QMessageBox,
@@ -186,3 +184,59 @@ class FileActionsMixin:
                 QMessageBox.warning(self, "Export fehlgeschlagen", str(exc))
 
     # --- menu, help, recovery -------------------------------------------------
+
+    def _action(self, text: str, slot: object, shortcut: str | None = None) -> QAction:
+        action = QAction(text, self)
+        if shortcut:
+            action.setShortcut(QKeySequence(shortcut))
+        action.triggered.connect(slot)
+        return action
+
+    def _build_menu(self) -> None:
+        bar = self.menuBar()
+        file_menu = bar.addMenu("&Datei")
+        file_menu.addAction(self._action("Projekt &laden…", self._load, "Ctrl+O"))
+        self.recent_menu = file_menu.addMenu("&Zuletzt geöffnet")
+        file_menu.addAction(self._action("Projekt &speichern…", self._save, "Ctrl+S"))
+        file_menu.addAction(self._action("Fertigungsunterlagen &exportieren…", self._export, "Ctrl+E"))
+        file_menu.addSeparator()
+        file_menu.addAction(self._action("&Beenden", self.close, "Ctrl+Q"))
+        tools = bar.addMenu("&Werkzeuge")
+        tools.addAction(self._action("&Bibliothek", self._library))
+        tools.addAction(self._action("&Expertenmodus", self._expert))
+        tools.addAction(self._action("&Prototyp vergleichen…", self._prototype))
+        view = bar.addMenu("&Ansicht")
+        view.addAction(self._action("&Vorgaben ein-/ausklappen", lambda: self.planner_button.toggle(), "Ctrl+D"))
+        look = view.addMenu("&Erscheinungsbild")
+        self.theme_group = QActionGroup(self)
+        self.theme_actions: dict[str, QAction] = {}
+        for key, label in (("system", "&System"), ("light", "&Hell"), ("dark", "&Dunkel")):
+            action = QAction(label, self, checkable=True)
+            action.setChecked(self.theme_choice == key)
+            action.triggered.connect(lambda _checked=False, k=key: self.set_theme_choice(k))
+            self.theme_group.addAction(action)
+            look.addAction(action)
+            self.theme_actions[key] = action
+        self.motion_action = QAction("&Animationen reduzieren", self, checkable=True)
+        self.motion_action.setChecked(self.reduced_motion)
+        self.motion_action.toggled.connect(self.set_reduced_motion)
+        view.addAction(self.motion_action)
+        help_menu = bar.addMenu("&Hilfe")
+        help_menu.addAction(self._action("&Kurzanleitung und Über…", self._help, "F1"))
+        help_menu.addAction(self._action("&Protokollordner öffnen", self._open_log_folder))
+        self._refresh_recent_menu()
+
+    def _refresh_recent_menu(self) -> None:
+        self.recent_menu.clear()
+        items = self.recent.items()
+        for path in items:
+            self.recent_menu.addAction(self._action(
+                path.name, lambda _=False, target=path: self.open_project_file(target)))
+        if items:
+            self.recent_menu.addSeparator()
+            self.recent_menu.addAction(self._action("Liste leeren", self._clear_recent))
+        self.recent_menu.setEnabled(bool(items))
+
+    def _clear_recent(self) -> None:
+        self.recent.clear()
+        self._refresh_recent_menu()

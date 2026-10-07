@@ -1,7 +1,8 @@
 """Compact result widgets: the variant strip above the visualisation and the key-figure stack beside it."""
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -105,8 +106,21 @@ class VariantStrip(QWidget):
             self._buttons[index].setChecked(True)
 
 
+class _KpiCard(QFrame):
+    activated = Signal()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.activated.emit()
+
+
 class KpiGrid(QWidget):
-    """Six key figures as small cards in two columns; each card has a label, a value and a tooltip."""
+    """Six key figures as small cards in two columns; each card has a label, a value and a tooltip.
+
+    Clicking a card emits ``activated(key)`` so a figure can lead to the place that explains it.
+    """
+
+    activated = Signal(str)
 
     def __init__(self, keys: tuple[str, ...], columns: int = 2) -> None:
         super().__init__()
@@ -116,8 +130,10 @@ class KpiGrid(QWidget):
         self._values: dict[str, QLabel] = {}
         self._cards: dict[str, QFrame] = {}
         for index, key in enumerate(keys):
-            card = QFrame()
+            card = _KpiCard()
             card.setObjectName("kpiCard")
+            card.setCursor(Qt.CursorShape.PointingHandCursor)
+            card.activated.connect(lambda k=key: self.activated.emit(k))
             card.setFixedHeight(58)
             inner = QVBoxLayout(card)
             inner.setContentsMargins(10, 6, 10, 6)

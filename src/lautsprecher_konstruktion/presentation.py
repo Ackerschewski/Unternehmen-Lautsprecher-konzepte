@@ -25,7 +25,7 @@ PRICE_KINDS: dict[str, str] = {
     "retail": "Händlerpreis", "Materialreferenz": "Materialreferenz", "Planpreis": "Planpreis", "fehlt": "fehlt",
 }
 _ALL = {**COMPONENT_NAMES, **CONNECTIONS, **ROLES}
-_TOKENS = re.compile("|".join(re.escape(k) for k in sorted(_ALL, key=len, reverse=True)), re.IGNORECASE)
+_TOKENS = re.compile(r"(?<!\w)(?:" + "|".join(re.escape(k) for k in sorted(_ALL, key=len, reverse=True)) + r")(?!\w)", re.IGNORECASE)  # whole words only
 
 
 def panel_name(name: str) -> str:

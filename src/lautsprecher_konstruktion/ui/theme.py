@@ -90,12 +90,15 @@ def stylesheet(mode: str = "light") -> str:
             color:{t['textPrimary']}; border:1px solid {t['border']};
             border-radius:{rk}px; font-weight:600;
         }}
+        QPushButton#choiceCard {{padding:0; min-height:72px;}}
         QPushButton#choiceCard:hover, QPushButton#variantCard:hover {{
             background:{t['band']}; border-color:{t['borderStrong']};
         }}
         QPushButton#choiceCard:checked, QPushButton#variantCard:checked {{
             background:{t['accentSubtle']}; border:2px solid {t['accent']}; color:{t['textPrimary']};
         }}
+        QLabel#choiceTitle {{font-weight:700; color:{t['textPrimary']}; background:transparent;}}
+        QLabel#choiceSub {{font-weight:400; color:{t['textSecondary']}; background:transparent;}}
         QFrame#variantCard {{background:{t['surfaceElevated']}; border:1px solid {t['border']}; border-radius:{rk}px;}}
         QFrame#variantCard:hover {{background:{t['band']}; border-color:{t['borderStrong']};}}
         QFrame#variantCard:focus {{border:2px solid {t['textPrimary']};}}

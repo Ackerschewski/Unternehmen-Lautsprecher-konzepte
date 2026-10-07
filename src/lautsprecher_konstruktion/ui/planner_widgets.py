@@ -8,11 +8,41 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
+    QLabel,
     QPushButton,
+    QVBoxLayout,
     QWidget,
 )
 
 from lautsprecher_konstruktion.ui.tokens import UI_FONT, theme
+
+
+class ChoiceCard(QPushButton):
+    """Checkable card whose description wraps instead of being cut off."""
+
+    def __init__(self, title: str, subtitle: str) -> None:
+        super().__init__()
+        self._title, self._subtitle = title, subtitle
+        self.setObjectName("choiceCard")
+        self.setCheckable(True)
+        self.setAccessibleName(f"{title}. {subtitle}")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setSpacing(1)
+        self.title_label = QLabel(title)
+        self.title_label.setObjectName("choiceTitle")
+        self.sub_label = QLabel(subtitle)
+        self.sub_label.setObjectName("choiceSub")
+        self.sub_label.setWordWrap(True)
+        for label in (self.title_label, self.sub_label):
+            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            layout.addWidget(label)
+        line = self.sub_label.fontMetrics().lineSpacing()
+        self.sub_label.setMinimumHeight(2 * line + 2)  # room for two lines; longer text wraps within them
+        self.setMinimumHeight(self.title_label.sizeHint().height() + 2 * line + 24)
+
+    def text(self) -> str:
+        return f"{self._title}\n{self._subtitle}"
 
 
 class ChoiceGrid(QWidget):
@@ -36,10 +66,7 @@ class ChoiceGrid(QWidget):
         layout.setHorizontalSpacing(8)
         layout.setVerticalSpacing(8)
         for index, (value, title, subtitle) in enumerate(items):
-            button = QPushButton(f"{title}\n{subtitle}")
-            button.setObjectName("choiceCard")
-            button.setCheckable(True)
-            button.setMinimumHeight(66)
+            button = ChoiceCard(title, subtitle)
             button.setProperty("choiceValue", value)
             button.clicked.connect(lambda _checked=False, v=value: self.valueChanged.emit(v))
             self._group.addButton(button)

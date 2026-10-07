@@ -5,6 +5,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.registry import registry
 from lautsprecher_konstruktion.export.pricing import budget_cost
+from lautsprecher_konstruktion.export.summary import grouped
 from lautsprecher_konstruktion.presentation import component_text, de, price_kind
 from lautsprecher_konstruktion.services.automatic import SpeakerDesign
 from lautsprecher_konstruktion.services.price_status import price_info
@@ -61,29 +62,48 @@ def details_html(design: SpeakerDesign, budget_eur: float) -> str:
     return "".join(lines)
 
 
-def bom_html(design: SpeakerDesign) -> str:
-    """German bill of materials with price status per line and honest coverage summary."""
+_BADGES = {"retail": ("Händlerpreis", "success"), "Materialreferenz": ("Materialreferenz", "accent"),
+           "Planpreis": ("Planpreis", "warning"), "fehlt": ("Preis fehlt", "danger")}
+
+
+def price_badge(item: object, colors: dict[str, str]) -> str:
+    """Coloured badge for the price kind of a BOM position (never colour only: the word is always there)."""
+    kind = getattr(item, "price_kind", "retail") if getattr(item, "unit_price_eur", None) is not None else "fehlt"
+    text, role = _BADGES.get(kind, (price_kind(kind), "textSecondary"))
+    colour = colors.get(role) or colors.get("textSecondary") or "inherit"
+    return (f"<span style='color:{colour}; font-weight:600'>● {escape(text)}</span>")
+
+
+def bom_html(design: SpeakerDesign, colors: dict[str, str] | None = None) -> str:
+    """German bill of materials grouped by function, price badge per line, honest coverage summary."""
+    colors = colors or {}
     info = price_info(design.bom)
     planned_total = budget_cost(design.bom)
 
     def money(value: float | None) -> str:
         return f"{de(value, 2)} €" if value is not None else "–"
 
-    rows = "".join(
-        f"<tr><td>{escape(item.reference)}</td><td>{escape(component_text(item.description))}</td>"
-        f"<td align='right'>{item.quantity}</td><td align='right'>{money(item.unit_price_eur)}</td>"
-        f"<td align='right'>{money(item.line_total_eur)}</td>"
-        f"<td>{escape(price_kind(item.price_kind) if item.unit_price_eur is not None else 'Preis fehlt')}</td></tr>"
-        for item in design.bom)
+    body: list[str] = []
+    for name, items in grouped(design.bom):
+        subtotal = sum(i.line_total_eur for i in items if i.line_total_eur is not None)
+        unknown = sum(1 for i in items if i.line_total_eur is None)
+        note = f" · {unknown} ohne Preis" if unknown else ""
+        body.append(f"<tr><td colspan='6' bgcolor='{colors.get('band', 'transparent')}'><b>{escape(name)}</b> · Zwischensumme "
+                    f"{money(subtotal) if subtotal else '–'}{note}</td></tr>")
+        for item in items:
+            body.append(
+                f"<tr><td>{escape(item.reference)}</td><td>{escape(component_text(item.description))}</td>"
+                f"<td align='right'>{item.quantity}</td><td align='right'>{money(item.unit_price_eur)}</td>"
+                f"<td align='right'>{money(item.line_total_eur)}</td><td>{price_badge(item, colors)}</td></tr>")
     budget = (f"<p><b>Budgetansatz inkl. 15 % Reserve: {money(planned_total)}</b></p>"
               if planned_total is not None else "<p>Budgetansatz nicht vollständig belegbar.</p>")
     return (
-        "<h2>Stückliste</h2><table border='1' cellpadding='5'>"
+        "<h2>Stückliste</h2><table border='1' cellpadding='5' cellspacing='0'>"
         "<tr><th>Ref.</th><th>Bauteil</th><th>Anzahl</th><th>Einzelpreis</th><th>Position</th><th>Preisart</th></tr>"
-        + rows + "</table>"
+        + "".join(body) + "</table>"
         f"<p><b>Bekannte Teilsumme: {money(info.subtotal_eur)}</b> · {escape(info.label_de())}</p>"
         + budget
-        + "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
+        + "<p>Händlerpreise, Materialreferenzen und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
           "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
 
 
