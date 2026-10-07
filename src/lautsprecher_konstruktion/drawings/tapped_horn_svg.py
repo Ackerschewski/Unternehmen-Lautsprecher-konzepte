@@ -58,8 +58,8 @@ def render_tapped_horn_svg(bundle: DesignBundle) -> str:
     front_mouth_y=(fy+top_t if horn.mouth_at_top else fy+h*scale-top_t-mouth_h_px)
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
-        '<style>.title{font:700 30px Arial;fill:%INK%}.head{font:700 20px Arial;fill:%INK%}'
-        '.text{font:16px Arial;fill:%TEXT%}.small{font:14px Arial;fill:%MUTED%}.tiny{font:12px Arial;fill:%TEXT%}'
+        '<style>.title{font-weight:700;font-size:30px;font-family:Arial;fill:%INK%}.head{font-weight:700;font-size:20px;font-family:Arial;fill:%INK%}'
+        '.text{font-weight:400;font-size:16px;font-family:Arial;fill:%TEXT%}.small{font-weight:400;font-size:14px;font-family:Arial;fill:%MUTED%}.tiny{font-weight:400;font-size:12px;font-family:Arial;fill:%TEXT%}'
         '.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:2}.cut{fill:%WHITE%;stroke:%ACCENT%;stroke-width:2}'
         '.dim{stroke:%MUTED%;stroke-width:1.5;fill:none}.rule{stroke:%RULE%;stroke-width:1}'
         '.chan{fill:%SURFACE%}.mouth{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.5}'

@@ -86,13 +86,13 @@ def render_dimension_svg(bundle: DesignBundle) -> str:
     back = tuple(e for e in bundle.front_elements if e.surface == 'back')
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px %FONT_UI%;fill:%INK%}.label{font:700 18px %FONT_UI%;fill:%INK%}'
-        '.text{font:15px %FONT_UI%;fill:%TEXT%}.small{font:13px %FONT_UI%;fill:%MUTED%}'
-        '.dimtext{font:13px %FONT_UI%;fill:%TEXT%}.id{font:700 14px %FONT_UI%;fill:%INK%}'
+        '<style>.title{font-weight:700;font-size:27px;font-family:%FONT_UI%;fill:%INK%}.label{font-weight:700;font-size:18px;font-family:%FONT_UI%;fill:%INK%}'
+        '.text{font-weight:400;font-size:15px;font-family:%FONT_UI%;fill:%TEXT%}.small{font-weight:400;font-size:13px;font-family:%FONT_UI%;fill:%MUTED%}'
+        '.dimtext{font-weight:400;font-size:13px;font-family:%FONT_UI%;fill:%TEXT%}.id{font-weight:700;font-size:14px;font-family:%FONT_UI%;fill:%INK%}'
         '.outline{fill:white;stroke:%INK%;stroke-width:2}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
         '.flange{fill:%SURFACE%;stroke:%MUTED%;stroke-width:1.5}.cut{fill:none;stroke:%ACCENT%;stroke-width:2}'
         '.hole{fill:white;stroke:%CRITICAL%;stroke-width:1.4}.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:1.5}'
-        '.rule{stroke:%RULE%;stroke-width:1}.tb{font:600 12px %FONT_UI%;fill:%MUTED%}.tbt{font:700 13px %FONT_UI%;fill:%INK%}</style>',
+        '.rule{stroke:%RULE%;stroke-width:1}.tb{font-weight:600;font-size:12px;font-family:%FONT_UI%;fill:%MUTED%}.tbt{font-weight:700;font-size:13px;font-family:%FONT_UI%;fill:%INK%}</style>',
         f'<rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Maßblatt</text>',
         f'<text x="45" y="70" class="text">{escape(bundle.project.revision)} · Alle Maße in mm · Bezug: linke untere Außenecke der jeweiligen Ansicht</text>',

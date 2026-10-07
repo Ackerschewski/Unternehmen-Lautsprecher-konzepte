@@ -10,7 +10,7 @@ from dataclasses import dataclass
 START_SHARE = 0.38  # share of the window width for the planner before a result exists
 START_MAX_PX = 440
 START_MIN_PX = 320
-INSPECTOR_PX = 300
+INSPECTOR_PX = 360
 WIDE_WINDOW_PX = 1600
 
 

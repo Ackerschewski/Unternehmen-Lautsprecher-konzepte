@@ -22,8 +22,8 @@ def render_baffle_svg(bundle: DesignBundle) -> str:
     fw,fh = w*scale,h*scale
     lines = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1040" viewBox="0 0 1500 1040">',
-        '<style>.title{font:700 30px Arial;fill:%INK%}.head{font:700 20px Arial;fill:%INK%}'
-        '.text{font:16px Arial;fill:%TEXT%}.small{font:14px Arial;fill:%MUTED%}'
+        '<style>.title{font-weight:700;font-size:30px;font-family:Arial;fill:%INK%}.head{font-weight:700;font-size:20px;font-family:Arial;fill:%INK%}'
+        '.text{font-weight:400;font-size:16px;font-family:Arial;fill:%TEXT%}.small{font-weight:400;font-size:14px;font-family:Arial;fill:%MUTED%}'
         '.wall{fill:%SURFACE%;stroke:%TEXT%;stroke-width:2}.cut{fill:%WHITE%;stroke:%ACCENT%;stroke-width:2}'
         '.flange{fill:none;stroke:%MUTED%;stroke-dasharray:5 4;stroke-width:1.5}'
         '.hole{fill:%WHITE%;stroke:%CRITICAL%;stroke-width:1.5}.rule{stroke:%RULE%;stroke-width:1}'

@@ -40,12 +40,12 @@ def render_panel_sheet_svg(bundle: DesignBundle, surface: str) -> str:
     elements = tuple(e for e in bundle.front_elements if e.surface == surface)
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">',
-        '<style>.title{font:700 28px %FONT_UI%;fill:%INK%}.head{font:700 19px %FONT_UI%;fill:%INK%}'
-        '.text{font:15px %FONT_UI%;fill:%TEXT%}.small{font:13px %FONT_UI%;fill:%MUTED%}'
+        '<style>.title{font-weight:700;font-size:28px;font-family:%FONT_UI%;fill:%INK%}.head{font-weight:700;font-size:19px;font-family:%FONT_UI%;fill:%INK%}'
+        '.text{font-weight:400;font-size:15px;font-family:%FONT_UI%;fill:%TEXT%}.small{font-weight:400;font-size:13px;font-family:%FONT_UI%;fill:%MUTED%}'
         '.panel{fill:%WHITE%;stroke:%PANEL_STROKE%;stroke-width:2.5}.cut{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
         '.flange{fill:none;stroke:%MUTED%;stroke-width:1.5;stroke-dasharray:5 4}'
         '.hole{fill:%WHITE%;stroke:%CRITICAL%;stroke-width:1.8}.axis{stroke:%MUTED%;stroke-width:1;stroke-dasharray:5 5}'
-        '.dim{stroke:%MUTED%;stroke-width:1.3}.rule{stroke:%RULE%;stroke-width:1}.tb{font:600 12px %FONT_UI%;fill:%MUTED%}.tbt{font:700 13px %FONT_UI%;fill:%INK%}</style>',
+        '.dim{stroke:%MUTED%;stroke-width:1.3}.rule{stroke:%RULE%;stroke-width:1}.tb{font-weight:600;font-size:12px;font-family:%FONT_UI%;fill:%MUTED%}.tbt{font-weight:700;font-size:13px;font-family:%FONT_UI%;fill:%INK%}</style>',
         '<rect width="1200" height="900" fill="white"/>',
         f'<text x="45" y="46" class="title">{escape(bundle.project.name)} · {SURFACE_NAMES[surface]}</text>',
         f'<text x="45" y="75" class="text">{escape(bundle.project.revision)} · Einzelteil / Fräsansicht · alle Maße in mm</text>',

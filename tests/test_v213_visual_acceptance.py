@@ -52,9 +52,9 @@ def test_planner_rules_by_state_and_width() -> None:
     assert start.open and start.width <= 0.38 * 1280 + 1 and start.width >= 320  # max. 38 % of the width at start
     assert planner_layout(1280, has_result=True, view="other") == PlannerLayout(False, 0)
     assert planner_layout(1599, has_result=True, view="other").open is False
-    assert planner_layout(1600, has_result=True, view="other") == PlannerLayout(True, 300)
+    assert planner_layout(1600, has_result=True, view="other") == PlannerLayout(True, 360)
     assert planner_layout(1920, has_result=True, view="drawings") == PlannerLayout(False, 0)  # drawing workspace
-    assert planner_layout(1280, has_result=True, view="other", user_open=True) == PlannerLayout(True, 300)
+    assert planner_layout(1280, has_result=True, view="other", user_open=True) == PlannerLayout(True, 360)
     assert planner_layout(1920, has_result=True, view="other", user_open=False) == PlannerLayout(False, 0)
 
 
@@ -247,3 +247,49 @@ def test_impossible_state_shows_diagnosis_and_disables_result_tabs(app: QApplica
     window._failed("Test")
     assert not window.diagnostic.isVisible() and all(
         window.tabs.isTabEnabled(i) for i in range(window.tabs.count()))
+
+
+def test_error_state_offers_retry_and_diagnosis_copy_without_stale_results(app: QApplication) -> None:
+    window = AssistantWindow()
+    window.resize(1280, 720)
+    window.show()
+    window._failed("Rechenkern abgestürzt")
+    assert window.error_actions.isVisible() and not window.designs
+    assert not window.result_body.isVisible() and not window.variant_strip.isVisible()
+    window._copy_diagnosis()
+    assert "Rechenkern abgestürzt" in QApplication.clipboard().text()
+    window.create_design()  # retry starts a new calculation and hides the error actions
+    assert not window.error_actions.isVisible()
+    assert window.worker is not None
+    window.worker.cancel_event.set()
+    window.worker.wait(240000)
+
+
+def test_drawings_use_longhand_font_properties_because_qt_svg_ignores_the_shorthand() -> None:
+    """Qt's SVG renderer silently ignores `font: 13px ...`; every drawing text would render tiny in the viewer."""
+    import glob
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[1] / "src" / "lautsprecher_konstruktion"
+    offenders = []
+    for path in [*glob.glob(str(root / "drawings" / "*.py")), *glob.glob(str(root / "export" / "*.py"))]:
+        text = pathlib.Path(path).read_text(encoding="utf-8")
+        if re.search(r"[{;\s']font:\s*(bold|\d)", text):
+            offenders.append(pathlib.Path(path).name)
+    assert not offenders, offenders
+
+
+def test_front_view_text_is_rendered_at_reading_size(solved: AssistantWindow) -> None:
+    from PySide6.QtGui import QColor, QImage, QPainter
+    from PySide6.QtSvg import QSvgRenderer
+
+    svg = render_view_svg(solved.designs[0].bundle, "front")
+    renderer = QSvgRenderer(svg.encode("utf-8"))
+    size = renderer.defaultSize()
+    image = QImage(size.width(), size.height(), QImage.Format.Format_RGB32)
+    image.fill(QColor("white"))
+    painter = QPainter(image)
+    renderer.render(painter)
+    painter.end()
+    # the title is 28 px high text in the top-left corner: it must cover a clearly taller pixel band than 12 px
+    rows = [y for y in range(60) if any(image.pixelColor(x, y).lightness() < 120 for x in range(30, 200))]
+    assert rows and rows[-1] - rows[0] >= 18

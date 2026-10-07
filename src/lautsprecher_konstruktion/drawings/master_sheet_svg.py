@@ -216,9 +216,9 @@ def render_master_sheet_svg(bundle: DesignBundle) -> str:
     sheet_h = int(internals_y+220)
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="{sheet_h}" '
              f'viewBox="0 0 1800 {sheet_h}">',
-             '<style>.title{font:700 35px Arial;fill:%INK%}.head{font:700 22px Arial;fill:%INK%}'
-             '.text{font:17px Arial;fill:%INK%}.small{font:15px Arial;fill:%MUTED%}'
-             '.callout{font:700 16px Arial;fill:%TEXT%}.dimlabel{font:16px Arial;fill:%TEXT%}'
+             '<style>.title{font-weight:700;font-size:35px;font-family:Arial;fill:%INK%}.head{font-weight:700;font-size:22px;font-family:Arial;fill:%INK%}'
+             '.text{font-weight:400;font-size:17px;font-family:Arial;fill:%INK%}.small{font-weight:400;font-size:15px;font-family:Arial;fill:%MUTED%}'
+             '.callout{font-weight:700;font-size:16px;font-family:Arial;fill:%TEXT%}.dimlabel{font-weight:400;font-size:16px;font-family:Arial;fill:%TEXT%}'
              '.outline{fill:%WHITE%;stroke:%INK%;stroke-width:2.4}'
              '.material{fill:%PANEL%;stroke:%TEXT%;stroke-width:1.4}'
              '.brace{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.4;fill-opacity:.6}'

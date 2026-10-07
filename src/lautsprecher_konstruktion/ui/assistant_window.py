@@ -299,6 +299,10 @@ class AssistantWindow(QMainWindow):
         if hasattr(self, "start_preview"):
             self.start_preview.set_dimensions(*dims)
 
+    def _copy_diagnosis(self) -> None:
+        QGuiApplication.clipboard().setText(
+            f"Lautsprecher Konstruktion {REVISION}\nFehler: {self._last_error}\nProtokollordner: Hilfe → Protokollordner öffnen")
+
     def _show_start(self, on: bool) -> None:
         """Start/calculating state shows the guide and a live sketch; a result shows hero and key figures."""
         self.empty_guide.setVisible(on)
@@ -331,7 +335,7 @@ class AssistantWindow(QMainWindow):
         self.planner_button.setText("Vorgaben einklappen" if layout.open else "Vorgaben ändern")
         total = sum(self.split.sizes()) or max(self.width(), 1)
         start = self.split.sizes()[0]
-        self.wizard_panel.setMinimumWidth(0 if not layout.open else min(layout.width, 300))
+        self.wizard_panel.setMinimumWidth(layout.width if layout.open else 0)  # the splitter may not shrink it again
 
         def apply(width: int) -> None:
             self.split.setSizes([width, max(total - width, 1)])
@@ -795,6 +799,7 @@ class AssistantWindow(QMainWindow):
         self.variant_strip.setVisible(False)
         self.variant_why.setVisible(False)
         self.diagnostic.setVisible(False)
+        self.error_actions.setVisible(False)
         self._set_result_tabs_enabled(True)
         self._planner_user = None
         empty = QByteArray(b"<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>")
@@ -1076,6 +1081,20 @@ class AssistantWindow(QMainWindow):
         self.empty_guide.setObjectName("emptyState")
         self.empty_guide.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         ov.addWidget(self.empty_guide)
+        self.error_actions = QWidget()
+        error_row = QHBoxLayout(self.error_actions)
+        error_row.setContentsMargins(0, 0, 0, 0)
+        self.retry_button = QPushButton("Erneut versuchen")
+        self.retry_button.clicked.connect(self.create_design)
+        self.copy_diagnosis_button = QPushButton("Diagnose kopieren")
+        self.copy_diagnosis_button.setToolTip("Fehlertext und Pfad der Protokolldatei in die Zwischenablage kopieren")
+        self.copy_diagnosis_button.clicked.connect(self._copy_diagnosis)
+        error_row.addWidget(self.retry_button)
+        error_row.addWidget(self.copy_diagnosis_button)
+        error_row.addStretch(1)
+        self.error_actions.setVisible(False)
+        self._last_error = ""
+        ov.addWidget(self.error_actions)
         # Start state: the live sketch of the entered space replaces an empty result frame.
         self.start_preview = DimensionPreview(self.mode)
         self.start_preview.setMinimumHeight(260)
@@ -1460,6 +1479,7 @@ class AssistantWindow(QMainWindow):
         self._apply_planner_layout()
 
     def _failed(self, message: str) -> None:
+        self._last_error = message
         self.create_button.setEnabled(True)
         self.cancel_button.setEnabled(False)
         self.progress.setVisible(False)
@@ -1471,6 +1491,7 @@ class AssistantWindow(QMainWindow):
             "Statusmeldung und im Protokoll unter Hilfe.</p>"
         )
         self._set_state("danger", f"{message} Nächster Schritt: Vorgaben prüfen oder die Protokolldatei (Hilfe) ansehen.")
+        self.error_actions.setVisible(True)
         self._apply_planner_layout()
 
     def _current(self) -> SpeakerDesign | None:

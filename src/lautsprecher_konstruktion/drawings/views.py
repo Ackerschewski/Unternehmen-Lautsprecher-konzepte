@@ -16,6 +16,14 @@ from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
+def _screen_css() -> str:
+    """Shared drawing CSS plus screen reading sizes in ONE style block (Qt's SVG renderer reads only the first)."""
+    screen = (f".dimtext{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{TEXT}}}.id{{font-weight:700;font-size:17px;font-family:{FONT_UI};fill:{ACCENT_DARK}}}"
+              f".label{{font-weight:700;font-size:20px;font-family:{FONT_UI};fill:{INK}}}.subtitle{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{MUTED}}}"
+              f".title{{font-weight:600;font-size:28px;font-family:{FONT_UI};fill:{INK}}}")
+    return special_css().replace("</style>", screen + "</style>")
+
+
 def render_view_svg(bundle: DesignBundle, view: str) -> str:
     if bundle.baffle_mode is not None:
         from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
@@ -88,11 +96,7 @@ def render_view_svg(bundle: DesignBundle, view: str) -> str:
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {canvas_w} {canvas_h}" width="{canvas_w}" height="{canvas_h}">'
         f'<rect width="{canvas_w}" height="{canvas_h}" fill="{PAPER}"/>'
-        + special_css()
-        # screen reading sizes: labels stay legible when the view is fitted into the window
-        + (f"<style>.dimtext{{font:20px {FONT_UI};fill:{TEXT}}}.id{{font:700 22px {FONT_UI};fill:{ACCENT_DARK}}}"
-           f".label{{font:700 24px {FONT_UI};fill:{INK}}}.subtitle{{font:18px {FONT_UI};fill:{MUTED}}}"
-           f".title{{font:600 34px {FONT_UI};fill:{INK}}}</style>")
+        + _screen_css()
         + f'<text x="40" y="34" class="title">{title}</text>'
         + ''.join(body)
         + '</svg>'

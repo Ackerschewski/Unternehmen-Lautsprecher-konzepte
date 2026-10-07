@@ -37,8 +37,8 @@ def render_front_horn_svg(bundle: DesignBundle) -> str:
     outline=' '.join(f'{x:.1f},{y:.1f}' for x,y in upper+lower[::-1])
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
-        '<style>.title{font:700 31px Arial;fill:%INK%}.head{font:700 20px Arial;fill:%INK%}'
-        '.text{font:16px Arial;fill:%TEXT%}.small{font:14px Arial;fill:%MUTED%}'
+        '<style>.title{font-weight:700;font-size:31px;font-family:Arial;fill:%INK%}.head{font-weight:700;font-size:20px;font-family:Arial;fill:%INK%}'
+        '.text{font-weight:400;font-size:16px;font-family:Arial;fill:%TEXT%}.small{font-weight:400;font-size:14px;font-family:Arial;fill:%MUTED%}'
         '.box{fill:%SURFACE%;stroke:%TEXT%;stroke-width:2}.horn{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
         '.cut{fill:none;stroke:%ACCENT%;stroke-width:2}.rule{stroke:%RULE%;stroke-width:1}'
         '.tick{stroke:%ACCENT%;stroke-width:1;stroke-dasharray:4 3}'

@@ -69,9 +69,9 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     sheet_height = max(sheet_height, 1100)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px %FONT_UI%;fill:%INK%}.sub{font:15px %FONT_UI%;fill:%MUTED%}'
-        '.head{font:700 18px %FONT_UI%;fill:%INK%}.text{font:15px %FONT_UI%;fill:%TEXT%}'
-        '.dimtext{font:12px %FONT_UI%;fill:%TEXT%}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
+        '<style>.title{font-weight:700;font-size:27px;font-family:%FONT_UI%;fill:%INK%}.sub{font-weight:400;font-size:15px;font-family:%FONT_UI%;fill:%MUTED%}'
+        '.head{font-weight:700;font-size:18px;font-family:%FONT_UI%;fill:%INK%}.text{font-weight:400;font-size:15px;font-family:%FONT_UI%;fill:%TEXT%}'
+        '.dimtext{font-weight:400;font-size:12px;font-family:%FONT_UI%;fill:%TEXT%}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
         '.outline{fill:white;stroke:%INK%;stroke-width:2}.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:1.2}'
         '.feature{fill:%ACCENT_FILL%;stroke:%ACCENT%;stroke-width:1.5}.rule{stroke:%RULE%;stroke-width:1}'
         '.chan{fill:%SURFACE%;stroke:none}.chamber{fill:%OCHRE_FILL%;stroke:none}.mouth{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.5}'

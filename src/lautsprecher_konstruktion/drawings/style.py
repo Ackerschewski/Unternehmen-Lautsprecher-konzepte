@@ -28,10 +28,10 @@ FONT_DISPLAY = "'Cormorant Garamond',Georgia,serif"
 
 def master_css() -> str:
     return (
-        f"<style>.brand{{font:700 12px {FONT_UI};letter-spacing:1.5px;fill:{MUTED}}}"
-        f".title{{font:600 35px {FONT_DISPLAY};fill:{INK}}}.head{{font:700 22px {FONT_UI};fill:{INK}}}"
-        f".text{{font:17px {FONT_UI};fill:{TEXT}}}.small{{font:15px {FONT_UI};fill:{MUTED}}}"
-        f".callout{{font:700 16px {FONT_UI};fill:{ACCENT_DARK}}}.dimlabel{{font:16px {FONT_UI};fill:{TEXT}}}"
+        f"<style>.brand{{font-weight:700;font-size:12px;font-family:{FONT_UI};letter-spacing:1.5px;fill:{MUTED}}}"
+        f".title{{font-weight:600;font-size:35px;font-family:{FONT_DISPLAY};fill:{INK}}}.head{{font-weight:700;font-size:22px;font-family:{FONT_UI};fill:{INK}}}"
+        f".text{{font-weight:400;font-size:17px;font-family:{FONT_UI};fill:{TEXT}}}.small{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{MUTED}}}"
+        f".callout{{font-weight:700;font-size:16px;font-family:{FONT_UI};fill:{ACCENT_DARK}}}.dimlabel{{font-weight:400;font-size:16px;font-family:{FONT_UI};fill:{TEXT}}}"
         f".outline{{fill:{WHITE};stroke:{INK};stroke-width:2.4}}"
         f".material{{fill:{PANEL_FILL};stroke:{LINE_STRONG};stroke-width:1.4}}"
         f".brace{{fill:{SUCCESS_FILL};stroke:{SUCCESS};stroke-width:1.4;fill-opacity:.75}}"
@@ -47,10 +47,10 @@ def master_css() -> str:
 
 def dimension_css() -> str:
     return (
-        f"<style>.brand{{font:700 11px {FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
-        f".title{{font:600 28px {FONT_DISPLAY};fill:{INK}}}.label{{font:700 18px {FONT_UI};fill:{INK}}}"
-        f".text{{font:15px {FONT_UI};fill:{TEXT}}}.small{{font:13px {FONT_UI};fill:{MUTED}}}"
-        f".dimtext{{font:13px {FONT_UI};fill:{TEXT}}}.id{{font:700 14px {FONT_UI};fill:{ACCENT_DARK}}}"
+        f"<style>.brand{{font-weight:700;font-size:11px;font-family:{FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
+        f".title{{font-weight:600;font-size:28px;font-family:{FONT_DISPLAY};fill:{INK}}}.label{{font-weight:700;font-size:18px;font-family:{FONT_UI};fill:{INK}}}"
+        f".text{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{TEXT}}}.small{{font-weight:400;font-size:13px;font-family:{FONT_UI};fill:{MUTED}}}"
+        f".dimtext{{font-weight:400;font-size:13px;font-family:{FONT_UI};fill:{TEXT}}}.id{{font-weight:700;font-size:14px;font-family:{FONT_UI};fill:{ACCENT_DARK}}}"
         f".outline{{fill:{WHITE};stroke:{INK};stroke-width:2}}"
         f".dim{{fill:none;stroke:{LINE_STRONG};stroke-width:1}}"
         f".flange{{fill:{ACCENT_FILL};stroke:{LINE_STRONG};stroke-width:1.5}}"
@@ -63,10 +63,10 @@ def dimension_css() -> str:
 
 def internal_css() -> str:
     return (
-        f"<style>.brand{{font:700 11px {FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
-        f".title{{font:600 28px {FONT_DISPLAY};fill:{INK}}}.sub{{font:15px {FONT_UI};fill:{MUTED}}}"
-        f".head{{font:700 18px {FONT_UI};fill:{INK}}}.text{{font:15px {FONT_UI};fill:{TEXT}}}"
-        f".dimtext{{font:13px {FONT_UI};fill:{TEXT}}}.dim{{fill:none;stroke:{LINE_STRONG};stroke-width:1}}"
+        f"<style>.brand{{font-weight:700;font-size:11px;font-family:{FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
+        f".title{{font-weight:600;font-size:28px;font-family:{FONT_DISPLAY};fill:{INK}}}.sub{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{MUTED}}}"
+        f".head{{font-weight:700;font-size:18px;font-family:{FONT_UI};fill:{INK}}}.text{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{TEXT}}}"
+        f".dimtext{{font-weight:400;font-size:13px;font-family:{FONT_UI};fill:{TEXT}}}.dim{{fill:none;stroke:{LINE_STRONG};stroke-width:1}}"
         f".outline{{fill:{WHITE};stroke:{INK};stroke-width:2}}"
         f".panel{{fill:{PANEL_FILL};stroke:{LINE_STRONG};stroke-width:1.5}}"
         f".feature{{fill:{ACCENT_FILL};stroke:{ACCENT_DARK};stroke-width:1.5}}"
@@ -79,9 +79,9 @@ def internal_css() -> str:
 
 def panel_css() -> str:
     return (
-        f"<style>.brand{{font:700 11px {FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
-        f".title{{font:600 28px {FONT_DISPLAY};fill:{INK}}}.head{{font:700 19px {FONT_UI};fill:{INK}}}"
-        f".text{{font:15px {FONT_UI};fill:{TEXT}}}.small{{font:13px {FONT_UI};fill:{MUTED}}}"
+        f"<style>.brand{{font-weight:700;font-size:11px;font-family:{FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
+        f".title{{font-weight:600;font-size:28px;font-family:{FONT_DISPLAY};fill:{INK}}}.head{{font-weight:700;font-size:19px;font-family:{FONT_UI};fill:{INK}}}"
+        f".text{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{TEXT}}}.small{{font-weight:400;font-size:13px;font-family:{FONT_UI};fill:{MUTED}}}"
         f".panel{{fill:{WHITE};stroke:{INK};stroke-width:2.5}}"
         f".cut{{fill:{ACCENT_FILL};stroke:{ACCENT_DARK};stroke-width:2}}"
         f".flange{{fill:none;stroke:{LINE_STRONG};stroke-width:1.5;stroke-dasharray:5 4}}"
@@ -105,15 +105,15 @@ def special_css() -> str:
     """Shared CSS superset for special enclosure/horn/assembly sheets."""
     return (
         f"<style>"
-        f".brand{{font:700 11px {FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
-        f"text{{font:14px {FONT_UI};fill:{TEXT}}}"
-        f".title{{font:600 30px {FONT_DISPLAY};fill:{INK}}}"
-        f".head,.label{{font:700 19px {FONT_UI};fill:{INK}}}"
-        f".text,.note{{font:15px {FONT_UI};fill:{TEXT}}}"
-        f".subtitle,.sub,.small{{font:13px {FONT_UI};fill:{MUTED}}}"
-        f".tiny{{font:12px {FONT_UI};fill:{MUTED}}}"
-        f".id{{font:700 13px {FONT_UI};fill:{ACCENT_DARK}}}"
-        f".warning{{font:700 14px {FONT_UI};fill:{CRITICAL}}}"
+        f".brand{{font-weight:700;font-size:11px;font-family:{FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
+        f"text{{font-weight:400;font-size:14px;font-family:{FONT_UI};fill:{TEXT}}}"
+        f".title{{font-weight:600;font-size:30px;font-family:{FONT_DISPLAY};fill:{INK}}}"
+        f".head,.label{{font-weight:700;font-size:19px;font-family:{FONT_UI};fill:{INK}}}"
+        f".text,.note{{font-weight:400;font-size:15px;font-family:{FONT_UI};fill:{TEXT}}}"
+        f".subtitle,.sub,.small{{font-weight:400;font-size:13px;font-family:{FONT_UI};fill:{MUTED}}}"
+        f".tiny{{font-weight:400;font-size:12px;font-family:{FONT_UI};fill:{MUTED}}}"
+        f".id{{font-weight:700;font-size:13px;font-family:{FONT_UI};fill:{ACCENT_DARK}}}"
+        f".warning{{font-weight:700;font-size:14px;font-family:{FONT_UI};fill:{CRITICAL}}}"
         f".panel,.wall,.box{{fill:{PANEL_FILL};stroke:{INK};stroke-width:1.8}}"
         f".outline{{fill:{WHITE};stroke:{INK};stroke-width:2}}"
         f".flange{{fill:{ACCENT_FILL};stroke:{LINE_STRONG};stroke-width:1.5;stroke-dasharray:5 4}}"
@@ -121,7 +121,7 @@ def special_css() -> str:
         f".drill,.hole{{fill:{WHITE};stroke:{CRITICAL};stroke-width:1.5}}"
         f".component,.feature,.part{{fill:{ACCENT_FILL};stroke:{ACCENT_DARK};stroke-width:1.6}}"
         f".dimension,.dim,.dimline{{fill:none;stroke:{LINE_STRONG};stroke-width:1.2}}"
-        f".dimension-text,.dimtext{{font:13px {FONT_UI};fill:{TEXT}}}"
+        f".dimension-text,.dimtext{{font-weight:400;font-size:13px;font-family:{FONT_UI};fill:{TEXT}}}"
         f".rule{{stroke:{LINE};stroke-width:1}}"
         f".lining,.damper,.air,.chamber{{fill:{CONSTRUCTION_FILL};stroke:{CONSTRUCTION};stroke-width:1.2}}"
         f".lining,.air{{stroke-dasharray:5 4}}"
@@ -178,7 +178,7 @@ def painted[**P, R: (str, list[str])](function: Callable[P, R]) -> Callable[P, R
     return wrapper
 
 
-TITLE_BLOCK_CSS = ".tb{font:600 12px %FONT_UI%;fill:%MUTED%}.tbt{font:700 13px %FONT_UI%;fill:%INK%}"
+TITLE_BLOCK_CSS = ".tb{font-weight:600;font-size:12px;font-family:%FONT_UI%;fill:%MUTED%}.tbt{font-weight:700;font-size:13px;font-family:%FONT_UI%;fill:%INK%}"
 
 
 def title_block(x: float, y: float, width: float, project: str, revision: str, sheet: str, note: str) -> str:
