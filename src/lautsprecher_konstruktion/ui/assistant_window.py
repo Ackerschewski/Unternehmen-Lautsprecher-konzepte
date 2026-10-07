@@ -79,12 +79,17 @@ from lautsprecher_konstruktion.services.automatic import (
     automatic_design,
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
+from lautsprecher_konstruktion.targets.curve import (
+    derive_f3_target_hz,
+    deviation,
+)
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.motion import animate_value
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
+from lautsprecher_konstruktion.ui.target_curve_panel import TargetCurvePanel
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import DEFAULT_AREA, set_area, status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
@@ -223,6 +228,8 @@ class AssistantWindow(QMainWindow):
         self.setStyleSheet(stylesheet(mode))
         if self.expert_window is not None:
             self.expert_window.set_mode(mode)
+        if hasattr(self, "target_panel"):
+            self.target_panel.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
@@ -266,6 +273,7 @@ class AssistantWindow(QMainWindow):
         self.cutting_panel.set_bundle(None)
         self.figure.clear()
         self.canvas.draw_idle()
+        self.target_panel.set_actual(None, None)
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
 
@@ -300,6 +308,26 @@ class AssistantWindow(QMainWindow):
         section = QLabel("Dein Projekt")
         section.setObjectName("section")
         layout.addWidget(section)
+        way = QHBoxLayout()
+        self.classic_mode = QPushButton("Klassisch")
+        self.target_mode = QPushButton("Über Zielkurve")
+        for button in (self.classic_mode, self.target_mode):
+            button.setObjectName("choiceCard")
+            button.setCheckable(True)
+            button.setAutoExclusive(True)
+            way.addWidget(button)
+        self.classic_mode.setChecked(True)
+        self.classic_mode.setToolTip("Typ, Bauraum, Klangprofil und Budget vorgeben; die Zielkurve dient danach zur Analyse.")
+        self.target_mode.setToolTip("Zuerst die gewünschte Klangkurve formen; der Entwurf richtet sich nach ihr.")
+        self.target_mode.toggled.connect(self._design_way_changed)
+        layout.addLayout(way)
+        self.target_hint = QLabel("Zielkurvenmodus: Forme zuerst die Kurve im Reiter „Klang & Simulation“. "
+                                  "Der Tiefton (Gehäuse und Chassis) wird danach daran ausgerichtet; für Mittel- und "
+                                  "Hochton liegen ohne Chassis-Messdaten keine Berechnungen vor.")
+        self.target_hint.setObjectName("hint")
+        self.target_hint.setWordWrap(True)
+        self.target_hint.setVisible(False)
+        layout.addWidget(self.target_hint)
         self.project_name = QLineEdit("Mein Lautsprecher")
         self.project_name.setPlaceholderText("Projektname")
         layout.addWidget(self.project_name)
@@ -475,10 +503,10 @@ class AssistantWindow(QMainWindow):
         self.tabs.addTab(overview, "Entwürfe")
 
         self.comparison = QTableWidget()
-        self.comparison.setColumnCount(11)
+        self.comparison.setColumnCount(12)
         self.comparison.setHorizontalHeaderLabels(("Variante", "Gehäuse", "B × H × T [mm]",
             "Netto [l]", "F3 [Hz]", "Bewertung", "Chassiswahl", "Chassis [€]",
-            "Gesamt inkl. Reserve [€]", "Budget frei [€]", "Hinweise"))
+            "Gesamt inkl. Reserve [€]", "Budget frei [€]", "Hinweise", "Abweichung Zielkurve [dB]"))
         self.comparison.setAlternatingRowColors(True)
         self.comparison.setWordWrap(True)
         self.comparison.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -510,15 +538,26 @@ class AssistantWindow(QMainWindow):
         self.drawing_tabs.addTab(panel, "Einzelteilplan")
         self.tabs.addTab(self.drawing_tabs, "Zeichnungen")
 
+        sound = QSplitter(Qt.Orientation.Vertical)
+        sound.setChildrenCollapsible(False)
+        self.target_panel = TargetCurvePanel()
+        self.target_panel.set_mode(self.mode)
+        self.target_panel.curveChanged.connect(self._target_changed)
+        sound.addWidget(self.target_panel)
         simulation = QWidget()
         sim_layout = QVBoxLayout(simulation)
+        sim_layout.setContentsMargins(0, 0, 0, 0)
         self.more_charts = QCheckBox("Weitere Diagramme (Port, Gruppenlaufzeit)")
         self.more_charts.toggled.connect(self._redraw_simulation)
         sim_layout.addWidget(self.more_charts)
         self.figure = Figure(figsize=(9, 6), layout="constrained")
         self.canvas = FigureCanvasQTAgg(self.figure)
         sim_layout.addWidget(self.canvas, 1)
-        self.tabs.addTab(simulation, "Simulation")
+        sound.addWidget(simulation)
+        sound.setStretchFactor(0, 3)
+        sound.setStretchFactor(1, 2)
+        sound.setSizes([560, 280])
+        self.tabs.addTab(sound, "Klang && Simulation")  # && shows a literal ampersand
 
         self.bom_view = QTextBrowser()
         self.tabs.addTab(self.bom_view, "Stückliste")
@@ -540,6 +579,49 @@ class AssistantWindow(QMainWindow):
         self.export_button.setEnabled(False)
         return container
 
+    def _target_f3(self) -> float | None:
+        """Explicit F3 wish, else the -3 dB point of the shaped target curve in target mode."""
+        if self.options.isChecked() and self.target_f3.value():
+            return self.target_f3.value()
+        if self.target_mode.isChecked():
+            return derive_f3_target_hz(self.target_panel.curve())
+        return None
+
+    def _design_way_changed(self, target: bool) -> None:
+        self.target_hint.setVisible(target)
+        self.create_button.setText("Entwurf aus Zielkurve erstellen" if target else "Entwurf erstellen")
+        if target:
+            self.tabs.setCurrentIndex(self._sound_tab_index())
+        self._mark_stale()
+
+    def _sound_tab_index(self) -> int:
+        return next(i for i in range(self.tabs.count()) if self.tabs.tabText(i).startswith("Klang"))
+
+    def _target_changed(self, _curve: object) -> None:
+        self._unsaved = self._unsaved or bool(self.designs)
+        self._update_deviation_column()
+        if self.target_mode.isChecked():
+            self._mark_stale()  # the variants were not derived from this curve
+
+    def _update_deviation_column(self) -> None:
+        curve = self.target_panel.curve()
+        for row, design in enumerate(self.designs[: self.comparison.rowCount()]):
+            frequencies, response = self._response_of(design)
+            dev = deviation(curve, frequencies, response)
+            text = "–" if dev is None else f"Ø {dev.mean_abs_db:.1f} / max {dev.max_abs_db:.1f}"
+            self.comparison.setItem(row, 11, QTableWidgetItem(text))
+        self.target_panel.set_actual(*(self._response_of(self._current()) if self._current() else (None, None)))
+
+    @staticmethod
+    def _response_of(design: SpeakerDesign) -> tuple[np.ndarray, np.ndarray]:
+        bundle = design.bundle
+        r = bundle.vented_response or bundle.sealed_response
+        if r is not None:
+            return np.asarray(r.frequencies_hz), np.asarray(r.response_db)
+        frequencies = np.geomspace(10, 500, 400)
+        return frequencies, np.asarray(sealed_response_db(bundle.acoustic_driver, bundle.target_net_volume_m3,
+                                                          frequencies))
+
     def _request(self) -> AutomaticDesignRequest:
         optional = self.options.isChecked()
         return AutomaticDesignRequest(project_name=self.project_name.text().strip() or "Mein Lautsprecher",
@@ -551,7 +633,7 @@ class AssistantWindow(QMainWindow):
             sound_profile=self.profile.currentData(),
             budget=self.budget.value() or None,
             target_spl_db=self.target_spl.value() or None if optional else None,
-            target_f3_hz=self.target_f3.value() or None if optional else None,
+            target_f3_hz=self._target_f3(),
             way_count=self.ways.currentData() if optional else None,
             active=self.active_mode.currentData() if optional else False,
             preferred_size_m=self.preferred_size.value()/1000 if optional and self.preferred_size.value() else None,
@@ -583,7 +665,7 @@ class AssistantWindow(QMainWindow):
         self.worker.start()
 
     # decision-relevant columns first: variant, enclosure, size, F3, total cost, notes
-    _CORE_COLUMNS = (0, 1, 2, 4, 8, 10)
+    _CORE_COLUMNS = (0, 1, 2, 4, 8, 10, 11)
 
     def _apply_column_choice(self, *_args: object) -> None:
         show_all = self.all_columns.isChecked()
@@ -634,6 +716,7 @@ class AssistantWindow(QMainWindow):
                     str(len(design.bundle.warnings)))
                 for column, value in enumerate(values):
                     self.comparison.setItem(row, column, QTableWidgetItem(value))
+            self._update_deviation_column()
             self.comparison.resizeColumnsToContents()
             self._apply_column_choice()
             self.save_button.setEnabled(True)
@@ -762,6 +845,7 @@ class AssistantWindow(QMainWindow):
             "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
             "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
         self._redraw_simulation()
+        self.target_panel.set_actual(*self._response_of(design))
         status = (f"{registry.get(design.project.enclosure.enclosure_type).label} · "
             f"{c.width_m*1000:.0f}×{c.height_m*1000:.0f}×{c.depth_m*1000:.0f} mm · "
             f"F3 {f3:.1f} Hz · " if f3 else "F3 nicht berechenbar · ")
@@ -918,7 +1002,7 @@ class AssistantWindow(QMainWindow):
             design.project.name+".json", "Lautsprecherprojekt (*.json)")
         if filename:
             try:
-                Path(filename).write_text(design.project.model_dump_json(indent=2), encoding="utf-8")
+                Path(filename).write_text(self._project_json(design), encoding="utf-8")
             except OSError as exc:
                 LOG.warning("Speichern fehlgeschlagen: %s", exc)
                 QMessageBox.warning(self, "Speichern fehlgeschlagen", str(exc))
@@ -928,6 +1012,14 @@ class AssistantWindow(QMainWindow):
             self.recent.add(filename)
             self._refresh_recent_menu()
             self.statusBar().showMessage(f"Projekt gespeichert: {filename}")
+
+    def _project_json(self, design: SpeakerDesign) -> str:
+        """Project file; the target curve is stored only when it was actually shaped (optional, versioned)."""
+        curve = self.target_panel.curve()
+        project = design.project
+        if not curve.is_neutral or self.target_mode.isChecked():
+            project = project.model_copy(update={"target_curve": curve})
+        return project.model_dump_json(indent=2)
 
     def _load(self) -> None:
         filename, _ = QFileDialog.getOpenFileName(self, "Projekt laden", "", "Lautsprecherprojekt (*.json)")
@@ -946,6 +1038,9 @@ class AssistantWindow(QMainWindow):
             QMessageBox.warning(self, "Projekt laden fehlgeschlagen", str(exc))
             return False
         self._expert_updated(bundle)
+        self.target_panel.set_curve(project.target_curve)
+        if project.target_curve is not None:
+            self.target_mode.setChecked(True)
         if remember:
             self._unsaved = False
             self.recent.add(filename)
@@ -1045,7 +1140,7 @@ class AssistantWindow(QMainWindow):
         if design is None or not self._unsaved:
             return
         try:
-            self.autosave.write(design.project.model_dump_json(indent=2))
+            self.autosave.write(self._project_json(design))
         except OSError as exc:
             LOG.warning("Autosave fehlgeschlagen: %s", exc)
 

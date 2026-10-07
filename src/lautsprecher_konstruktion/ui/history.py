@@ -59,6 +59,10 @@ class History[T]:
         self._last_key, self._last_time = merge_key, now
         return True
 
+    def replace_current(self, state: T) -> None:
+        """Overwrite the newest state without adding an entry (live preview while dragging)."""
+        self._states[self._index] = state
+
     def undo(self) -> T | None:
         if not self.can_undo:
             return None

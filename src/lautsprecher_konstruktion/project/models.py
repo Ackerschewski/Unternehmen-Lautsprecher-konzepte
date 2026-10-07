@@ -8,6 +8,7 @@ from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
+from lautsprecher_konstruktion.targets.curve import TargetCurve
 
 
 class EnclosureConfig(BaseModel):
@@ -118,6 +119,7 @@ class SpeakerProject(BaseModel):
     front_elements: tuple[FrontElement, ...] = ()
     accessories: tuple[ProjectAccessory, ...] = ()
     notes: str = ""
+    target_curve: TargetCurve | None = None  # optional, versioned (targets.curve.TargetCurve.version)
 
     @model_validator(mode="before")
     @classmethod
