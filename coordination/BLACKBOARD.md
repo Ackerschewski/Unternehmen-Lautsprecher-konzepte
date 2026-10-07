@@ -1,5 +1,19 @@
 # Blackboard — V-02.00.00
 
+## NEXT: TASK-0027 · Product Depth Sprint — EQ, UI, Library, 3D, Dämmung
+
+- **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
+- Verbindliches Arbeitspaket: `coordination/tasks/TASK-0027.md`.
+- Arbeitsbasis ist **`feature/LK-026-ui-v3-2-planner` / Draft-PR #7**, nicht `main`.
+- Als zusammenhängender autonomer Arbeitsblock ausführen: nach einem Teilpaket nicht auf ein neues "mach weiter" warten.
+- Reihenfolge: **Smooth/parametrischer EQ → Library Readiness/Coverage → Dämmung/Akustikbehandlung → 3D-MVP → UI-Integration → Tests/Doku**.
+- EQ-Ziel: keine geraden Punktsegmente; freie Target-Kurve formstabil im Log-Frequenzraum glätten, konkrete EQ-Bänder als echte Filterantwort berechnen.
+- Library-Ziel: Fullrange-/Crossover-/Fertigungs-/3D-Readiness sichtbar machen; fehlende FRD/ZMA niemals erfinden.
+- Dämmung: vorhandenes `enclosure/damping.py` erweitern, nicht parallel neu erfinden; Schaumstoff/Vlies/Füllung als Projektobjekt mit Position, Menge, Keepout, BOM, Bauanleitung und 3D.
+- 3D: gemeinsame Geometriedaten verwenden; zunächst belastbares interaktives MVP statt instabile Voll-CAD-Engine.
+- Handoff-Pflicht: `docs/application/BUILD_REPORT_TASK_0027.md`, Tests und Library-Coverage vorher/nachher.
+- Windows-/DPI-Sichttest darf bei fehlender Windows-Umgebung `NOT_RUN` bleiben; niemals als bestanden vortäuschen.
+
 ## Task TASK-0025 · 3-Wege-Weiche, Frontlayout, Typprüfung / V-02.07.00
 
 - Bearbeitet durch Claude Code auf `claude/modest-bell-guqoxu` · Status: technisch geprüft (Linux/Offscreen), Benutzerprüfung ausstehend.
