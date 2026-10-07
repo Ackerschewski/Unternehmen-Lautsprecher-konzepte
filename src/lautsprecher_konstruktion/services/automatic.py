@@ -31,6 +31,7 @@ from lautsprecher_konstruktion.project.models import (
     SpeakerProject,
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
+from lautsprecher_konstruktion.services.price_status import cheaper_than, price_info
 
 BAFFLE_FAMILIES = frozenset({"infinite_baffle", "open_baffle", "dipole"})
 
@@ -758,9 +759,14 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
     )
     add("B · Kompakter", sorted(designs, key=lambda item: (outer_volume(item), -item.score)))
     add("C · Mehr Tiefbass", sorted(designs, key=lambda item: (design_f3(item), -item.score)))
-    priced = [item for item in designs if item.total_price_eur is not None]
-    if priced:
-        add("D · Günstiger", sorted(priced, key=lambda item: (item.total_price_eur or float("inf"), -item.score)))
+    # "Günstiger" is a price claim: only against a comparable baseline and only with complete price coverage.
+    baseline_price = price_info(designs[0].bom)
+    cheaper = [item for item in designs if cheaper_than(price_info(item.bom), baseline_price)]
+    if cheaper:
+        add("D · Günstiger", sorted(cheaper, key=lambda item: (price_info(item.bom).subtotal_eur, -item.score)))
+    if len(selected) < 4:
+        add("D · Weniger Bauteile",
+            sorted(designs, key=lambda item: (sum(entry.quantity for entry in item.bom), -item.score)))
     if len(selected) < 4:
         add("D · Alternative", designs)
 

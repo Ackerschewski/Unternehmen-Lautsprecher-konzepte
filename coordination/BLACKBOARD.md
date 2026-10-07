@@ -1,5 +1,15 @@
 # Blackboard — V-02.00.00
 
+## TASK-0028 · V3.3 Visual Acceptance Sprint – umgesetzt
+
+- Planner-UI und Geometrie-Branch zusammengeführt (Merge `3f3f11b`), Vorgaben-Schublade, Ergebnis-Hero, Variantenleiste, Zeichnungs-Workspace, Sound Lab mit einem Sekundärdiagramm, Diagnosekarte mit geprüften Vorschlägen.
+- Wurzelursache der unlesbaren Zeichnungen gefunden und behoben: Qt-SVG ignoriert die CSS-Kurzschreibweise `font:`.
+- Evidence: `coordination/feedback/evidence/2026-10-07-v3-3/`; Report: `docs/application/BUILD_REPORT_TASK_0028.md`. Windows/DPI: NOT_RUN.
+
+## IN ARBEIT: TASK-0029 · Product Truth & Depth Sprint
+
+- Verbindlich: `coordination/tasks/TASK-0029.md`; Reihenfolge Korrektheit → EQ → Library → Dämmung → 3D → Varianten/Diagnosen → Fertigung → Polish.
+
 ## NEXT: TASK-0029 · Product Truth & Depth Sprint
 
 - **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
