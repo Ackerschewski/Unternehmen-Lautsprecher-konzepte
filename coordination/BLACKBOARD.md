@@ -1,35 +1,32 @@
 # Blackboard — V-02.00.00
 
-## NEXT AFTER TASK-0027: TASK-0028 · V3.3 Visual Acceptance Sprint
+## NEXT: TASK-0029 · Product Truth & Depth Sprint
 
 - **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
-- Verbindliches Paket: `coordination/tasks/TASK-0028.md`.
-- Grundlage sind die V3-Evidence-Screens auf `claude/modest-bell-guqoxu`, Commit `5a3c9ada565b593bb02cd24cb03adb06cb0a2345`.
-- Hauptprobleme aus der Sichtprüfung:
-  - permanente linke Eingabespalte nimmt nach Berechnung zu viel Platz;
-  - doppelte/sekundäre Navigation ist zu prominent;
-  - Variantenvergleich fällt in eine klassische Tabelle zurück;
-  - Zeichnungs-Lesemodus bleibt faktisch zu klein;
-  - Sound Lab schneidet bei 1280×720 sekundäre Plots ab;
-  - Dark-Mode-Ergebniskarten sind zu papierweiß;
-  - Impossible-State nutzt die Fläche schlecht und zeigt Maßnahmen nicht zuerst.
-- Ziel: responsive Arbeitsfläche, große Ergebnis-/3D-/Drawing-/Sound-Flächen, kompakter Inspector, echte Cards statt Tabellen-Default, First-Class Impossible State.
-- Nach TASK-0027 selbstständig ausführen; nicht nach jedem Teilpaket auf ein neues "mach weiter" warten.
-- Neue Evidence-Serie unter `coordination/feedback/evidence/2026-10-07-v3-3/` ist Pflicht.
+- Verbindliches Paket: `coordination/tasks/TASK-0029.md`.
+- Review-Grundlage: `coordination/feedback/2026-10-07-V3-3-REVIEW.md`.
+- Arbeitsbasis ist der aktuelle Stand auf `claude/modest-bell-guqoxu`, nicht `main`.
+- TASK-0028/V3.3 ist umgesetzt und visuell geprüft; Buildreport: `docs/application/BUILD_REPORT_TASK_0028.md`.
+- TASK-0027 wurde im TASK-0028-Buildreport ausdrücklich als **nicht umgesetzt** dokumentiert. Die offenen TASK-0027-Inhalte sind deshalb verbindlicher Bestandteil von TASK-0029; nicht separat überspringen.
+- Reihenfolge: **Korrektheit → Smooth/parametrischer EQ → Library Readiness → Dämmung → 3D → Varianten/Diagnostik → Fertigung → UI-Polish → Evidence**.
+- Kritischer Korrektheitsfehler: Varianten dürfen nicht als `Günstiger` bezeichnet werden, wenn Vergleichspreise unvollständig/nicht vergleichbar sind.
+- Weitere Pflichtpunkte: Null-Zähler aus Status, saubere deutsche User-Texte, vollständige Diagnosemeldungen mit Einheiten, Multi-Constraint-Relaxation, gruppierte Fertigung.
+- Neue Evidence-Serie: `coordination/feedback/evidence/2026-10-07-v3-4/`.
+- Autonomous execution: nach Teilpaketen nicht auf ein neues "mach weiter" warten; funktionsfähigen grünen Stand hinterlassen.
+- Windows/DPI bleibt `NOT_RUN`, solange kein echter Windows-Test ausgeführt wurde.
 
-## NEXT: TASK-0027 · Product Depth Sprint — EQ, UI, Library, 3D, Dämmung
+## COMPLETED: TASK-0028 · V3.3 Visual Acceptance Sprint
 
-- **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
-- Verbindliches Arbeitspaket: `coordination/tasks/TASK-0027.md`.
-- Arbeitsbasis ist **`feature/LK-026-ui-v3-2-planner` / Draft-PR #7**, nicht `main`.
-- Als zusammenhängender autonomer Arbeitsblock ausführen: nach einem Teilpaket nicht auf ein neues "mach weiter" warten.
-- Reihenfolge: **Smooth/parametrischer EQ → Library Readiness/Coverage → Dämmung/Akustikbehandlung → 3D-MVP → UI-Integration → Tests/Doku**.
-- EQ-Ziel: keine geraden Punktsegmente; freie Target-Kurve formstabil im Log-Frequenzraum glätten, konkrete EQ-Bänder als echte Filterantwort berechnen.
-- Library-Ziel: Fullrange-/Crossover-/Fertigungs-/3D-Readiness sichtbar machen; fehlende FRD/ZMA niemals erfinden.
-- Dämmung: vorhandenes `enclosure/damping.py` erweitern, nicht parallel neu erfinden; Schaumstoff/Vlies/Füllung als Projektobjekt mit Position, Menge, Keepout, BOM, Bauanleitung und 3D.
-- 3D: gemeinsame Geometriedaten verwenden; zunächst belastbares interaktives MVP statt instabile Voll-CAD-Engine.
-- Handoff-Pflicht: `docs/application/BUILD_REPORT_TASK_0027.md`, Tests und Library-Coverage vorher/nachher.
-- Windows-/DPI-Sichttest darf bei fehlender Windows-Umgebung `NOT_RUN` bleiben; niemals als bestanden vortäuschen.
+- Responsive Planner Drawer, Result Hero, Variantenkarten, Drawing Workspace, Sound-Lab-Struktur und Diagnostic Card umgesetzt.
+- Evidence Dark/Light für 1280×720 und 1920×1080 vorhanden.
+- Zeichnungen deutlich besser lesbar; Planungsleiste wird nach Ergebnis reduziert.
+- Offene Punkte aus Review wurden in TASK-0029 übernommen.
+
+## SUBSUMED: TASK-0027 · Product Depth Sprint
+
+- Smooth EQ, Library Readiness, Dämmung und 3D wurden bisher **nicht umgesetzt**.
+- Die technische Detail-Spezifikation in `TASK-0027.md` bleibt gültig.
+- Umsetzung erfolgt jetzt innerhalb von TASK-0029, damit keine weitere UI-Runde diese Kernfunktionen erneut verdrängt.
 
 ## Task TASK-0025 · 3-Wege-Weiche, Frontlayout, Typprüfung / V-02.07.00
 
