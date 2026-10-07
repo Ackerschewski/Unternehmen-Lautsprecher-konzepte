@@ -9,6 +9,7 @@ import numpy as np
 
 from lautsprecher_konstruktion.enclosure.horn_geometry import HornDetails, SeptumGeometry
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, special_css
 
 
 def _mm(value: float) -> float:
@@ -66,16 +67,8 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     sheet_height = max(sheet_height, 1100)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:#193448}.sub{font:15px sans-serif;fill:#496373}'
-        '.head{font:700 18px sans-serif;fill:#193448}.text{font:15px sans-serif;fill:#284455}'
-        '.dimtext{font:12px sans-serif;fill:#254a60}.dim{fill:none;stroke:#5c7889;stroke-width:1}'
-        '.outline{fill:white;stroke:#193448;stroke-width:2}.panel{fill:#dce9ed;stroke:#34576a;stroke-width:1.2}'
-        '.feature{fill:#c5e7f5;stroke:#16749a;stroke-width:1.5}.rule{stroke:#c8d6dd;stroke-width:1}'
-        '.chan{fill:#eef7fb;stroke:none}.chamber{fill:#fbf3df;stroke:none}.mouth{fill:#d9efd9;stroke:#2f7d32;stroke-width:1.5}'
-        '.law{fill:none;stroke:#16749a;stroke-width:2}.built{fill:none;stroke:#c05a1c;stroke-width:2}'
-        '.axis{stroke:#6d8795;stroke-width:1;fill:none}.path{fill:none;stroke:#16749a;stroke-width:1.6;stroke-dasharray:7 5}'
-        '</style>',
-        f'<rect width="1200" height="{sheet_height}" fill="white"/>',
+        special_css(),
+        f'<rect width="1200" height="{sheet_height}" fill="{PAPER}"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau Horn</text>',
         f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Seitenschnitt maßstäblich, '
         'Front links · Kanalhöhe = Fläche / Innenbreite · gestrichelt: Schallweg ab Hals</text>',
@@ -155,7 +148,7 @@ def render_rear_horn_svg(bundle: DesignBundle) -> str:
     parts.append(f'<text x="{gx}" y="{gy+gh+18}" class="dimtext">0 = Hals</text>'
                  f'<text x="{gx+gw}" y="{gy+gh+18}" text-anchor="end" class="dimtext">s = {horn.length_m*1000:.0f} mm</text>')
     parts.append(f'<text x="{gx+6}" y="{gy+12}" class="dimtext">S max {amax/1.05*1e4:.0f} cm²</text>')
-    parts.append(f'<text x="{gx}" y="{gy+gh+38}" class="dimtext" fill="#16749a">blau: Gesetz · orange: gebaute Kanalflächen</text>')
+    parts.append(f'<text x="{gx}" y="{gy+gh+38}" class="dimtext">Akzent: Horn-Gesetz · Ocker: gebaute Kanalflächen</text>')
     # info block
     ix, iy = 730.0, 130.0
     parts.append(f'<text x="{ix}" y="{iy}" class="head">Horn-Daten</text>')

@@ -62,6 +62,8 @@ class AutomaticDesignRequest(BaseModel):
     panel_thickness_m: float = Field(default=0.018, gt=0)
     material: str = "Birke Multiplex"
     target_curve_points: tuple[tuple[float, float], ...] | None = None
+    target_curve_preset: str = "neutral"
+    target_curve_mode: str = "overall"
 
 
 @dataclass(frozen=True)
@@ -222,12 +224,14 @@ def _target_curve_fit(
     frequencies_hz: np.ndarray,
     response_db: np.ndarray,
     points: tuple[tuple[float, float], ...],
+    *,
+    max_hz: float = 20_000.0,
 ) -> tuple[float, float, float] | None:
     """Score the response shape against the user target in the evidence-backed range.
 
     Absolute level is intentionally removed around 80–120 Hz; this compares response
-    shape, not an arbitrary SPL reference. The current enclosure simulations are only
-    trusted up to 500 Hz for this purpose.
+    shape, not an arbitrary SPL reference. max_hz limits the trusted source range:
+    enclosure-only simulations use 500 Hz; FRD-backed crossover sums may use 20 kHz.
     """
     data = np.asarray(points, dtype=float)
     frequencies = np.asarray(frequencies_hz, dtype=float)
@@ -236,8 +240,13 @@ def _target_curve_fit(
         return None
     if np.any(data[:, 0] <= 0):
         return None
+    finite = np.isfinite(frequencies) & np.isfinite(response) & (frequencies > 0)
+    frequencies = frequencies[finite]
+    response = response[finite]
+    if frequencies.size < 8:
+        return None
     low = max(20.0, float(np.min(data[:, 0])))
-    high = min(500.0, float(np.max(data[:, 0])), float(np.max(frequencies)))
+    high = min(max_hz, float(np.max(data[:, 0])), float(np.max(frequencies)))
     mask = (frequencies >= low) & (frequencies <= high)
     if int(np.count_nonzero(mask)) < 8:
         return None
@@ -284,18 +293,36 @@ def _score(bundle: DesignBundle, request: AutomaticDesignRequest,
         ripple = float(np.percentile(level, 90)-np.percentile(level, 10))
         add("flatness", 100*(1-ripple/12), f"Pegelspanne {ripple:.1f} dB ({band_label} Hz)")
     curve_response = bundle.vented_response or bundle.sealed_response
-    if request.target_curve_points and curve_response is not None:
-        fit = _target_curve_fit(
-            curve_response.frequencies_hz,
-            curve_response.response_db,
-            request.target_curve_points,
-        )
+    fullrange = (
+        bundle.crossover_response
+        if bundle.crossover_response is not None
+        and bundle.crossover_response.sum_acoustic_db is not None
+        else None
+    )
+    if request.target_curve_points and (fullrange is not None or curve_response is not None):
+        if fullrange is not None:
+            fit = _target_curve_fit(
+                fullrange.frequencies_hz,
+                fullrange.sum_acoustic_db,
+                request.target_curve_points,
+                max_hz=20_000.0,
+            )
+            source = "FRD/Weichensumme"
+        else:
+            assert curve_response is not None
+            fit = _target_curve_fit(
+                curve_response.frequencies_hz,
+                curve_response.response_db,
+                request.target_curve_points,
+                max_hz=500.0,
+            )
+            source = "Gehäuse-/Tieftonsimulation"
         if fit is not None:
             curve_score, rms, high = fit
             metrics.append(ScoreMetric(
                 "target_curve", curve_score, 5.0,
-                f"Zielkurve 20–{high:.0f} Hz: RMS-Abweichung {rms:.1f} dB; "
-                "oberhalb des berechenbaren Bereichs nicht bewertet",
+                f"Zielkurve 20–{high:.0f} Hz ({source}): RMS-Abweichung {rms:.1f} dB; "
+                "oberhalb des belegten Bereichs nicht bewertet",
             ))
 
     if total_price is not None and request.budget:
@@ -504,6 +531,9 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                                 enclosure=cfg, crossover=crossover,
                                 front_elements=_layout(woofer, tweeter, width, height, enclosure, port_diameter),
                                 accessories=accessories,
+                                target_curve_points=request.target_curve_points or (),
+                                target_curve_preset=request.target_curve_preset,
+                                target_curve_mode=request.target_curve_mode,
                                 notes="Automatisch berechnet. " +
                                 ("Synthetische TESTDATEN. " if test_data else "") +
                                 "Maße vor Fertigung prüfen.")
@@ -604,23 +634,55 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
     designs.sort(key=lambda item: (-item.score,
         item.bundle.cabinet.width_m*item.bundle.cabinet.height_m*item.bundle.cabinet.depth_m,
         item.woofer.model, item.project.enclosure.enclosure_type))
-    unique: list[SpeakerDesign] = [designs[0]]
-    for item in designs[1:]:
-        if item.project.enclosure.enclosure_type != unique[0].project.enclosure.enclosure_type:
-            unique.append(item)
-            break
-    for item in designs[1:]:
-        signature = (item.woofer.model, item.project.enclosure.enclosure_type)
-        if signature not in {(d.woofer.model, d.project.enclosure.enclosure_type) for d in unique}:
-            unique.append(item)
-        if len(unique) == 3:
-            break
-    labels = (
-        ("A · Beste Zielkurven-Näherung", "B · Alternative", "C · Alternative")
-        if request.target_curve_points
-        else ("A · Favorit", "B · Alternative", "C · Alternative")
+
+    def key(item: SpeakerDesign) -> tuple[object, ...]:
+        cab = item.bundle.cabinet
+        return (
+            item.woofer.model,
+            item.tweeter.model if item.tweeter else "",
+            item.project.enclosure.enclosure_type,
+            round(cab.width_m, 4),
+            round(cab.height_m, 4),
+            round(cab.depth_m, 4),
+        )
+
+    def outer_volume(item: SpeakerDesign) -> float:
+        cab = item.bundle.cabinet
+        return cab.width_m*cab.height_m*cab.depth_m
+
+    def design_f3(item: SpeakerDesign) -> float:
+        bundle = item.bundle
+        value = bundle.sealed.f3_hz if bundle.sealed else (
+            bundle.vented_response.f3_hz if bundle.vented_response else None
+        )
+        return float(value) if value is not None else float("inf")
+
+    selected: list[tuple[str, SpeakerDesign]] = []
+    used: set[tuple[object, ...]] = set()
+
+    def add(label: str, candidates: list[SpeakerDesign]) -> None:
+        for item in candidates:
+            signature = key(item)
+            if signature not in used:
+                selected.append((label, item))
+                used.add(signature)
+                return
+
+    add(
+        "A · Beste Zielkurven-Näherung" if request.target_curve_points else "A · Empfehlung",
+        designs,
     )
-    return AutomaticDesignResult("ok", tuple(SpeakerDesign(labels[i], d.project, d.bundle,
-        d.woofer, d.tweeter, d.score, d.breakdown, d.reasons, d.bom, d.price,
-        d.spl_limit_db, d.provisional_crossover, d.total_price_eur)
-        for i, d in enumerate(unique)), (), (), tested)
+    add("B · Kompakter", sorted(designs, key=lambda item: (outer_volume(item), -item.score)))
+    add("C · Mehr Tiefbass", sorted(designs, key=lambda item: (design_f3(item), -item.score)))
+    priced = [item for item in designs if item.total_price_eur is not None]
+    if priced:
+        add("D · Günstiger", sorted(priced, key=lambda item: (item.total_price_eur or float("inf"), -item.score)))
+    if len(selected) < 4:
+        add("D · Alternative", designs)
+
+    return AutomaticDesignResult("ok", tuple(
+        SpeakerDesign(label, d.project, d.bundle, d.woofer, d.tweeter, d.score,
+            d.breakdown, d.reasons, d.bom, d.price, d.spl_limit_db,
+            d.provisional_crossover, d.total_price_eur)
+        for label, d in selected
+    ), (), (), tested)

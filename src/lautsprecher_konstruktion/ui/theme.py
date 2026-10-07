@@ -63,6 +63,12 @@ def stylesheet(mode: str = "light") -> str:
         QLineEdit:disabled, QComboBox:disabled, QDoubleSpinBox:disabled, QSpinBox:disabled {{
             background:{t['disabledSurface']}; color:{t['disabledText']}; border-color:{t['border']};}}
         QComboBox::drop-down {{border:0; width:24px;}}
+        QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {{
+            subcontrol-origin:border; width:20px; background:{t['band']};
+            border:none; border-left:1px solid {t['border']};
+        }}
+        QAbstractSpinBox::up-button {{subcontrol-position:top right; border-top-right-radius:{rc}px;}}
+        QAbstractSpinBox::down-button {{subcontrol-position:bottom right; border-bottom-right-radius:{rc}px;}}
         QComboBox QAbstractItemView {{background:{t['surfaceElevated']}; border:1px solid {t['borderStrong']};
             selection-background-color:{t['band']}; selection-color:{t['textPrimary']};}}
         QPushButton {{background:{t['surface']}; color:{t['accent']}; border:1px solid {t['accent']};
@@ -79,6 +85,29 @@ def stylesheet(mode: str = "light") -> str:
         QPushButton#primary:focus {{border:3px solid {t['textPrimary']}; padding:8px 18px;}}
         QPushButton#primary:disabled {{background:{t['disabledSurface']}; color:{t['disabledText']};
             border-color:{t['border']};}}
+        QPushButton#choiceCard, QPushButton#variantCard {{
+            text-align:left; padding:12px 14px; background:{t['surfaceElevated']};
+            color:{t['textPrimary']}; border:1px solid {t['border']};
+            border-radius:{rk}px; font-weight:600;
+        }}
+        QPushButton#choiceCard:hover, QPushButton#variantCard:hover {{
+            background:{t['band']}; border-color:{t['borderStrong']};
+        }}
+        QPushButton#choiceCard:checked, QPushButton#variantCard:checked {{
+            background:{t['accentSubtle']}; border:2px solid {t['accent']}; color:{t['textPrimary']};
+        }}
+        QFrame#resultSidebar {{
+            background:{t['surfaceElevated']}; border:1px solid {t['border']};
+            border-radius:{rk}px;
+        }}
+        QLabel#emptyState {{
+            background:{t['surfaceElevated']}; color:{t['textPrimary']};
+            border:1px solid {t['border']}; border-radius:{rk}px; padding:18px 22px;
+        }}
+        QLabel#recommendation {{
+            background:{t['band']}; color:{t['textPrimary']};
+            border-radius:{rc}px; padding:12px 14px;
+        }}
         QCheckBox {{spacing:8px; min-height:24px;}}
         QCheckBox::indicator {{width:18px; height:18px; border:1px solid {t['borderStrong']};
             border-radius:{RADIUS_BADGE}px; background:{t['surface']};}}
@@ -104,7 +133,17 @@ def stylesheet(mode: str = "light") -> str:
         QScrollBar:horizontal {{background:transparent; height:10px;}}
         QScrollBar::handle:horizontal {{background:{t['border']}; border-radius:5px; min-width:24px;}}
         QScrollBar::add-line, QScrollBar::sub-line {{width:0; height:0;}}
-        QSplitter::handle {{background:{t['border']};}}
+        QMenu {{
+            background:{t['surfaceElevated']}; color:{t['textPrimary']};
+            border:1px solid {t['border']}; padding:6px;
+        }}
+        QMenu::item {{padding:8px 26px 8px 12px; border-radius:{RADIUS_BADGE}px;}}
+        QMenu::item:selected {{background:{t['band']}; color:{t['textPrimary']};}}
+        QToolTip {{
+            background:{t['surfaceElevated']}; color:{t['textPrimary']};
+            border:1px solid {t['borderStrong']}; padding:6px 8px;
+        }}
+        QSplitter::handle {{background:{t['border']}; width:1px;}}
     """
 
 

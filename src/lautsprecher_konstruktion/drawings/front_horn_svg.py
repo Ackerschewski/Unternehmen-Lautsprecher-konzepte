@@ -7,6 +7,7 @@ from textwrap import wrap
 
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, special_css
 
 
 def render_front_horn_svg(bundle: DesignBundle) -> str:
@@ -35,12 +36,8 @@ def render_front_horn_svg(bundle: DesignBundle) -> str:
     outline=' '.join(f'{x:.1f},{y:.1f}' for x,y in upper+lower[::-1])
     parts=[
         '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330">',
-        '<style>.title{font:700 31px Arial;fill:#173449}.head{font:700 20px Arial;fill:#173449}'
-        '.text{font:16px Arial;fill:#244456}.small{font:14px Arial;fill:#496779}'
-        '.box{fill:#e0e9ed;stroke:#24485d;stroke-width:2}.horn{fill:#eef7fa;stroke:#087aa2;stroke-width:2}'
-        '.cut{fill:none;stroke:#087aa2;stroke-width:2}.rule{stroke:#aabfc9;stroke-width:1}'
-        '.tick{stroke:#087aa2;stroke-width:1;stroke-dasharray:4 3}'
-        '</style><rect width="1600" height="1330" fill="white"/>',
+        special_css(),
+        f'<rect width="1600" height="1330" fill="{PAPER}"/>',
         f'<text x="55" y="49" class="title">{escape(bundle.project.name)} · Front-Horn-Fertigung</text>',
         f'<text x="55" y="80" class="text">{escape(bundle.project.revision)} · alle Maße in mm · '
         f'Horn vor der Frontplatte, Rückkammer geschlossen · {len(horn.section_lengths_m)} Abschnitte</text>',

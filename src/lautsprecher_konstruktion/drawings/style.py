@@ -89,3 +89,52 @@ def panel_css() -> str:
         f".axis{{stroke:{LINE};stroke-width:1;stroke-dasharray:5 5}}"
         f".dim{{stroke:{LINE_STRONG};stroke-width:1.3}}.rule{{stroke:{LINE};stroke-width:1}}</style>"
     )
+
+
+def material_pattern_defs() -> str:
+    return (
+        '<defs><pattern id="material" width="8" height="8" patternUnits="userSpaceOnUse" '
+        'patternTransform="rotate(45)">'
+        f'<rect width="8" height="8" fill="{PANEL_FILL}"/>'
+        f'<path d="M0 0V8" stroke="{LINE}" stroke-width="2"/>'
+        '</pattern></defs>'
+    )
+
+
+def special_css() -> str:
+    """Shared CSS superset for special enclosure/horn/assembly sheets."""
+    return (
+        f"<style>"
+        f".brand{{font:700 11px {FONT_UI};letter-spacing:1.4px;fill:{MUTED}}}"
+        f"text{{font:14px {FONT_UI};fill:{TEXT}}}"
+        f".title{{font:600 30px {FONT_DISPLAY};fill:{INK}}}"
+        f".head,.label{{font:700 19px {FONT_UI};fill:{INK}}}"
+        f".text,.note{{font:15px {FONT_UI};fill:{TEXT}}}"
+        f".subtitle,.sub,.small{{font:13px {FONT_UI};fill:{MUTED}}}"
+        f".tiny{{font:12px {FONT_UI};fill:{MUTED}}}"
+        f".id{{font:700 13px {FONT_UI};fill:{ACCENT_DARK}}}"
+        f".warning{{font:700 14px {FONT_UI};fill:{CRITICAL}}}"
+        f".panel,.wall,.box{{fill:{PANEL_FILL};stroke:{INK};stroke-width:1.8}}"
+        f".outline{{fill:{WHITE};stroke:{INK};stroke-width:2}}"
+        f".flange{{fill:{ACCENT_FILL};stroke:{LINE_STRONG};stroke-width:1.5;stroke-dasharray:5 4}}"
+        f".cut,.cutout{{fill:none;stroke:{ACCENT_DARK};stroke-width:2}}"
+        f".drill,.hole{{fill:{WHITE};stroke:{CRITICAL};stroke-width:1.5}}"
+        f".component,.feature,.part{{fill:{ACCENT_FILL};stroke:{ACCENT_DARK};stroke-width:1.6}}"
+        f".dimension,.dim,.dimline{{fill:none;stroke:{LINE_STRONG};stroke-width:1.2}}"
+        f".dimension-text,.dimtext{{font:13px {FONT_UI};fill:{TEXT}}}"
+        f".rule{{stroke:{LINE};stroke-width:1}}"
+        f".lining,.damper,.air,.chamber{{fill:{CONSTRUCTION_FILL};stroke:{CONSTRUCTION};stroke-width:1.2}}"
+        f".lining,.air{{stroke-dasharray:5 4}}"
+        f".brace,.mouth{{fill:{SUCCESS_FILL};stroke:{SUCCESS};stroke-width:1.5}}"
+        f".horn,.chan{{fill:{ACCENT_FILL};stroke:{ACCENT_DARK};stroke-width:1.8}}"
+        f".tick{{stroke:{ACCENT_DARK};stroke-width:1;stroke-dasharray:4 3}}"
+        f".path,.law{{fill:none;stroke:{ACCENT_DARK};stroke-width:1.8}}"
+        f".path{{stroke-dasharray:7 5}}"
+        f".built{{fill:none;stroke:{CONSTRUCTION};stroke-width:2}}"
+        f".axis,.inner{{stroke:{MUTED};stroke-width:1;fill:none;stroke-dasharray:5 4}}"
+        f".depth{{fill:none;stroke:{ACCENT_DARK};stroke-width:1.5}}"
+        f".tap{{fill:{CRITICAL};stroke:none}}"
+        f".wallhatch{{fill:{PANEL_FILL};stroke:{LINE_STRONG};stroke-width:1.5}}"
+        f".stuffing{{stroke:{CONSTRUCTION};stroke-width:1}}"
+        f"</style>"
+    )

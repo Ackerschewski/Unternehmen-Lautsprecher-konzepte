@@ -1,5 +1,36 @@
 # Blackboard — V-02.00.00
 
+## NEXT AFTER TASK-0027: TASK-0028 · V3.3 Visual Acceptance Sprint
+
+- **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
+- Verbindliches Paket: `coordination/tasks/TASK-0028.md`.
+- Grundlage sind die V3-Evidence-Screens auf `claude/modest-bell-guqoxu`, Commit `5a3c9ada565b593bb02cd24cb03adb06cb0a2345`.
+- Hauptprobleme aus der Sichtprüfung:
+  - permanente linke Eingabespalte nimmt nach Berechnung zu viel Platz;
+  - doppelte/sekundäre Navigation ist zu prominent;
+  - Variantenvergleich fällt in eine klassische Tabelle zurück;
+  - Zeichnungs-Lesemodus bleibt faktisch zu klein;
+  - Sound Lab schneidet bei 1280×720 sekundäre Plots ab;
+  - Dark-Mode-Ergebniskarten sind zu papierweiß;
+  - Impossible-State nutzt die Fläche schlecht und zeigt Maßnahmen nicht zuerst.
+- Ziel: responsive Arbeitsfläche, große Ergebnis-/3D-/Drawing-/Sound-Flächen, kompakter Inspector, echte Cards statt Tabellen-Default, First-Class Impossible State.
+- Nach TASK-0027 selbstständig ausführen; nicht nach jedem Teilpaket auf ein neues "mach weiter" warten.
+- Neue Evidence-Serie unter `coordination/feedback/evidence/2026-10-07-v3-3/` ist Pflicht.
+
+## NEXT: TASK-0027 · Product Depth Sprint — EQ, UI, Library, 3D, Dämmung
+
+- **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
+- Verbindliches Arbeitspaket: `coordination/tasks/TASK-0027.md`.
+- Arbeitsbasis ist **`feature/LK-026-ui-v3-2-planner` / Draft-PR #7**, nicht `main`.
+- Als zusammenhängender autonomer Arbeitsblock ausführen: nach einem Teilpaket nicht auf ein neues "mach weiter" warten.
+- Reihenfolge: **Smooth/parametrischer EQ → Library Readiness/Coverage → Dämmung/Akustikbehandlung → 3D-MVP → UI-Integration → Tests/Doku**.
+- EQ-Ziel: keine geraden Punktsegmente; freie Target-Kurve formstabil im Log-Frequenzraum glätten, konkrete EQ-Bänder als echte Filterantwort berechnen.
+- Library-Ziel: Fullrange-/Crossover-/Fertigungs-/3D-Readiness sichtbar machen; fehlende FRD/ZMA niemals erfinden.
+- Dämmung: vorhandenes `enclosure/damping.py` erweitern, nicht parallel neu erfinden; Schaumstoff/Vlies/Füllung als Projektobjekt mit Position, Menge, Keepout, BOM, Bauanleitung und 3D.
+- 3D: gemeinsame Geometriedaten verwenden; zunächst belastbares interaktives MVP statt instabile Voll-CAD-Engine.
+- Handoff-Pflicht: `docs/application/BUILD_REPORT_TASK_0027.md`, Tests und Library-Coverage vorher/nachher.
+- Windows-/DPI-Sichttest darf bei fehlender Windows-Umgebung `NOT_RUN` bleiben; niemals als bestanden vortäuschen.
+
 ## Task TASK-0025 · 3-Wege-Weiche, Frontlayout, Typprüfung / V-02.07.00
 
 - Bearbeitet durch Claude Code auf `claude/modest-bell-guqoxu` · Status: technisch geprüft (Linux/Offscreen), Benutzerprüfung ausstehend.

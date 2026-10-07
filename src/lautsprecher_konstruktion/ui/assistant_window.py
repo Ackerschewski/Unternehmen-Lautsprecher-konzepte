@@ -64,6 +64,7 @@ from lautsprecher_konstruktion.drawings.panel_sheet_svg import (
     panel_sheet_surfaces,
     render_panel_sheet_svg,
 )
+from lautsprecher_konstruktion.drawings.views import render_view_svg
 from lautsprecher_konstruktion.enclosure.registry import registry
 from lautsprecher_konstruktion.export.bom import build_bom, priced_subtotal
 from lautsprecher_konstruktion.export.package import export_project_package
@@ -84,7 +85,8 @@ from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
-from lautsprecher_konstruktion.ui.motion import animate_value
+from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
+from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
@@ -179,10 +181,6 @@ class AssistantWindow(QMainWindow):
         self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
         self.focus_button.toggled.connect(self.set_focus_mode)
         head.addWidget(self.focus_button)
-        for label, method in (("Bibliothek", self._library), ("Expertenmodus", self._expert)):
-            button = QPushButton(label)
-            button.clicked.connect(method)
-            head.addWidget(button)
         outer.addLayout(head)
 
         self.split = split = QSplitter(Qt.Orientation.Horizontal)
@@ -192,7 +190,7 @@ class AssistantWindow(QMainWindow):
         split.addWidget(self._build_results())
         split.setStretchFactor(0, 0)
         split.setStretchFactor(1, 1)
-        split.setSizes([470, 950])
+        split.setSizes([380, 1040])
         self._connect_inputs()
         outer.addWidget(split, 1)
         self.setCentralWidget(root)
@@ -230,6 +228,8 @@ class AssistantWindow(QMainWindow):
             self.target_curve.set_mode(mode)
         if hasattr(self, "preview"):
             self.preview.set_mode(mode)
+        if hasattr(self, "dimension_preview"):
+            self.dimension_preview.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
@@ -243,19 +243,126 @@ class AssistantWindow(QMainWindow):
                         self.active_mode, self.material, self.driver_choice):
             control.currentIndexChanged.connect(self._mark_stale)
         self.design_method.currentIndexChanged.connect(self._design_method_changed)
+        self.design_method.currentIndexChanged.connect(self._sync_method_cards)
+        self.speaker_type.currentTextChanged.connect(self._sync_speaker_cards)
+        self.profile.currentIndexChanged.connect(self._sync_profile_cards)
         self.target_curve.curveChanged.connect(self._target_curve_changed)
+        self.target_curve.analysisModeChanged.connect(self._update_sound_lab)
+        self.target_curve.frequencySelected.connect(self._update_sound_lab)
         for control in (self.max_width, self.max_height, self.max_depth, self.max_volume,
                         self.budget, self.target_spl, self.target_f3, self.power,
                         self.preferred_size, self.thickness):
             control.valueChanged.connect(self._mark_stale)
         self.options.toggled.connect(self._mark_stale)
+        for control in (self.max_width, self.max_height, self.max_depth):
+            control.valueChanged.connect(self._update_dimension_preview)
+        self._update_dimension_preview()
+
+    def _set_design_method_value(self, value: str) -> None:
+        index = self.design_method.findData(value)
+        if index >= 0:
+            self.design_method.setCurrentIndex(index)
+
+    def _set_speaker_type_value(self, value: str) -> None:
+        self.speaker_type.setCurrentText(value)
+
+    def _set_profile_value(self, value: str) -> None:
+        index = self.profile.findData(value)
+        if index >= 0:
+            self.profile.setCurrentIndex(index)
+
+    def _sync_method_cards(self, _index: int = 0) -> None:
+        if hasattr(self, "method_cards"):
+            self.method_cards.set_value(str(self.design_method.currentData()))
+
+    def _sync_speaker_cards(self, value: str) -> None:
+        if hasattr(self, "speaker_cards"):
+            self.speaker_cards.set_value(value)
+
+    def _sync_profile_cards(self, _index: int = 0) -> None:
+        if hasattr(self, "profile_cards"):
+            self.profile_cards.set_value(str(self.profile.currentData()))
+
+    def _update_dimension_preview(self, *_args: object) -> None:
+        if hasattr(self, "dimension_preview"):
+            self.dimension_preview.set_dimensions(
+                self.max_width.value(), self.max_height.value(), self.max_depth.value()
+            )
 
     def _result_tab_changed(self, index: int) -> None:
-        drawing_index = self.tabs.indexOf(self.drawing_tabs)
-        on_drawings = index == drawing_index
+        current_page = self.tabs.widget(index)
+        if current_page is not None:
+            fade_in(current_page, reduced=self.reduced_motion)
+        on_drawings = self.tabs.tabText(index) == "Zeichnungen"
         self.focus_button.setVisible(on_drawings)
-        if not on_drawings and self.focus_button.isChecked():
+        if on_drawings and self.drawing_mode.currentData() == "read":
+            if not self.focus_button.isChecked():
+                self.focus_button.setChecked(True)
+            self._drawing_view_changed(self.drawing_tabs.currentIndex())
+        elif not on_drawings and self.focus_button.isChecked():
             self.focus_button.setChecked(False)
+
+    def _toggle_details(self, on: bool) -> None:
+        self.details.setVisible(on)
+        self.details_toggle.setText(
+            "Technische Details schließen" if on else "Warum empfohlen? · Technische Details"
+        )
+
+    def _select_variant_from_card(self, index: int) -> None:
+        self.variant_list.setCurrentRow(index)
+        self.variant_cards.select(index)
+
+    def _toggle_technical_table(self, on: bool) -> None:
+        self.comparison.setVisible(on)
+        if on:
+            self._apply_column_choice()
+
+    def _drawing_mode_changed(self, _index: int = 0) -> None:
+        read_mode = self.drawing_mode.currentData() == "read"
+        self.drawing_hint.setText(
+            "Lesemodus: Front, Seite und Schnitt werden als bildschirmoptimierte Einzelansichten gezeigt."
+            if read_mode else
+            "Druckblatt: Gesamt-, Maß- und Innenblatt im vollständigen Seitenlayout."
+        )
+        labels = (
+            ("Front", "Seite", "Schnitt", "Einzelteile")
+            if read_mode else
+            ("Gesamtblatt", "Maßblatt", "Innenblatt", "Einzelteilblatt")
+        )
+        for index, label in enumerate(labels):
+            self.drawing_tabs.setTabText(index, label)
+        current = self._current()
+        if current is not None:
+            self._load_drawing_views(current.bundle)
+        if read_mode and self.tabs.tabText(self.tabs.currentIndex()) == "Zeichnungen":
+            if not self.focus_button.isChecked():
+                self.focus_button.setChecked(True)
+        self._drawing_view_changed(self.drawing_tabs.currentIndex())
+
+    def _load_drawing_views(self, bundle: DesignBundle) -> None:
+        if self.drawing_mode.currentData() == "read":
+            self.svg.load(QByteArray(render_view_svg(bundle, "front").encode("utf-8")))
+            self.dimension_svg.load(QByteArray(render_view_svg(bundle, "side").encode("utf-8")))
+            self.internal_svg.load(QByteArray(render_view_svg(bundle, "section").encode("utf-8")))
+        else:
+            self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
+            self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
+            self.internal_svg.load(QByteArray(render_internal_dimensions_svg(bundle).encode("utf-8")))
+        self._show_panel_sheet(self.panel_choice.currentIndex())
+        self._drawing_view_changed(self.drawing_tabs.currentIndex())
+
+    def _drawing_view_changed(self, _index: int = 0) -> None:
+        view = self.drawing_tabs.currentWidget()
+        if isinstance(view, ZoomableSvgView):
+            if self.drawing_mode.currentData() == "read":
+                view.fit_width()
+            else:
+                view.fit()
+        elif view is not None and hasattr(self, "panel_svg"):
+            if self.drawing_mode.currentData() == "read":
+                self.panel_svg.fit_width()
+            else:
+                self.panel_svg.fit()
 
     def _design_method_changed(self, _index: int = 0) -> None:
         target_mode = self.design_method.currentData() == "target_curve"
@@ -277,6 +384,7 @@ class AssistantWindow(QMainWindow):
         self._mark_stale()
 
     def _target_curve_changed(self) -> None:
+        self._update_sound_lab()
         if self.design_method.currentData() != "target_curve":
             return
         self._mark_stale()
@@ -285,6 +393,283 @@ class AssistantWindow(QMainWindow):
                 "info",
                 "Zielkurve geändert · Randbedingungen prüfen und passenden Entwurf berechnen.",
             )
+
+    @staticmethod
+    def _sound_curve(
+        design: SpeakerDesign,
+    ) -> tuple[np.ndarray, np.ndarray, str] | None:
+        crossover = design.bundle.crossover_response
+        if crossover is not None and crossover.sum_acoustic_db is not None:
+            return (
+                np.asarray(crossover.frequencies_hz, dtype=float),
+                np.asarray(crossover.sum_acoustic_db, dtype=float),
+                "Ist · FRD/Weichensumme",
+            )
+        response = design.bundle.vented_response or design.bundle.sealed_response
+        if response is None:
+            return None
+        return (
+            np.asarray(response.frequencies_hz, dtype=float),
+            np.asarray(response.response_db, dtype=float),
+            "Ist · Gehäuse-/Tieftonsimulation",
+        )
+
+    @staticmethod
+    def _relative_curve(
+        frequencies: np.ndarray, levels: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        valid = np.isfinite(frequencies) & np.isfinite(levels) & (frequencies > 0)
+        f = frequencies[valid]
+        v = levels[valid].astype(float, copy=True)
+        if not f.size:
+            return f, v
+        reference = (f >= 80.0) & (f <= 120.0)
+        v -= float(np.median(v[reference])) if np.any(reference) else float(np.median(v))
+        return f, v
+
+    @staticmethod
+    def _curve_value_at(
+        design: SpeakerDesign, frequency_hz: float
+    ) -> float | None:
+        data = AssistantWindow._sound_curve(design)
+        if data is None:
+            return None
+        f, v = AssistantWindow._relative_curve(data[0], data[1])
+        if not f.size or frequency_hz < f[0] or frequency_hz > f[-1]:
+            return None
+        return float(np.interp(np.log10(frequency_hz), np.log10(f), v))
+
+    @staticmethod
+    def _span_label(values: list[float], variants: int) -> str:
+        if variants < 2 or len(values) < 2:
+            return "keine belastbare Vergleichsvariante"
+        span = max(values)-min(values)
+        if span >= 2.5:
+            level = "stark"
+        elif span >= 0.75:
+            level = "mittel"
+        else:
+            level = "gering"
+        return f"{level} · {span:.1f} dB berechnete Spannweite"
+
+    def _update_sound_lab(self, *_args: object) -> None:
+        if not hasattr(self, "target_curve"):
+            return
+        current = self._current()
+        if current is None:
+            self.target_curve.set_candidate_curves(())
+            self.target_curve.clear_actual()
+            self.target_curve.set_component_influence({})
+            self.target_curve.set_influence_summary(
+                "Berechne zuerst Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
+            )
+            return
+
+        mode = self.target_curve.analysis_mode()
+        current_enclosure = current.project.enclosure.enclosure_type
+        current_driver = current.woofer.model
+
+        candidates = list(self.designs)
+        if mode == "enclosure":
+            candidates = [d for d in candidates if d.woofer.model == current_driver]
+        elif mode == "driver":
+            candidates = [
+                d for d in candidates
+                if d.project.enclosure.enclosure_type == current_enclosure
+            ]
+        elif mode == "crossover":
+            candidates = [
+                d for d in candidates
+                if d.bundle.crossover_response is not None
+                and d.bundle.crossover_response.sum_acoustic_db is not None
+            ]
+
+        curves: list[tuple[np.ndarray, np.ndarray]] = []
+        for design in candidates:
+            data = self._sound_curve(design)
+            if data is not None:
+                curves.append((data[0], data[1]))
+        self.target_curve.set_candidate_curves(curves)
+
+        current_curve = self._sound_curve(current)
+        if current_curve is not None:
+            self.target_curve.set_actual_curve(
+                current_curve[0], current_curve[1], label=current_curve[2]
+            )
+        else:
+            self.target_curve.clear_actual()
+
+        selected_frequency = self.target_curve.selected_frequency_hz()
+        current_tweeter = current.tweeter.model if current.tweeter else ""
+
+        enclosure_group = [
+            d for d in self.designs
+            if d.woofer.model == current_driver
+            and (d.tweeter.model if d.tweeter else "") == current_tweeter
+        ]
+        enclosure_signatures = {
+            d.project.enclosure.enclosure_type for d in enclosure_group
+        }
+        enclosure_values = [
+            value for d in enclosure_group
+            if (value := self._curve_value_at(d, selected_frequency)) is not None
+        ]
+
+        driver_group = [
+            d for d in self.designs
+            if d.project.enclosure.enclosure_type == current_enclosure
+        ]
+        driver_signatures = {d.woofer.model for d in driver_group}
+        driver_values = [
+            value for d in driver_group
+            if (value := self._curve_value_at(d, selected_frequency)) is not None
+        ]
+
+        crossover_group = [
+            d for d in self.designs
+            if d.woofer.model == current_driver
+            and d.project.enclosure.enclosure_type == current_enclosure
+            and d.bundle.crossover_response is not None
+            and d.bundle.crossover_response.sum_acoustic_db is not None
+        ]
+        crossover_signatures = {
+            (
+                d.project.crossover.topology,
+                round(d.project.crossover.crossover_hz, 1),
+                d.tweeter.model if d.tweeter else "",
+            )
+            for d in crossover_group
+        }
+        crossover_values = [
+            value for d in crossover_group
+            if (value := self._curve_value_at(d, selected_frequency)) is not None
+        ]
+
+        dsp_text = "keine belastbaren Hubdaten"
+        response = current.bundle.vented_response or current.bundle.sealed_response
+        xmax = current.bundle.project.driver.xmax_mm
+        if (
+            response is not None
+            and response.excursion_mm is not None
+            and xmax
+            and response.frequencies_hz[0] <= selected_frequency <= response.frequencies_hz[-1]
+        ):
+            excursion = float(np.interp(
+                np.log10(selected_frequency),
+                np.log10(response.frequencies_hz),
+                response.excursion_mm,
+            ))
+            if excursion > 0:
+                headroom = 20*np.log10(xmax/excursion)
+                dsp_text = (
+                    f"Hubgrenze erreicht ({headroom:.1f} dB Reserve)"
+                    if headroom <= 0
+                    else f"bis ca. +{headroom:.1f} dB Hubreserve"
+                )
+
+        self.target_curve.set_component_influence({
+            "enclosure": self._span_label(
+                enclosure_values, len(enclosure_signatures)
+            ),
+            "driver": self._span_label(driver_values, len(driver_signatures)),
+            "crossover": self._span_label(
+                crossover_values, len(crossover_signatures)
+            ),
+            "dsp": dsp_text,
+        })
+
+        notes: list[str] = []
+        outside = self.target_curve.outside_envelope()
+        if outside is not None:
+            notes.append(
+                f"Ziel bei {outside[0]:.0f} Hz liegt etwa {outside[1]:.1f} dB außerhalb "
+                "der aktuell berechneten Variantenhülle."
+            )
+
+        if mode == "crossover" and not candidates:
+            notes.append(
+                "Für eine belastbare Weichen-/Fullrange-Aussage fehlen FRD-Daten. "
+                "Vorhandene T/S-Daten reichen dafür absichtlich nicht."
+            )
+        elif mode == "dsp":
+            response = current.bundle.vented_response or current.bundle.sealed_response
+            xmax = current.bundle.project.driver.xmax_mm
+            if response is not None and response.excursion_mm is not None and xmax:
+                margins: list[tuple[float, float]] = []
+                rf = np.asarray(response.frequencies_hz, dtype=float)
+                ex = np.asarray(response.excursion_mm, dtype=float)
+                for frequency, target_db in self.target_curve.points():
+                    if frequency < rf[0] or frequency > rf[-1] or target_db <= 0:
+                        continue
+                    excursion = float(np.interp(np.log10(frequency), np.log10(rf), ex))
+                    if excursion > 0:
+                        headroom_db = 20*np.log10(xmax/excursion)
+                        margins.append((frequency, headroom_db-target_db))
+                if margins:
+                    frequency, margin = min(margins, key=lambda item: item[1])
+                    if margin < 0:
+                        notes.append(
+                            f"DSP-Anhebung bei {frequency:.0f} Hz überschreitet die berechnete "
+                            f"Hubreserve um etwa {-margin:.1f} dB. Gehäuse/Chassis ändern statt nur boosten."
+                        )
+                    else:
+                        notes.append(
+                            f"Tiefton-DSP bleibt in den geprüften Punkten mindestens {margin:.1f} dB "
+                            "unter der berechneten Xmax-Grenze."
+                        )
+            else:
+                notes.append("DSP-Headroom ist ohne belastbare Hubdaten nicht quantifizierbar.")
+
+        if mode in {"overall", "enclosure", "driver", "influence"} and current_curve is not None:
+            cf, cv = self._relative_curve(current_curve[0], current_curve[1])
+            best: tuple[float, int, float, float] | None = None
+            targets = self.target_curve.points()
+            for alt_index, alternative in enumerate(self.designs):
+                if alternative is current:
+                    continue
+                if mode == "enclosure" and alternative.woofer.model != current_driver:
+                    continue
+                if mode == "driver" and (
+                    alternative.project.enclosure.enclosure_type != current_enclosure
+                ):
+                    continue
+                alt_curve = self._sound_curve(alternative)
+                if alt_curve is None:
+                    continue
+                af, av = self._relative_curve(alt_curve[0], alt_curve[1])
+                for frequency, target_db in targets:
+                    if (
+                        not cf.size or not af.size
+                        or frequency < cf[0] or frequency > cf[-1]
+                        or frequency < af[0] or frequency > af[-1]
+                    ):
+                        continue
+                    current_db = float(np.interp(np.log10(frequency), np.log10(cf), cv))
+                    alternative_db = float(np.interp(np.log10(frequency), np.log10(af), av))
+                    improvement = abs(current_db-target_db)-abs(alternative_db-target_db)
+                    if improvement > 1.0 and (best is None or improvement > best[0]):
+                        best = (improvement, alt_index, frequency, alternative_db)
+            if best is not None:
+                improvement, alt_index, frequency, _alternative_db = best
+                alternative = self.designs[alt_index]
+                enclosure = registry.get(
+                    alternative.project.enclosure.enclosure_type
+                ).label
+                change = (
+                    f"anderes Gehäuse ({enclosure})"
+                    if alternative.woofer.model == current_driver
+                    else f"anderes Chassis ({alternative.woofer.model})"
+                )
+                notes.append(
+                    f"Bei {frequency:.0f} Hz liegt {alternative.label} rund {improvement:.1f} dB "
+                    f"näher am Ziel – hier wäre {change} die bessere Richtung."
+                )
+
+        if not notes:
+            notes.append(
+                f"{len(curves)} berechnete Kurve(n) bilden die aktuell belegbare Vergleichsbasis."
+            )
+        self.target_curve.set_influence_summary(" ".join(notes))
 
     def _set_state(self, role: str, text: str) -> None:
         """Status line with glyph and text (colour is never the only signal) and a role-coloured edge."""
@@ -301,7 +686,23 @@ class AssistantWindow(QMainWindow):
         self.variant_list.clear()
         self.variant_list.setVisible(False)
         self.comparison.setRowCount(0)
+        self.comparison.setVisible(False)
+        self.all_columns.blockSignals(True)
+        self.all_columns.setChecked(False)
+        self.all_columns.blockSignals(False)
+        self.variant_cards.set_designs(())
         self.details.clear()
+        self.details_toggle.blockSignals(True)
+        self.details_toggle.setChecked(False)
+        self.details_toggle.blockSignals(False)
+        self.details.setVisible(False)
+        self.details_toggle.setText("Warum empfohlen? · Technische Details")
+        self.selected_title.setText("Noch kein Entwurf")
+        self.recommendation_summary.setText(
+            "Nach der Berechnung stehen hier die wichtigsten Gründe für die Empfehlung."
+        )
+        self.empty_guide.setText(self._empty_guide_default)
+        self.empty_guide.setVisible(True)
         if hasattr(self, "preview"):
             self.preview.set_bundle(None)
         self.kpi_row.setVisible(False)
@@ -315,6 +716,11 @@ class AssistantWindow(QMainWindow):
         self.canvas.draw_idle()
         if hasattr(self, "target_curve"):
             self.target_curve.clear_actual()
+            self.target_curve.set_candidate_curves(())
+            self.target_curve.set_component_influence({})
+            self.target_curve.set_influence_summary(
+                "Berechne Varianten; danach zeigt die Hülle nur tatsächlich gefundene Lösungen."
+            )
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
 
@@ -341,7 +747,7 @@ class AssistantWindow(QMainWindow):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         card = QFrame()
         card.setObjectName("card")
-        card.setMinimumWidth(360)
+        card.setMinimumWidth(320)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 12, 20, 16)
         layout.setSpacing(8)
@@ -353,29 +759,44 @@ class AssistantWindow(QMainWindow):
         self.project_name.setPlaceholderText("Projektname")
         layout.addWidget(self.project_name)
 
-        method_box = QGroupBox("Entwurfsweg")
-        method_form = self._form(method_box)
+        method_box = QGroupBox("Wie möchtest du starten?")
+        method_layout = QVBoxLayout(method_box)
+        method_layout.setContentsMargins(0, 12, 0, 0)
         self.design_method = QComboBox()
         self.design_method.addItem("Klassisch konfigurieren", "classic")
         self.design_method.addItem("Über Zielkurve konfigurieren", "target_curve")
-        method_form.addRow("Methode", self.design_method)
-        self.method_hint = QLabel(
-            "Klassisch: Typ, Bauraum und Klangprofil vorgeben. "
-            "Zielkurve: gewünschten Verlauf unter „Klang & Simulation“ formen; "
-            "der Solver bevorzugt Varianten, die im berechenbaren Bereich dazu passen."
-        )
-        self.method_hint.setWordWrap(True)
-        self.method_hint.setObjectName("caption")
-        method_form.addRow(self.method_hint)
+        self.design_method.setVisible(False)
+        self.method_cards = ChoiceGrid((
+            ("classic", "Klassisch", "Typ · Bauraum · Klangprofil"),
+            ("target_curve", "Zielkurve", "Klang formen · passenden Entwurf suchen"),
+        ), columns=1)
+        self.method_cards.set_value("classic")
+        self.method_cards.valueChanged.connect(self._set_design_method_value)
+        method_layout.addWidget(self.method_cards)
         layout.addWidget(method_box)
 
         step1 = QGroupBox("1 · Was möchtest du bauen?")
-        form1 = self._form(step1)
+        step1_layout = QVBoxLayout(step1)
+        step1_layout.setContentsMargins(0, 12, 0, 0)
         self.speaker_type = QComboBox()
         for name in SPEAKER_TYPES:
             self.speaker_type.addItem(name)
         self.speaker_type.setCurrentText("Regallautsprecher")
-        form1.addRow("Typ", self.speaker_type)
+        self.speaker_cards = ChoiceGrid((
+            ("Regallautsprecher", "Regal", "kompakt · wohnraumtauglich"),
+            ("Standlautsprecher", "Stand", "mehr Volumen · mehr Tiefgang"),
+            ("Subwoofer", "Subwoofer", "Tiefton und Pegel"),
+            ("Desktop-Lautsprecher", "Desktop", "Nahfeld · kompakt"),
+            ("Studio-Monitor", "Monitor", "präzise · kontrolliert"),
+            ("Custom", "Custom", "freie Vorgaben"),
+        ))
+        self.speaker_cards.set_value("Regallautsprecher")
+        self.speaker_cards.valueChanged.connect(self._set_speaker_type_value)
+        step1_layout.addWidget(self.speaker_cards)
+        exact_type = QWidget()
+        exact_form = self._form(exact_type)
+        exact_form.addRow("Weitere / genaue Bauart", self.speaker_type)
+        step1_layout.addWidget(exact_type)
         self.enclosure = QComboBox()
         self.enclosure.addItem("Automatisch wählen", "auto")
         for entry in registry.all():
@@ -415,14 +836,28 @@ class AssistantWindow(QMainWindow):
         hint = QLabel("Die tatsächlichen Maße werden innerhalb dieser Grenzen gewählt. 0 l = ohne Volumengrenze.")
         hint.setWordWrap(True)
         form2.addRow(hint)
+        self.dimension_preview = DimensionPreview(self.mode)
+        form2.addRow(self.dimension_preview)
         layout.addWidget(step2)
 
         step3 = QGroupBox("3 · Gewünschter Klang")
-        form3 = self._form(step3)
+        step3_layout = QVBoxLayout(step3)
+        step3_layout.setContentsMargins(0, 12, 0, 0)
         self.profile = QComboBox()
         for item in PROFILES.values():
             self.profile.addItem(item.label, item.id)
-        form3.addRow("Klangprofil", self.profile)
+        self.profile.setVisible(False)
+        self.profile_cards = ChoiceGrid((
+            ("neutral", "Neutral", "ausgewogen · universell"),
+            ("deep_bass", "Tiefbass", "tiefer · voller"),
+            ("punch", "Punch", "Kickbass · Dynamik"),
+            ("compact", "Kompakt", "kleiner vor maximalem Tiefgang"),
+            ("precise", "Studio", "präzise · geringe Verzögerung"),
+            ("max_spl", "Max SPL", "Pegel · Reserve"),
+        ))
+        self.profile_cards.set_value("neutral")
+        self.profile_cards.valueChanged.connect(self._set_profile_value)
+        step3_layout.addWidget(self.profile_cards)
         layout.addWidget(step3)
 
         step3b = QGroupBox("Gehäuse, Chassis und Kosten")
@@ -430,6 +865,9 @@ class AssistantWindow(QMainWindow):
         form3b.addRow("Gehäuseprinzip", self.enclosure)
         form3b.addRow("Chassis / Preis", self.driver_choice)
         form3b.addRow("Gesamtbudget bis", self.budget)
+        library_button = QPushButton("Komponentenbibliothek öffnen")
+        library_button.clicked.connect(self._library)
+        form3b.addRow(library_button)
         layout.addWidget(step3b)
 
         step4 = QGroupBox("4 · Weitere Anforderungen (optional)")
@@ -509,89 +947,140 @@ class AssistantWindow(QMainWindow):
     def _build_results(self) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
         self.state = QLabel()
         self.state.setObjectName("statusLine")
         self.state.setWordWrap(True)
         layout.addWidget(self.state)
-        self._set_state("info", "Wähle Typ, Bauraum und Klangprofil. Dann klicke auf „Entwurf erstellen“.")
-        self.tabs = QTabWidget()
+        self._set_state(
+            "info",
+            "Starte links mit Bauart, Bauraum und Klang – oder forme direkt eine Zielkurve.",
+        )
 
+        self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+
+        # PLANEN – visualization first, technical detail on demand.
         overview = QWidget()
         ov = QVBoxLayout(overview)
+        ov.setContentsMargins(0, 8, 0, 0)
+        self._empty_guide_default = (
+            "<h2>Dein Lautsprecher entsteht in drei Schritten</h2>"
+            "<p><b>1.</b> Bauart wählen &nbsp; <b>2.</b> Bauraum festlegen &nbsp; "
+            "<b>3.</b> Klangziel wählen oder Zielkurve formen.</p>"
+            "<p>Nach der Berechnung erscheint hier der empfohlene Entwurf mit "
+            "Visualisierung, Kennwerten und nachvollziehbarer Begründung.</p>"
+        )
+        self.empty_guide = QLabel(self._empty_guide_default)
+        self.empty_guide.setWordWrap(True)
+        self.empty_guide.setObjectName("emptyState")
+        ov.addWidget(self.empty_guide)
+
+        # Hidden selector keeps the established selection API and project logic.
+        self.variant_list = QListWidget()
+        self.variant_list.setVisible(False)
+        self.variant_list.currentRowChanged.connect(self._select_variant)
+
+        result_body = QWidget()
+        self.result_body = result_body
+        result_layout = QHBoxLayout(result_body)
+        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.setSpacing(16)
+
+        self.preview = CabinetPreview(self.mode)
+        result_layout.addWidget(self.preview, 7)
+
+        side = QFrame()
+        side.setObjectName("resultSidebar")
+        side_layout = QVBoxLayout(side)
+        side_layout.setContentsMargins(14, 14, 14, 14)
+        side_layout.setSpacing(8)
+        self.selected_title = QLabel("Noch kein Entwurf")
+        self.selected_title.setObjectName("section")
+        self.selected_title.setWordWrap(True)
+        side_layout.addWidget(self.selected_title)
+
         self.kpi_row = QWidget()
-        kpi_layout = QHBoxLayout(self.kpi_row)
+        kpi_layout = QVBoxLayout(self.kpi_row)
         kpi_layout.setContentsMargins(0, 0, 0, 0)
+        kpi_layout.setSpacing(6)
         self.kpis: dict[str, QLabel] = {}
         for key in ("Maße", "Tiefbass F3", "Preisstatus", "Datenqualität", "Prüfstatus"):
             label = QLabel()
             label.setObjectName("kpi")
             label.setWordWrap(True)
-            kpi_layout.addWidget(label, 1)
+            kpi_layout.addWidget(label)
             self.kpis[key] = label
         self.kpi_row.setVisible(False)
-        ov.addWidget(self.kpi_row)
-        self.variant_list = QListWidget()
-        self.variant_list.setVisible(False)
-        self.variant_list.setMaximumHeight(125)
-        self.variant_list.currentRowChanged.connect(self._select_variant)
-        ov.addWidget(self.variant_list)
+        side_layout.addWidget(self.kpi_row)
 
-        result_body = QWidget()
-        result_layout = QHBoxLayout(result_body)
-        result_layout.setContentsMargins(0, 0, 0, 0)
-        result_layout.setSpacing(14)
-        self.preview = CabinetPreview(self.mode)
-        result_layout.addWidget(self.preview, 5)
+        self.recommendation_summary = QLabel(
+            "Nach der Berechnung stehen hier die wichtigsten Gründe für die Empfehlung."
+        )
+        self.recommendation_summary.setObjectName("recommendation")
+        self.recommendation_summary.setWordWrap(True)
+        side_layout.addWidget(self.recommendation_summary)
+
+        self.details_toggle = QPushButton("Warum empfohlen? · Technische Details")
+        self.details_toggle.setCheckable(True)
+        self.details_toggle.toggled.connect(self._toggle_details)
+        side_layout.addWidget(self.details_toggle)
         self.details = QTextBrowser()
-        result_layout.addWidget(self.details, 6)
-        ov.addWidget(result_body, 1)
-        self.tabs.addTab(overview, "Entwürfe")
+        self.details.setVisible(False)
+        self.details.setMinimumHeight(150)
+        side_layout.addWidget(self.details, 1)
+        result_layout.addWidget(side, 4)
 
+        ov.addWidget(result_body, 1)
+        self.tabs.addTab(overview, "Planen")
+
+        # VARIANTEN – cards first, full engineering table only on request.
+        compare = QWidget()
+        compare_layout = QVBoxLayout(compare)
+        compare_layout.setContentsMargins(0, 8, 0, 0)
+        compare_intro = QLabel(
+            "Vergleiche die wichtigsten Trade-offs zuerst. Die vollständige technische "
+            "Tabelle ist optional."
+        )
+        compare_intro.setObjectName("caption")
+        compare_intro.setWordWrap(True)
+        compare_layout.addWidget(compare_intro)
+        self.variant_cards = VariantCards()
+        self.variant_cards.selected.connect(self._select_variant_from_card)
+        compare_layout.addWidget(self.variant_cards)
+
+        self.all_columns = QCheckBox("Alle technischen Daten anzeigen")
+        self.all_columns.toggled.connect(self._toggle_technical_table)
+        compare_layout.addWidget(self.all_columns)
         self.comparison = QTableWidget()
         self.comparison.setColumnCount(11)
-        self.comparison.setHorizontalHeaderLabels(("Variante", "Gehäuse", "B × H × T [mm]",
-            "Netto [l]", "F3 [Hz]", "Bewertung", "Chassiswahl", "Chassis [€]",
-            "Gesamt inkl. Reserve [€]", "Budget frei [€]", "Hinweise"))
+        self.comparison.setHorizontalHeaderLabels((
+            "Variante", "Gehäuse", "B × H × T [mm]", "Netto [l]", "F3 [Hz]",
+            "Bewertung", "Chassiswahl", "Chassis [€]", "Gesamt inkl. Reserve [€]",
+            "Budget frei [€]", "Hinweise",
+        ))
         self.comparison.setAlternatingRowColors(True)
         self.comparison.setWordWrap(True)
         self.comparison.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.comparison.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.comparison.cellClicked.connect(lambda row, _column: self.variant_list.setCurrentRow(row))
-        compare = QWidget()
-        compare_layout = QVBoxLayout(compare)
-        self.all_columns = QCheckBox("Alle Spalten anzeigen")
-        self.all_columns.toggled.connect(self._apply_column_choice)
-        compare_layout.addWidget(self.all_columns)
+        self.comparison.cellClicked.connect(
+            lambda row, _column: self.variant_list.setCurrentRow(row)
+        )
+        self.comparison.setVisible(False)
         compare_layout.addWidget(self.comparison, 1)
-        self.tabs.addTab(compare, "Variantenvergleich")
+        self.tabs.addTab(compare, "Varianten")
 
-        self.drawing_tabs = QTabWidget()
-        self.drawing_tabs.setDocumentMode(True)
-        self.svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.svg, "Gesamtzeichnung")
-        self.dimension_svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.dimension_svg, "Maßblatt")
-        self.internal_svg = ZoomableSvgView()
-        self.drawing_tabs.addTab(self.internal_svg, "Innenaufbau")
-        panel = QWidget()
-        panel_layout = QVBoxLayout(panel)
-        self.panel_choice = QComboBox()
-        self.panel_choice.currentIndexChanged.connect(self._show_panel_sheet)
-        panel_layout.addWidget(self.panel_choice)
-        self.panel_svg = ZoomableSvgView()
-        panel_layout.addWidget(self.panel_svg, 1)
-        self.drawing_tabs.addTab(panel, "Einzelteilplan")
-        self.tabs.addTab(self.drawing_tabs, "Zeichnungen")
-
+        # KLANG – target-first workflow plus detailed technical charts.
         simulation = QWidget()
         self.sound_tab = simulation
         sim_layout = QVBoxLayout(simulation)
+        sim_layout.setContentsMargins(0, 8, 0, 0)
         sound_views = QTabWidget()
         sound_views.setDocumentMode(True)
-
         self.target_curve = TargetCurveEditor(self.mode)
         sound_views.addTab(self.target_curve, "Zielkurve")
-
         technical = QWidget()
         technical_layout = QVBoxLayout(technical)
         self.more_charts = QCheckBox("Weitere Diagramme (Port, Gruppenlaufzeit)")
@@ -601,29 +1090,86 @@ class AssistantWindow(QMainWindow):
         self.canvas = FigureCanvasQTAgg(self.figure)
         technical_layout.addWidget(self.canvas, 1)
         sound_views.addTab(technical, "Technische Simulation")
-
         sim_layout.addWidget(sound_views, 1)
         self.tabs.addTab(simulation, "Klang & Simulation")
 
+        # ZEICHNUNGEN – explicit screen reading vs. print-sheet mode.
+        drawing_root = QWidget()
+        drawing_layout = QVBoxLayout(drawing_root)
+        drawing_layout.setContentsMargins(0, 8, 0, 0)
+        drawing_bar = QHBoxLayout()
+        drawing_bar.addWidget(QLabel("Darstellung"))
+        self.drawing_mode = QComboBox()
+        self.drawing_mode.addItem("Lesemodus · groß und direkt lesbar", "read")
+        self.drawing_mode.addItem("Druckblatt · Seitenlayout prüfen", "print")
+        self.drawing_mode.currentIndexChanged.connect(self._drawing_mode_changed)
+        drawing_bar.addWidget(self.drawing_mode)
+        self.drawing_hint = QLabel("Lesemodus nutzt automatisch die verfügbare Breite.")
+        self.drawing_hint.setObjectName("caption")
+        drawing_bar.addWidget(self.drawing_hint, 1)
+        drawing_layout.addLayout(drawing_bar)
+
+        self.drawing_tabs = QTabWidget()
+        self.drawing_tabs.setDocumentMode(True)
+        self.drawing_tabs.currentChanged.connect(self._drawing_view_changed)
+        self.svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.svg, "Front")
+        self.dimension_svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.dimension_svg, "Seite")
+        self.internal_svg = ZoomableSvgView()
+        self.drawing_tabs.addTab(self.internal_svg, "Schnitt")
+        panel = QWidget()
+        panel_layout = QVBoxLayout(panel)
+        self.panel_choice = QComboBox()
+        self.panel_choice.currentIndexChanged.connect(self._show_panel_sheet)
+        panel_layout.addWidget(self.panel_choice)
+        self.panel_svg = ZoomableSvgView()
+        panel_layout.addWidget(self.panel_svg, 1)
+        self.drawing_tabs.addTab(panel, "Einzelteile")
+        drawing_layout.addWidget(self.drawing_tabs, 1)
+        self.tabs.addTab(drawing_root, "Zeichnungen")
+
+        # FERTIGUNG – BOM, cutting and export live in one contextual workspace.
+        manufacturing = QWidget()
+        manufacturing_layout = QVBoxLayout(manufacturing)
+        manufacturing_layout.setContentsMargins(0, 8, 0, 0)
+        self.manufacturing_tabs = QTabWidget()
+        self.manufacturing_tabs.setDocumentMode(True)
         self.bom_view = QTextBrowser()
-        self.tabs.addTab(self.bom_view, "Stückliste")
+        self.manufacturing_tabs.addTab(self.bom_view, "Stückliste")
         self.cutting_panel = CuttingPanel(self.settings)
-        self.tabs.addTab(self.cutting_panel, "Zuschnitt")
-        self.tabs.currentChanged.connect(self._result_tab_changed)
-        layout.addWidget(self.tabs, 1)
-        actions = QHBoxLayout()
-        self.save_button = QPushButton("Projekt speichern")
-        self.save_button.clicked.connect(self._save)
-        self.save_button.setVisible(False)  # Datei-Menü + Ctrl+S
-        self.load_button = QPushButton("Projekt laden")
-        self.load_button.clicked.connect(self._load)
-        self.load_button.setVisible(False)  # Datei-Menü + Ctrl+O
+        self.manufacturing_tabs.addTab(self.cutting_panel, "Zuschnitt")
+        export_page = QWidget()
+        export_layout = QVBoxLayout(export_page)
+        export_title = QLabel("Fertigungsunterlagen")
+        export_title.setObjectName("section")
+        export_layout.addWidget(export_title)
+        export_info = QLabel(
+            "Exportiert die geprüften Zeichnungen, DXF/PDF, Stückliste und weitere "
+            "Fertigungsdaten des aktuell ausgewählten Entwurfs."
+        )
+        export_info.setWordWrap(True)
+        export_info.setObjectName("caption")
+        export_layout.addWidget(export_info)
+        export_layout.addStretch(1)
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
         self.export_button.setObjectName("primary")
         self.export_button.clicked.connect(self._export)
-        actions.addStretch(1)
-        actions.addWidget(self.export_button)
-        layout.addLayout(actions)
+        export_layout.addWidget(self.export_button)
+        self.manufacturing_tabs.addTab(export_page, "Export")
+        manufacturing_layout.addWidget(self.manufacturing_tabs, 1)
+        self.tabs.addTab(manufacturing, "Fertigung")
+
+        self.tabs.currentChanged.connect(self._result_tab_changed)
+        layout.addWidget(self.tabs, 1)
+
+        # File operations remain available through menu/shortcuts and autosave.
+        self.save_button = QPushButton("Projekt speichern")
+        self.save_button.clicked.connect(self._save)
+        self.save_button.setVisible(False)
+        self.load_button = QPushButton("Projekt laden")
+        self.load_button.clicked.connect(self._load)
+        self.load_button.setVisible(False)
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
         return container
@@ -649,7 +1195,9 @@ class AssistantWindow(QMainWindow):
             preferred_driver=self.driver_choice.currentData(),
             material=self.material.currentText() if optional else "Birke Multiplex",
             target_curve_points=(self.target_curve.points()
-                if self.design_method.currentData() == "target_curve" else None))
+                if self.design_method.currentData() == "target_curve" else None),
+            target_curve_preset=self.target_curve.preset_id(),
+            target_curve_mode=self.target_curve.analysis_mode())
 
     def create_design(self) -> None:
         if self.worker and self.worker.isRunning():
@@ -669,6 +1217,12 @@ class AssistantWindow(QMainWindow):
         self.progress.setValue(0)
         self.progress.setVisible(True)
         self.progress_label.setText("Varianten werden berechnet… 0 %")
+        self.empty_guide.setVisible(True)
+        self.empty_guide.setText(
+            "<h2>Entwurf wird berechnet</h2>"
+            "<p>Chassis und Gehäusefamilien werden geprüft. Danach folgen Geometrie, "
+            "akustische Grenzen und Variantenvergleich.</p>"
+        )
         self._set_state("info", "Komponenten werden geprüft und Gehäusevarianten simuliert…")
         self.worker.start()
 
@@ -683,6 +1237,15 @@ class AssistantWindow(QMainWindow):
     def _progress(self, value: int) -> None:
         self.progress.setValue(value)
         self.progress_label.setText(f"Varianten werden berechnet… {value} %")
+        if value < 30:
+            step = "Chassis und Gehäusefamilien werden geprüft."
+        elif value < 70:
+            step = "Geometrie und akustische Varianten werden simuliert."
+        else:
+            step = "Grenzen, Kosten und Empfehlungen werden verglichen."
+        self.empty_guide.setText(
+            f"<h2>Entwurf wird berechnet · {value} %</h2><p>{step}</p>"
+        )
 
     def _cancel(self) -> None:
         if self.worker:
@@ -702,8 +1265,9 @@ class AssistantWindow(QMainWindow):
         if result.status == "ok":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
             self._set_state("success", f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
-            self.variant_list.setVisible(True)
-            self.variant_list.setFixedHeight(28 * len(result.designs) + 8)
+            self.variant_list.setVisible(False)
+            self.empty_guide.setVisible(False)
+            self.variant_cards.set_designs(result.designs)
             self.comparison.setRowCount(len(result.designs))
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
@@ -730,14 +1294,26 @@ class AssistantWindow(QMainWindow):
             self.variant_list.setCurrentRow(0)
         elif result.status == "impossible":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
-            self._set_state("danger", "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. Änderungsvorschläge stehen unter „Entwürfe“.")
+            self._set_state(
+                "danger",
+                "Mit diesen Vorgaben ist kein sinnvoller Entwurf möglich. "
+                "Die wirksamsten Änderungen stehen unter „Planen“.",
+            )
             reasons = "".join(f"<li>{escape(item)}</li>" for item in result.rejection_reasons)
             changes = "".join(f"<li>{escape(item)}</li>" for item in result.suggested_constraint_changes)
             self._clear_results()
             self._stale = True
-            self.details.setHtml(f"<h2>Nicht machbar</h2><p>Technische Meldungen des Berechnungskerns "
-                f"(Originaltext, daher teils englisch):</p><b>Gründe</b><ul>{reasons}</ul>"
-                f"<b>Mögliche Änderungen</b><ul>{changes}</ul>")
+            self.empty_guide.setVisible(False)
+            self.selected_title.setText("Nicht machbar")
+            self.recommendation_summary.setText(
+                "Die aktuellen Randbedingungen schließen alle geprüften Varianten aus. "
+                "Öffne die technischen Details für Ursachen und konkrete Änderungsvorschläge."
+            )
+            self.details.setHtml(
+                f"<h2>Nicht machbar</h2><b>Gründe</b><ul>{reasons}</ul>"
+                f"<b>Mögliche Änderungen</b><ul>{changes}</ul>"
+            )
+            self.details_toggle.setChecked(True)
             self.tabs.setCurrentIndex(0)
             self.save_button.setEnabled(False)
             self.export_button.setEnabled(False)
@@ -752,6 +1328,11 @@ class AssistantWindow(QMainWindow):
         self.progress.setVisible(False)
         self._clear_results()
         self.progress_label.setText("Berechnung fehlgeschlagen")
+        self.empty_guide.setText(
+            "<h2>Berechnung konnte nicht abgeschlossen werden</h2>"
+            "<p>Prüfe die zuletzt geänderten Vorgaben. Technische Details stehen in der "
+            "Statusmeldung und im Protokoll unter Hilfe.</p>"
+        )
         self._set_state("danger", f"{message} Nächster Schritt: Vorgaben prüfen oder die Protokolldatei (Hilfe) ansehen.")
 
     def _current(self) -> SpeakerDesign | None:
@@ -763,6 +1344,16 @@ class AssistantWindow(QMainWindow):
             return
         design = self.designs[index]
         bundle = design.bundle
+        self.variant_cards.select(index)
+        fade_in(self.result_body, reduced=self.reduced_motion)
+        self.empty_guide.setVisible(False)
+        self.selected_title.setText(design.label)
+        reasons = tuple(design.reasons[:3])
+        self.recommendation_summary.setText(
+            "Warum passend:\n" + "\n".join(f"• {reason}" for reason in reasons)
+            if reasons else "Die Variante erfüllt die aktuell bewertbaren Randbedingungen."
+        )
+        self.details_toggle.setChecked(False)
         self.preview.set_bundle(bundle)
         self.cutting_panel.set_bundle(bundle)
         c = bundle.cabinet
@@ -826,16 +1417,14 @@ class AssistantWindow(QMainWindow):
             f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine Hinweise"))
         self.kpi_row.setVisible(True)
         self.comparison.selectRow(index)
-        self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
-        self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
-        self.internal_svg.load(QByteArray(render_internal_dimensions_svg(bundle).encode("utf-8")))
         self.panel_choice.blockSignals(True)
         self.panel_choice.clear()
         for surface in panel_sheet_surfaces(bundle):
             self.panel_choice.addItem({"front": "Frontplatte", "back": "Rückwand",
                                        "partition": "Trennwand"}[surface], surface)
         self.panel_choice.blockSignals(False)
-        self._show_panel_sheet(0)
+        self.panel_choice.setCurrentIndex(0)
+        self._load_drawing_views(bundle)
         subtotal, missing = priced_subtotal(design.bom)
         planned_total = budget_cost(design.bom)
         rows = "".join("<tr><td>"+escape(item.reference)+"</td><td>"+
@@ -877,10 +1466,6 @@ class AssistantWindow(QMainWindow):
             return
         bundle = design.bundle
         r = bundle.vented_response or bundle.sealed_response
-        if r is not None:
-            self.target_curve.set_actual_curve(r.frequencies_hz, r.response_db)
-        else:
-            self.target_curve.clear_actual()
         tokens = theme_tokens(self.mode)
         with matplotlib.rc_context(chart_rc(self.mode)):
             self.figure.clear()
@@ -920,6 +1505,7 @@ class AssistantWindow(QMainWindow):
                         ax.axhline(limit[0], color=tokens["textPrimary"], linestyle="--", linewidth=1.2, label=limit[1])
                         ax.legend(loc="upper right")
         self.canvas.draw_idle()
+        self._update_sound_lab()
 
     def _show_panel_sheet(self, index: int) -> None:
         current = self._current()
@@ -929,28 +1515,31 @@ class AssistantWindow(QMainWindow):
         if surface:
             self.panel_svg.load(QByteArray(render_panel_sheet_svg(
                 current.bundle, surface).encode("utf-8")))
+            self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
     def set_focus_mode(self, on: bool) -> None:
         """Collapse the input column so drawings and results get the full width."""
         sizes = self.split.sizes()
         total = sum(sizes) or 1
-        target = 0 if on else max(420, round(total * 0.33))
-        self.wizard_panel.setMinimumWidth(0 if on else 360)
+        target = 0 if on else max(330, round(total * 0.28))
+        self.wizard_panel.setMinimumWidth(0 if on else 320)
 
         def apply(width: int) -> None:
             self.split.setSizes([width, total - width])
 
         def done() -> None:
             self.wizard_panel.setVisible(not on)
-            for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
-                view.fit()  # fit exactly once after the transition
+            self._drawing_view_changed(self.drawing_tabs.currentIndex())
 
         if not on:
             self.wizard_panel.setVisible(True)
         animate_value(self.split, sizes[0], target, apply, reduced=self.reduced_motion, finished=done)
         self.focus_button.setText("Eingaben zeigen" if on else "Zeichnung groß anzeigen")
         if on:
-            self.tabs.setCurrentIndex(2)
+            for index in range(self.tabs.count()):
+                if self.tabs.tabText(index) == "Zeichnungen":
+                    self.tabs.setCurrentIndex(index)
+                    break
 
     def _expert(self) -> None:
         if self.expert_window is None:
@@ -975,6 +1564,24 @@ class AssistantWindow(QMainWindow):
         self.variant_list.clear()
         self.comparison.setRowCount(0)
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
+        self.variant_cards.set_designs(self.designs)
+        self.empty_guide.setVisible(False)
+        project = bundle.project
+        loaded_method = "target_curve" if project.target_curve_points else "classic"
+        self.design_method.blockSignals(True)
+        self.design_method.setCurrentIndex(self.design_method.findData(loaded_method))
+        self.design_method.blockSignals(False)
+        self._sync_method_cards()
+        self.create_button.setText(
+            "Passenden Entwurf zur Zielkurve berechnen"
+            if loaded_method == "target_curve" else "Entwurf erstellen"
+        )
+        if project.target_curve_points:
+            self.target_curve.restore_state(
+                project.target_curve_points,
+                preset=project.target_curve_preset,
+                analysis_mode=project.target_curve_mode,
+            )
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)
         self._set_state("info", "Expertenentwurf übernommen")
@@ -1060,6 +1667,23 @@ class AssistantWindow(QMainWindow):
                 package = export_project_package(design.bundle, folder,
                     self.cutting_panel.settings(design.project.material))
                 self.statusBar().showMessage(f"Fertigungsunterlagen: {package}")
+                dialog = QMessageBox(self)
+                dialog.setWindowTitle("Fertigungsunterlagen bereit")
+                dialog.setIcon(QMessageBox.Icon.Information)
+                dialog.setText("Export abgeschlossen")
+                dialog.setInformativeText(
+                    f"Die Fertigungsunterlagen wurden erstellt.\n{package}"
+                )
+                open_button = dialog.addButton(
+                    "Ordner öffnen", QMessageBox.ButtonRole.ActionRole
+                )
+                dialog.addButton("Fertig", QMessageBox.ButtonRole.AcceptRole)
+                dialog.exec()
+                if dialog.clickedButton() is open_button:
+                    target = Path(package)
+                    QDesktopServices.openUrl(
+                        QUrl.fromLocalFile(str(target if target.is_dir() else target.parent))
+                    )
             except (OSError, ValueError) as exc:
                 LOG.warning("Export fehlgeschlagen: %s", exc)
                 QMessageBox.warning(self, "Export fehlgeschlagen", str(exc))

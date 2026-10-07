@@ -25,3 +25,55 @@ Tokens: `src/lautsprecher_konstruktion/ui/tokens.py`; Abgleich per Test mit `doc
 - **Keine Produktbilder, Icons-Sprite und Autoplay:** Für ein Konstruktionswerkzeug nicht vorgesehen; Symbole nur als Textglyphen.
 - **Navigation:** Reiterleiste statt Seitenleiste.
 - Windows-DPI-Skalierung ist nicht auf Windows geprüft (siehe `docs/application/CODEX_TESTUEBERGABE.md`).
+
+
+## V3.2 Planer-Informationsarchitektur
+
+Die geführte Anwendung ist ab V3.2 nicht mehr als dauerhaftes Formular mit technischen
+Ergebnisreitern aufgebaut, sondern als Produktplaner:
+
+- **Planen** – große Gehäusevisualisierung, fünf Kernkennwerte, kurze Empfehlung und
+  aufklappbare technische Herleitung.
+- **Varianten** – Entscheidungskarten für Empfehlung, kompaktere, tiefere und günstigere
+  reale Kandidaten. Die Volltabelle ist sekundär.
+- **Klang & Simulation** – Fullrange-Zielkurve, Presets, parametrische Zielbänder,
+  Komponenten-/Einflussmodi und technische Detailcharts.
+- **Zeichnungen** – getrennter bildschirmoptimierter Lesemodus (Front/Seite/Schnitt)
+  und Druckblattmodus (Gesamt-/Maß-/Innenblatt).
+- **Fertigung** – Stückliste, Zuschnitt und Export an einem Ort.
+
+Der Projektstart verwendet große Auswahlkarten für Entwurfsweg, Bauart und Klangprofil.
+Maximalmaße erhalten eine proportionale Vorschau. Seltene technische Vorgaben bleiben
+unter **Weitere Anforderungen**.
+
+### Klang-Labor
+
+Die Zielkurve bleibt ein Sollwert. Sie darf keine nicht vorhandenen Messdaten vortäuschen.
+
+- Presets: Neutral, Warm, House Curve, Nahfeld.
+- Parametrische Zielbearbeitung: Frequenz, Q und Gain.
+- Modi: Gesamt, Gehäuse, Chassis, Weiche, DSP, Einfluss.
+- Die Variantenhülle und überlagerten Alternativkurven stammen ausschließlich aus
+  tatsächlich berechneten Entwürfen.
+- Die Einflusskarten zeigen die berechnete dB-Spannweite der verfügbaren
+  Gehäuse-/Chassis-/Weichenvarianten an der ausgewählten Frequenz.
+- DSP-Reserve wird im Tiefton nur aus vorhandenem Hubverlauf und Xmax abgeleitet.
+- Liegen FRD/ZMA-Daten vor, wird die vorhandene Weichensimulation für den
+  Summenfrequenzgang bis 20 kHz verwendet. Ohne FRD bleiben Mittel-/Hochtonbereiche
+  ausdrücklich unbekannt.
+- Zielkurve, Preset und Analysemodus werden versioniert im Projekt gespeichert.
+
+### Zeichnungen
+
+Alle SVG-Renderer verwenden die zentrale Palette aus `drawings/style.py`.
+Das gilt auch für Assembly, Schallwand, Front-Horn, Rear-Horn und Tapped-Horn.
+Farben unterstützen technische Rollen, ersetzen aber keine Geometrie-, Linien- oder
+Textinformation.
+
+### Bewegung
+
+Bewegung dient ausschließlich der Orientierung:
+- kurzer Crossfade bei Tab-/Variantenauswahl;
+- kurze Panelanimation beim Zeichnungsfokus;
+- keine dauerhaften Animationen oder künstlichen Fortschrittswerte;
+- Reduced Motion deaktiviert diese Übergänge.

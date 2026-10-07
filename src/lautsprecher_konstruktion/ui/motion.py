@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QEasingCurve, QObject, QVariantAnimation
+from PySide6.QtWidgets import QGraphicsOpacityEffect, QWidget
 
 DURATION_PANEL_MS = 240
 DURATION_FADE_MS = 160
@@ -34,5 +35,28 @@ def animate_value(owner: QObject, start: int, end: int, apply: Callable[[int], N
     if finished:
         animation.finished.connect(finished)
     owner._motion = animation  # type: ignore[attr-defined]
+    animation.start()
+    return animation
+
+
+def fade_in(widget: QWidget, *, reduced: bool, duration_ms: int = DURATION_FADE_MS) -> QVariantAnimation | None:
+    """Subtle content-arrival transition; disabled completely for reduced motion."""
+    previous = getattr(widget, "_fade_motion", None)
+    if isinstance(previous, QVariantAnimation):
+        previous.stop()
+    if reduced or not widget.isVisible():
+        widget.setGraphicsEffect(None)
+        return None
+    effect = QGraphicsOpacityEffect(widget)
+    effect.setOpacity(0.35)
+    widget.setGraphicsEffect(effect)
+    animation = QVariantAnimation(widget)
+    animation.setStartValue(0.35)
+    animation.setEndValue(1.0)
+    animation.setDuration(duration_ms)
+    animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+    animation.valueChanged.connect(lambda value: effect.setOpacity(float(value)))
+    animation.finished.connect(lambda: widget.setGraphicsEffect(None))
+    widget._fade_motion = animation  # type: ignore[attr-defined]
     animation.start()
     return animation

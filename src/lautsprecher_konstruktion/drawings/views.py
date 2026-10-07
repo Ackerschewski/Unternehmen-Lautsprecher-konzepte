@@ -5,6 +5,7 @@ from html import escape
 
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
+from lautsprecher_konstruktion.drawings.style import PAPER, special_css
 
 
 def render_view_svg(bundle: DesignBundle, view: str) -> str:
@@ -63,11 +64,11 @@ def render_view_svg(bundle: DesignBundle, view: str) -> str:
     body.append(f'<text x="{x}" y="{y+b*scale+32}">{a:.1f} x {b:.1f} mm | Material {t:.1f} mm</text>')
     title={"front":"Frontplatte","back":"Rückwand","partition":"Trennwand",
            "side":"Seitenansicht","section":"Schnitt"}[view]
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 820" width="800" height="820">'
-            '<rect width="800" height="820" fill="#fff"/>'
-            '<style>text{font:14px sans-serif;fill:#24323b}.panel{fill:none;stroke:#172735;stroke-width:2}'
-            '.cut{fill:none;stroke:#166b91;stroke-width:2}.drill{fill:none;stroke:#b84832;stroke-width:1}'
-            '.inner{fill:none;stroke:#888;stroke-dasharray:5 4}.depth{fill:none;stroke:#166b91}'
-            '.brace{fill:#d8e0e5;stroke:#555}</style>'
-            f'<text x="40" y="30" style="font-size:22px;font-weight:bold">{title}</text>'
-            +''.join(body)+'</svg>')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 820" width="800" height="820">'
+        f'<rect width="800" height="820" fill="{PAPER}"/>'
+        + special_css()
+        + f'<text x="40" y="34" class="title">{title}</text>'
+        + ''.join(body)
+        + '</svg>'
+    )
