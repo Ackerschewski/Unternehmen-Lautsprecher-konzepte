@@ -155,3 +155,19 @@ def test_hero_falls_back_to_2d_when_no_geometry(app: QApplication) -> None:
     assert not hero.showing_3d
     hero.set_bundle(None)
     assert not hero.showing_3d
+
+
+def test_construction_area_lists_objects_with_accuracy_and_is_enabled_only_with_a_design(app: QApplication) -> None:
+    from lautsprecher_konstruktion.ui.assistant_window import AssistantWindow
+    from lautsprecher_konstruktion.ui.construction_view import scene_overview_html
+
+    window = AssistantWindow()
+    index = next(i for i in range(window.tabs.count()) if window.tabs.tabText(i) == "3D & Konstruktion")
+    window._set_result_tabs_enabled(False)
+    assert not window.tabs.isTabEnabled(index)
+    html = scene_overview_html(build_scene(_bundle()))
+    for needed in ("Gehäuseplatten", "Chassis", "vereinfachte Geometrie", "Nennmaß"):
+        assert needed in html
+    assert "Keine 3D-Geometrie" in scene_overview_html(None)
+    window.construction.set_bundle(_bundle())
+    assert "Konstruktion" in window.construction.overview.toPlainText()

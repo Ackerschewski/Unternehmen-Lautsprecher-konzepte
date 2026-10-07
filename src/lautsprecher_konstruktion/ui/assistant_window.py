@@ -73,6 +73,7 @@ from lautsprecher_konstruktion.services.automatic import (
 from lautsprecher_konstruktion.services.design import DesignBundle
 from lautsprecher_konstruktion.services.price_status import price_info
 from lautsprecher_konstruktion.ui.assistant_files import FileActionsMixin
+from lautsprecher_konstruktion.ui.construction_view import ConstructionView
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard, RelaxationWorker
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
@@ -240,6 +241,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
             self.preview.set_mode(mode)
         if hasattr(self, "compare_bars"):
             self.compare_bars.set_mode(mode)
+        if hasattr(self, "construction"):
+            self.construction.set_mode(mode)
         if hasattr(self, "dimension_preview"):
             self.dimension_preview.set_mode(mode)
             self.start_preview.set_mode(mode)
@@ -406,7 +409,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
     def _kpi_activated(self, key: str) -> None:
         """A key figure leads to where it is explained: warnings and data quality to the details, price to production."""
         if key == "Preis":
-            self.tabs.setCurrentWidget(self.tabs.widget(4))
+            self.tabs.setCurrentWidget(self.manufacturing_tabs.parentWidget())
             return
         if key in ("Warnungen", "Datenqualität", "Maße", "Tiefbass F3", "Max-SPL"):
             self.details_toggle.setChecked(True)
@@ -567,6 +570,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.panel_choice.clear()
         self.bom_view.clear()
         self.cutting_panel.set_bundle(None)
+        self.construction.set_bundle(None)
         self.mfg_summary.update_from(None, None)
         self.figure.clear()
         self.canvas.draw_idle()
@@ -584,7 +588,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
     def _set_result_tabs_enabled(self, enabled: bool) -> None:
         """Without a design the tabs that only show design data are disabled instead of showing empty areas."""
         for index in range(self.tabs.count()):
-            if self.tabs.tabText(index) in ("Varianten", "Zeichnungen", "Fertigung"):
+            if self.tabs.tabText(index) in ("Varianten", "Zeichnungen", "Fertigung", "3D & Konstruktion"):
                 self.tabs.setTabEnabled(index, enabled)
 
     def _mark_stale(self, *_args: object) -> None:
@@ -1091,6 +1095,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.manufacturing_tabs.addTab(export_page, "Export")
         manufacturing_layout.addWidget(self.manufacturing_tabs, 1)
         self.tabs.addTab(manufacturing, "Fertigung")
+        self.construction = ConstructionView(self.mode)
+        self.tabs.addTab(self.construction, "3D & Konstruktion")  # only shown with data: disabled until a design exists
 
         self.tabs.currentChanged.connect(self._result_tab_changed)
         layout.addWidget(self.tabs, 1)
@@ -1299,6 +1305,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.details_toggle.setChecked(False)
         self.preview.set_bundle(bundle)
         self.cutting_panel.set_bundle(bundle)
+        self.construction.set_bundle(bundle)
         c = bundle.cabinet
         f3 = bundle.sealed.f3_hz if bundle.sealed else (
             bundle.vented_response.f3_hz if bundle.vented_response else None)
