@@ -25,6 +25,21 @@
 - Autonomous execution: nach Teilpaketen nicht auf ein neues "mach weiter" warten; funktionsfähigen grünen Stand hinterlassen.
 - Windows/DPI bleibt `NOT_RUN`, solange kein echter Windows-Test ausgeführt wurde.
 
+## LONG-RANGE ROADMAP: TASK-0030 → TASK-0050
+
+- Vollständige Abhängigkeits-/Phasenübersicht: `coordination/tasks/ROADMAP_TASK_0030_0050.md`.
+- TASK-0029 bleibt **unmittelbar NEXT**; TASK-0030–0050 sind große geplante Folge-Workstreams.
+- Alle TASK-0030 bis TASK-0050 sind mindestens auf TASK-0028-Planungstiefe erweitert und enthalten Architektur, Core, UI, Migration, Tests, Evidence, Performance und Handoff.
+- Reihenfolge grob:
+  - 0030–0032: Solver-Vertrauen, Bibliothek, Geometriekern
+  - 0033–0038: Weiche/DSP/Messung/Directivity/Raum/Spezialgehäuse
+  - 0039: automatische Systemsynthese/Pareto
+  - 0040–0042: CAD/Fertigung/Beschaffung/Materialmechanik
+  - 0043–0049: V4 Workspace, Projektlebenszyklus, Performance, Plugins, Reliability, QA, Doku
+  - 0050: V4 Integration und Release Gate
+- Claude darf Tasks nicht blind numerisch starten, wenn deren Dependencies fehlen. In diesem Fall Dependency zuerst oder Task BLOCKED markieren und einen unabhängigen Workstream wählen.
+- TASK-0050 darf keine neue große Featurewelle starten; Veröffentlichung bleibt Owner-gated.
+
 ## COMPLETED: TASK-0028 · V3.3 Visual Acceptance Sprint
 
 - Responsive Planner Drawer, Result Hero, Variantenkarten, Drawing Workspace, Sound-Lab-Struktur und Diagnostic Card umgesetzt.
