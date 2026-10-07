@@ -1,13 +1,14 @@
-"""Interactive full-range target-curve editor and evidence-aware sound lab.
+"""Interactive full-range target curve: smooth base curve plus real parametric EQ bands.
 
-The target curve is a design objective, not a measured response. Actual curves and
-feasibility envelopes are drawn only from data/calculations that exist in the current
-project; unknown full-range regions remain explicitly unknown.
+The target curve is a design objective, not a measured response. Actual curves and feasibility envelopes
+are drawn only from data/calculations that exist in the current project; unknown full-range regions remain
+explicitly unknown. Control points are connected by a shape-preserving PCHIP curve; filter bands use real
+biquad responses (targets.eq).
 """
 from __future__ import annotations
 
+import time
 from collections.abc import Iterable
-from math import log2
 
 import matplotlib
 import numpy as np
@@ -25,21 +26,22 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lautsprecher_konstruktion.targets.eq import EQBand, FilterType
+from lautsprecher_konstruktion.targets.smooth import render_frequencies, smooth_curve_db
+from lautsprecher_konstruktion.targets.state import (
+    LEVEL_LIMIT_DB,
+    NODE_FREQUENCIES,
+    PRESET_LEVELS,
+    TargetModel,
+)
+from lautsprecher_konstruktion.ui.eq_inspector import BandInspector
 from lautsprecher_konstruktion.ui.theme import chart_rc
 from lautsprecher_konstruktion.ui.tokens import theme
 
-DEFAULT_FREQUENCIES = np.array(
-    [20.0, 31.5, 50.0, 80.0, 125.0, 250.0, 500.0, 1000.0, 2000.0,
-     4000.0, 8000.0, 16000.0, 20000.0],
-    dtype=float,
-)
-
-PRESETS: dict[str, tuple[str, tuple[float, ...]]] = {
-    "neutral": ("Neutral", (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
-    "warm": ("Warm", (3.5, 3.0, 2.4, 1.6, 0.8, 0.3, 0, 0, -0.2, -0.6, -1.0, -1.5, -1.7)),
-    "house": ("House Curve", (5.0, 4.4, 3.5, 2.5, 1.7, 0.8, 0.2, 0, -0.4, -0.8, -1.3, -1.8, -2.0)),
-    "nearfield": ("Nahfeld", (1.5, 1.2, 0.8, 0.4, 0.1, 0, 0, 0, 0, -0.3, -0.7, -1.0, -1.2)),
-}
+DEFAULT_FREQUENCIES = np.asarray(NODE_FREQUENCIES, dtype=float)
+PRESETS = PRESET_LEVELS
+PICK_RADIUS_PX = 14
+DRAG_REDRAW_S = 0.025  # live preview while dragging; the solver is only told when the drag ends
 
 ANALYSIS_MODES = (
     ("overall", "Gesamt"),
@@ -70,8 +72,9 @@ class TargetCurveEditor(QWidget):
     def __init__(self, mode: str = "light") -> None:
         super().__init__()
         self.mode = mode
+        self.model = TargetModel()
         self._frequencies = DEFAULT_FREQUENCIES.copy()
-        self._levels = np.zeros_like(self._frequencies)
+        self._grid = render_frequencies()
         self._actual_frequencies: np.ndarray | None = None
         self._actual_levels: np.ndarray | None = None
         self._actual_label = "Ist · berechenbarer Bereich"
@@ -79,8 +82,9 @@ class TargetCurveEditor(QWidget):
         self._envelope_low: np.ndarray | None = None
         self._envelope_high: np.ndarray | None = None
         self._candidate_curves: list[tuple[np.ndarray, np.ndarray]] = []
-        self._undo: list[np.ndarray] = []
-        self._drag_index: int | None = None
+        self._drag: tuple[str, int | str] | None = None
+        self._drag_y = 0.0
+        self._last_draw = 0.0
         self._syncing = False
 
         layout = QVBoxLayout(self)
@@ -91,11 +95,10 @@ class TargetCurveEditor(QWidget):
         title = QLabel("Zielkurve · Sollwert")
         title.setObjectName("section")
         title.setToolTip(
-            "Sollwert für den Entwurf · 20 Hz–20 kHz. Ziehen, numerisch ändern oder "
-            "parametrisches Zielband anwenden. Unbelegte Frequenzbereiche werden nicht erfunden."
+            "Sollwert für den Entwurf · 20 Hz–20 kHz. Stützpunkte ziehen, Filterbänder per Doppelklick "
+            "anlegen und ziehen. Unbelegte Frequenzbereiche werden nicht erfunden."
         )
         heading.addWidget(title, 1)
-
         heading.addWidget(QLabel("Preset"))
         self.preset = QComboBox()
         for key, (label, _values) in PRESETS.items():
@@ -103,20 +106,21 @@ class TargetCurveEditor(QWidget):
         self.preset.addItem("Benutzerdefiniert", "custom")
         self.preset.currentIndexChanged.connect(self._preset_changed)
         heading.addWidget(self.preset)
-
         heading.addWidget(QLabel("Analyse"))
         self.analysis = QComboBox()
         for key, label in ANALYSIS_MODES:
             self.analysis.addItem(label, key)
         self.analysis.currentIndexChanged.connect(self._analysis_changed)
         heading.addWidget(self.analysis)
-
         reset = QPushButton("Neutral")
         reset.clicked.connect(self.reset)
         heading.addWidget(reset)
-        undo = QPushButton("Rückgängig")
-        undo.clicked.connect(self.undo)
-        heading.addWidget(undo)
+        self.undo_button = QPushButton("Rückgängig")
+        self.undo_button.clicked.connect(self.undo)
+        heading.addWidget(self.undo_button)
+        self.redo_button = QPushButton("Wiederholen")
+        self.redo_button.clicked.connect(self.redo)
+        heading.addWidget(self.redo_button)
         layout.addLayout(heading)
 
         self.figure = Figure(figsize=(10, 5), layout="constrained")
@@ -124,51 +128,34 @@ class TargetCurveEditor(QWidget):
         self.canvas.setMinimumHeight(300)
         layout.addWidget(self.canvas, 1)
 
-        controls = QHBoxLayout()
-        controls.addWidget(QLabel("Punkt"))
+        base = QHBoxLayout()
+        base.addWidget(QLabel("Basiskurve · Stützpunkt"))
         self.point = QComboBox()
         for value in self._frequencies:
             label = f"{value/1000:g} kHz" if value >= 1000 else f"{value:g} Hz"
             self.point.addItem(label)
         self.point.currentIndexChanged.connect(self._selected_point_changed)
-        controls.addWidget(self.point)
-        controls.addWidget(QLabel("Ziel"))
+        base.addWidget(self.point)
+        base.addWidget(QLabel("Ziel"))
         self.level = QDoubleSpinBox()
-        self.level.setRange(-12.0, 12.0)
+        self.level.setRange(-LEVEL_LIMIT_DB, LEVEL_LIMIT_DB)
         self.level.setSingleStep(0.5)
         self.level.setDecimals(1)
         self.level.setSuffix(" dB")
         self.level.valueChanged.connect(self._numeric_level_changed)
-        controls.addWidget(self.level)
-        self.readout = QLabel("20 Hz · 0,0 dB")
+        base.addWidget(self.level)
+        self.readout = QLabel()
         self.readout.setObjectName("caption")
-        controls.addWidget(self.readout)
-        controls.addSpacing(16)
-        controls.addWidget(QLabel("Zielband"))
-        band = controls
-        self.band_frequency = QDoubleSpinBox()
-        self.band_frequency.setRange(20, 20000)
-        self.band_frequency.setValue(100)
-        self.band_frequency.setDecimals(0)
-        self.band_frequency.setSuffix(" Hz")
-        band.addWidget(self.band_frequency)
-        self.band_gain = QDoubleSpinBox()
-        self.band_gain.setRange(-12, 12)
-        self.band_gain.setValue(2)
-        self.band_gain.setSingleStep(0.5)
-        self.band_gain.setSuffix(" dB")
-        band.addWidget(self.band_gain)
-        self.band_q = QDoubleSpinBox()
-        self.band_q.setRange(0.2, 10.0)
-        self.band_q.setValue(1.0)
-        self.band_q.setSingleStep(0.1)
-        self.band_q.setPrefix("Q ")
-        band.addWidget(self.band_q)
-        apply_band = QPushButton("Band anwenden")
-        apply_band.clicked.connect(self.apply_parametric_band)
-        band.addWidget(apply_band)
-        band.addStretch(1)
-        layout.addLayout(controls)
+        base.addWidget(self.readout)
+        base.addStretch(1)
+        layout.addLayout(base)
+
+        self.inspector = BandInspector()
+        self.inspector.addRequested.connect(self.add_band)
+        self.inspector.removeRequested.connect(self.remove_band)
+        self.inspector.selected.connect(self._band_selected)
+        self.inspector.fieldEdited.connect(self._band_field_edited)
+        layout.addWidget(self.inspector)
 
         self.influence = QLabel(MODE_TEXT["overall"])
         self.influence.setObjectName("recommendation")
@@ -179,13 +166,10 @@ class TargetCurveEditor(QWidget):
         influence_grid.setContentsMargins(0, 0, 0, 0)
         influence_grid.setHorizontalSpacing(8)
         self.influence_cards: dict[str, QLabel] = {}
-        for column, (key, title) in enumerate((
-            ("enclosure", "Gehäuse"),
-            ("driver", "Chassis"),
-            ("crossover", "Weiche"),
-            ("dsp", "DSP"),
+        for column, (key, name) in enumerate((
+            ("enclosure", "Gehäuse"), ("driver", "Chassis"), ("crossover", "Weiche"), ("dsp", "DSP"),
         )):
-            card = QLabel(f"<b>{title}</b><br>noch keine Vergleichsdaten")
+            card = QLabel(f"<b>{name}</b><br>noch keine Vergleichsdaten")
             card.setObjectName("kpi")
             card.setWordWrap(True)
             influence_grid.addWidget(card, 0, column)
@@ -196,28 +180,33 @@ class TargetCurveEditor(QWidget):
         self.canvas.mpl_connect("button_press_event", self._press)
         self.canvas.mpl_connect("motion_notify_event", self._motion)
         self.canvas.mpl_connect("button_release_event", self._release)
-        self._draw()
+        self._active_band: str | None = None
+        self._refresh()
+
+    # --- data access (used by the assistant and the project file) ------------------------------------------
+    @property
+    def _levels(self) -> np.ndarray:
+        return np.asarray(self.model.state.levels, dtype=float)
 
     def points(self) -> tuple[tuple[float, float], ...]:
-        return tuple(
-            (float(f), float(v))
-            for f, v in zip(self._frequencies, self._levels, strict=True)
-        )
+        return self.model.points()
+
+    def effective_points(self) -> tuple[tuple[float, float], ...]:
+        """Target level at the control frequencies including EQ bands (what the design is compared with)."""
+        return self.model.effective_points()
+
+    def bands(self) -> tuple[EQBand, ...]:
+        return self.model.bands
 
     def set_points(self, points: Iterable[tuple[float, float]]) -> None:
-        data = np.asarray(tuple(points), dtype=float)
-        if data.size == 0:
-            self.reset()
-            return
-        if data.ndim != 2 or data.shape[1] != 2 or np.any(data[:, 0] <= 0):
-            raise ValueError("target curve points must be (frequency_hz, level_db)")
-        self._levels = np.interp(
-            np.log10(self._frequencies), np.log10(data[:, 0]), data[:, 1]
-        )
-        self._levels = np.clip(self._levels, -12.0, 12.0)
+        self.model.set_from_points(points)
         self._set_preset_combo("custom")
-        self._sync_controls()
-        self._draw()
+        self._refresh()
+
+    def set_bands(self, bands: Iterable[EQBand]) -> None:
+        self.model.load(self.model.state.levels, tuple(bands))
+        self._active_band = None
+        self._refresh()
 
     def preset_id(self) -> str:
         return str(self.preset.currentData())
@@ -228,29 +217,24 @@ class TargetCurveEditor(QWidget):
         *,
         preset: str = "custom",
         analysis_mode: str = "overall",
+        bands: Iterable[EQBand] = (),
     ) -> None:
         data = tuple(points)
+        self.model.load((0.0,) * len(NODE_FREQUENCIES), tuple(bands))
         if data:
-            self.set_points(data)
-        else:
-            self._levels[:] = 0.0
-            self._sync_controls()
-            self._draw()
+            self.model.set_from_points(data)
+        self._active_band = None
         if self.preset.findData(preset) >= 0:
             self._set_preset_combo(preset)
         self.set_analysis_mode(analysis_mode)
+        self._refresh()
 
     def selected_frequency_hz(self) -> float:
         index = max(0, self.point.currentIndex())
         return float(self._frequencies[index])
 
     def set_component_influence(self, values: dict[str, str]) -> None:
-        titles = {
-            "enclosure": "Gehäuse",
-            "driver": "Chassis",
-            "crossover": "Weiche",
-            "dsp": "DSP",
-        }
+        titles = {"enclosure": "Gehäuse", "driver": "Chassis", "crossover": "Weiche", "dsp": "DSP"}
         for key, card in self.influence_cards.items():
             card.setText(f"<b>{titles[key]}</b><br>{values.get(key, 'keine belastbaren Vergleichsdaten')}")
 
@@ -270,29 +254,20 @@ class TargetCurveEditor(QWidget):
         self.mode = mode
         self._draw()
 
+    # --- overlays: actual curve and feasibility envelope ----------------------------------------------------
     @staticmethod
-    def _normalise(
-        frequencies: np.ndarray, values: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _normalise(frequencies: np.ndarray, values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         valid = np.isfinite(frequencies) & np.isfinite(values) & (frequencies > 0)
         f = frequencies[valid]
         v = values[valid].astype(float, copy=True)
         if f.size == 0:
             return f, v
         reference = (f >= 80.0) & (f <= 120.0)
-        if np.any(reference):
-            v -= float(np.median(v[reference]))
-        else:
-            v -= float(np.median(v))
+        v -= float(np.median(v[reference])) if np.any(reference) else float(np.median(v))
         return f, v
 
-    def set_actual_curve(
-        self,
-        frequencies_hz: Iterable[float],
-        response_db: Iterable[float],
-        *,
-        label: str = "Ist · berechenbarer Bereich",
-    ) -> None:
+    def set_actual_curve(self, frequencies_hz: Iterable[float], response_db: Iterable[float], *,
+                         label: str = "Ist · berechenbarer Bereich") -> None:
         freq = np.asarray(tuple(frequencies_hz), dtype=float)
         values = np.asarray(tuple(response_db), dtype=float)
         valid = np.isfinite(freq) & np.isfinite(values) & (freq >= 20) & (freq <= 20000)
@@ -358,7 +333,7 @@ class TargetCurveEditor(QWidget):
         low = self._envelope_low
         high = self._envelope_high
         worst: tuple[float, float] | None = None
-        for target_f, target_db in self.points():
+        for target_f, target_db in self.effective_points():
             if target_f < f[0] or target_f > f[-1]:
                 continue
             lo = float(np.interp(np.log10(target_f), np.log10(f), low))
@@ -368,46 +343,68 @@ class TargetCurveEditor(QWidget):
                 worst = (target_f, distance)
         return worst
 
-    def reset(self) -> None:
-        if np.allclose(self._levels, 0.0):
-            self._set_preset_combo("neutral")
-            return
-        self._remember()
-        self._levels[:] = 0.0
-        self._set_preset_combo("neutral")
+    # --- editing --------------------------------------------------------------------------------------------
+    def _refresh(self) -> None:
         self._sync_controls()
+        self.inspector.set_bands(self.model.bands, self._active_band)
+        self._active_band = self.inspector.active_id
+        self.undo_button.setEnabled(self.model.can_undo)
+        self.redo_button.setEnabled(self.model.can_redo)
         self._draw()
+
+    def _changed(self) -> None:
+        self._set_preset_combo("custom")
+        self._refresh()
+        self.curveChanged.emit()
+
+    def reset(self) -> None:
+        self.model.reset()
+        self._active_band = None
+        self._set_preset_combo("neutral")
+        self._refresh()
         self.curveChanged.emit()
 
     def undo(self) -> None:
-        if not self._undo:
-            return
-        self._levels = self._undo.pop()
-        self._set_preset_combo("custom")
-        self._sync_controls()
-        self._draw()
-        self.curveChanged.emit()
+        if self.model.undo():
+            self._set_preset_combo("custom")
+            self._refresh()
+            self.curveChanged.emit()
+
+    def redo(self) -> None:
+        if self.model.redo():
+            self._set_preset_combo("custom")
+            self._refresh()
+            self.curveChanged.emit()
+
+    def add_band(self, band: EQBand | None = None) -> None:
+        new = self.model.add_band(band if isinstance(band, EQBand) else None)
+        self._active_band = new.id
+        self._changed()
+
+    def remove_band(self, band_id: str) -> None:
+        self.model.remove_band(band_id)
+        self._active_band = None
+        self._changed()
 
     def apply_parametric_band(self) -> None:
-        self._remember()
-        f0 = self.band_frequency.value()
-        gain = self.band_gain.value()
-        q = max(0.2, self.band_q.value())
-        sigma_oct = max(0.06, 0.72/q)
-        offsets = np.array([log2(f/f0) for f in self._frequencies], dtype=float)
-        delta = gain*np.exp(-0.5*np.square(offsets/sigma_oct))
-        self._levels = np.clip(self._levels+delta, -12.0, 12.0)
-        self._set_preset_combo("custom")
-        self._sync_controls()
+        """Compatibility: adds a bell band (a real filter, not a baked bump)."""
+        self.add_band(EQBand(filter_type=FilterType.BELL, frequency_hz=1000.0, gain_db=2.0, q=1.0))
+
+    def _band_selected(self, band_id: str) -> None:
+        self._active_band = band_id
+        self.inspector.set_bands(self.model.bands, band_id)
         self._draw()
-        self.curveChanged.emit()
+
+    def _band_field_edited(self, band_id: str, name: str, value: object) -> None:
+        self.model.checkpoint()
+        self.model.update_band(band_id, **{name: value})
+        self._changed()
 
     def _set_preset_combo(self, key: str) -> None:
-        index = self.preset.findData(key)
-        if index < 0:
-            return
         self._syncing = True
-        self.preset.setCurrentIndex(index)
+        index = self.preset.findData(key)
+        if index >= 0:
+            self.preset.setCurrentIndex(index)
         self._syncing = False
 
     def _preset_changed(self, _index: int) -> None:
@@ -416,27 +413,16 @@ class TargetCurveEditor(QWidget):
         key = str(self.preset.currentData())
         if key == "custom":
             return
-        preset = PRESETS[key][1]
-        self._remember()
-        self._levels = np.asarray(preset, dtype=float)
-        self._sync_controls()
-        self._draw()
+        self.model.apply_preset(key)
+        self._active_band = None
+        self._refresh()
         self.curveChanged.emit()
 
     def _analysis_changed(self, _index: int) -> None:
         if self._syncing:
             return
-        mode = self.analysis_mode()
         self.set_influence_summary()
-        self.analysisModeChanged.emit(mode)
-
-    def _remember(self) -> None:
-        self._undo.append(self._levels.copy())
-        if len(self._undo) > 40:
-            self._undo.pop(0)
-
-    def _mark_custom(self) -> None:
-        self._set_preset_combo("custom")
+        self.analysisModeChanged.emit(self.analysis_mode())
 
     def _selected_point_changed(self, _index: int) -> None:
         self._sync_controls()
@@ -445,62 +431,112 @@ class TargetCurveEditor(QWidget):
 
     def _sync_controls(self) -> None:
         index = max(0, self.point.currentIndex())
+        level = self.model.state.levels[index]
         self._syncing = True
-        self.level.setValue(float(self._levels[index]))
+        self.level.setValue(float(level))
         f = self._frequencies[index]
-        self.readout.setText(
-            f"{f/1000:g} kHz · {self._levels[index]:+.1f} dB"
-            if f >= 1000 else f"{f:g} Hz · {self._levels[index]:+.1f} dB"
-        )
+        self.readout.setText(f"{f/1000:g} kHz · {level:+.1f} dB" if f >= 1000 else f"{f:g} Hz · {level:+.1f} dB")
         self._syncing = False
 
     def _numeric_level_changed(self, value: float) -> None:
         if self._syncing:
             return
         index = max(0, self.point.currentIndex())
-        if abs(self._levels[index] - value) < 1e-9:
+        if abs(self.model.state.levels[index] - value) < 1e-9:
             return
-        self._remember()
-        self._levels[index] = value
-        self._mark_custom()
-        self._sync_controls()
-        self._draw()
-        self.curveChanged.emit()
+        self.model.checkpoint()
+        self.model.set_level(index, value)
+        self._changed()
+
+    # --- mouse: drag base points and bands; double-click adds a band; right click removes -----------------
+    def _marker_pixels(self) -> list[tuple[str, int | str, float, float]]:
+        ax = self.figure.axes[0] if self.figure.axes else None
+        if ax is None:
+            return []
+        markers: list[tuple[str, int | str, float, float]] = []
+        base = smooth_curve_db(self.model.points(), self._frequencies)
+        for index, (f, v) in enumerate(zip(self._frequencies, base, strict=True)):
+            px, py = ax.transData.transform((f, v))
+            markers.append(("node", index, float(px), float(py)))
+        for band in self.model.bands:
+            level = float(self.model.curve(np.asarray([band.frequency_hz]))[0])
+            px, py = ax.transData.transform((band.frequency_hz, level))
+            markers.append(("band", band.id, float(px), float(py)))
+        return markers
+
+    def _nearest(self, event: object) -> tuple[str, int | str] | None:
+        ex, ey = getattr(event, "x", None), getattr(event, "y", None)
+        if ex is None or ey is None:
+            return None
+        best: tuple[str, int | str] | None = None
+        best_d = float(PICK_RADIUS_PX) + 1e-6
+        for kind, ident, px, py in reversed(self._marker_pixels()):  # bands are drawn on top of nodes
+            d = float(np.hypot(px - ex, py - ey))
+            if d < best_d:  # strict: on equal distance the band (checked first) wins over a control point
+                best, best_d = (kind, ident), d
+        return best
 
     def _press(self, event: object) -> None:
-        if getattr(event, "inaxes", None) is None or getattr(event, "button", None) != 1:
+        if getattr(event, "inaxes", None) is None:
             return
-        x = getattr(event, "xdata", None)
-        if x is None or x <= 0:
+        x, y = getattr(event, "xdata", None), getattr(event, "ydata", None)
+        if x is None or y is None or x <= 0:
             return
-        index = int(
-            np.argmin(np.abs(np.log10(self._frequencies)-np.log10(float(x))))
-        )
-        self._remember()
-        self._drag_index = index
-        self.point.setCurrentIndex(index)
-        self._set_drag_value(getattr(event, "ydata", None))
+        hit = self._nearest(event)
+        button = getattr(event, "button", None)
+        if button == 3:
+            if hit is not None and hit[0] == "band":
+                self.remove_band(str(hit[1]))
+            return
+        if button != 1:
+            return
+        if getattr(event, "dblclick", False) and hit is None:
+            base = float(self.model.curve(np.asarray([float(x)]))[0])
+            self.add_band(EQBand(filter_type=FilterType.BELL, frequency_hz=float(np.clip(x, 20, 20000)),
+                                 gain_db=float(np.clip(y - base, -12, 12)), q=1.0))
+            return
+        if hit is None:
+            return
+        self.model.checkpoint()  # one history entry per drag
+        self._drag = hit
+        self._drag_y = float(y)
+        if hit[0] == "node":
+            self.point.setCurrentIndex(int(hit[1]))
+        else:
+            self._active_band = str(hit[1])
+            self.inspector.set_bands(self.model.bands, self._active_band)
 
     def _motion(self, event: object) -> None:
-        if self._drag_index is None or getattr(event, "inaxes", None) is None:
+        if self._drag is None or getattr(event, "inaxes", None) is None:
             return
-        self._set_drag_value(getattr(event, "ydata", None))
-
-    def _release(self, _event: object) -> None:
-        if self._drag_index is None:
+        x, y = getattr(event, "xdata", None), getattr(event, "ydata", None)
+        if x is None or y is None:
             return
-        self._drag_index = None
-        self._mark_custom()
-        self.curveChanged.emit()
+        self._apply_drag(float(x), float(y))
+        now = time.monotonic()
+        if now - self._last_draw >= DRAG_REDRAW_S:
+            self._last_draw = now
+            self._draw()
 
-    def _set_drag_value(self, y: object) -> None:
-        if y is None or self._drag_index is None:
+    def _apply_drag(self, x: float, y: float) -> None:
+        assert self._drag is not None
+        kind, ident = self._drag
+        if kind == "node":
+            self.model.set_level(int(ident), float(np.clip(y, -LEVEL_LIMIT_DB, LEVEL_LIMIT_DB)))  # markers sit on the base curve
+        else:
+            self.model.move_band(str(ident), x, gain_delta_db=y - self._drag_y)
+            self._drag_y = y
+
+    def _release(self, event: object) -> None:
+        if self._drag is None:
             return
-        self._levels[self._drag_index] = float(np.clip(float(y), -12.0, 12.0))
-        self._mark_custom()
-        self._sync_controls()
-        self._draw()
+        x, y = getattr(event, "xdata", None), getattr(event, "ydata", None)
+        if x is not None and y is not None and x > 0:
+            self._apply_drag(float(x), float(y))  # the last pointer position wins over throttled previews
+        self._drag = None
+        self._changed()
 
+    # --- drawing --------------------------------------------------------------------------------------------
     def _draw(self) -> None:
         t = theme(self.mode)
         with matplotlib.rc_context(chart_rc(self.mode)):
@@ -516,67 +552,47 @@ class TargetCurveEditor(QWidget):
             ax.axhline(0.0, color=t["borderStrong"], linewidth=1.0, linestyle=":")
 
             for curve_index, (candidate_f, candidate_db) in enumerate(self._candidate_curves):
-                ax.semilogx(
-                    candidate_f,
-                    candidate_db,
-                    linewidth=1.0,
-                    alpha=0.38,
-                    color=t["borderStrong"],
-                    label="berechnete Alternativen" if curve_index == 0 else None,
-                    zorder=-0.5,
-                )
+                ax.semilogx(candidate_f, candidate_db, linewidth=1.0, alpha=0.38, color=t["borderStrong"],
+                            label="berechnete Alternativen" if curve_index == 0 else None, zorder=-0.5)
+            if (self._envelope_frequencies is not None and self._envelope_low is not None
+                    and self._envelope_high is not None):
+                ax.fill_between(self._envelope_frequencies, self._envelope_low, self._envelope_high,
+                                color=t["band"], alpha=0.65, label="berechnete Variantenhülle", zorder=-1)
 
-            if (
-                self._envelope_frequencies is not None
-                and self._envelope_low is not None
-                and self._envelope_high is not None
-            ):
-                ax.fill_between(
-                    self._envelope_frequencies,
-                    self._envelope_low,
-                    self._envelope_high,
-                    color=t["band"],
-                    alpha=0.65,
-                    label="berechnete Variantenhülle",
-                    zorder=-1,
-                )
-
-            ax.semilogx(
-                self._frequencies, self._levels, linewidth=2.4, marker="o",
-                markersize=5, label="Zielkurve", color=t["accent"],
-            )
+            target = self.model.curve(self._grid)
+            base = smooth_curve_db(self.model.points(), self._grid)
+            if self.model.bands:
+                ax.semilogx(self._grid, base, linewidth=1.2, linestyle="--", color=t["accent"], alpha=0.55,
+                            label="Basiskurve")
+            ax.semilogx(self._grid, np.clip(target, -30, 30), linewidth=2.4, color=t["accent"], label="Zielkurve")
+            ax.plot(self._frequencies, smooth_curve_db(self.model.points(), self._frequencies), "o",
+                    markersize=4.5, color=t["accent"], zorder=4)
             selected = max(0, self.point.currentIndex())
-            ax.scatter(
-                [self._frequencies[selected]], [self._levels[selected]],
-                s=70, facecolors=t["surface"], edgecolors=t["accent"],
-                linewidths=2.0, zorder=5,
-            )
+            sel_f = self._frequencies[selected]
+            ax.scatter([sel_f], smooth_curve_db(self.model.points(), np.asarray([sel_f])), s=60,
+                       facecolors=t["surface"], edgecolors=t["accent"], linewidths=2.0, zorder=5)
+            for band in self.model.bands:
+                level = float(self.model.curve(np.asarray([band.frequency_hz]))[0])
+                active = band.id == self._active_band
+                ax.scatter([band.frequency_hz], [np.clip(level, -14.5, 14.5)], s=150 if active else 80, zorder=6,
+                           facecolors=t["accent"] if band.enabled else t["surface"],
+                           edgecolors=t["textPrimary"], linewidths=2.2 if active else 1.2)
 
             known_max = 0.0
             if self._actual_frequencies is not None and self._actual_frequencies.size:
                 known_max = float(np.max(self._actual_frequencies))
-                ax.semilogx(
-                    self._actual_frequencies, self._actual_levels, linewidth=1.8,
-                    label=self._actual_label, color=t["textSecondary"],
-                )
+                ax.semilogx(self._actual_frequencies, self._actual_levels, linewidth=1.8,
+                            label=self._actual_label, color=t["textSecondary"])
             elif self._envelope_frequencies is not None and self._envelope_frequencies.size:
                 known_max = float(np.max(self._envelope_frequencies))
 
             if known_max and known_max < 19900:
-                ax.axvspan(
-                    max(known_max, 20), 20000, color=t["band"], alpha=0.34, zorder=-3
-                )
-                ax.text(
-                    min(max(known_max*1.25, 650), 15000), -13.2,
-                    "keine belastbaren Fullrange-Daten",
-                    color=t["textSecondary"], fontsize=9, ha="left",
-                )
+                ax.axvspan(max(known_max, 20), 20000, color=t["band"], alpha=0.34, zorder=-3)
+                ax.text(min(max(known_max*1.25, 650), 15000), -13.2, "keine belastbaren Fullrange-Daten",
+                        color=t["textSecondary"], fontsize=9, ha="left")
             elif not known_max:
-                ax.text(
-                    .5, .08, "Noch kein Ist-Frequenzgang geladen/berechnet",
-                    transform=ax.transAxes, color=t["textSecondary"],
-                    ha="center", fontsize=9,
-                )
+                ax.text(.5, .08, "Noch kein Ist-Frequenzgang geladen/berechnet", transform=ax.transAxes,
+                        color=t["textSecondary"], ha="center", fontsize=9)
             ax.legend(loc="upper right")
             ax.grid(True, which="both", alpha=.65)
         self.canvas.draw_idle()

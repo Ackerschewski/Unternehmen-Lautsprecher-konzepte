@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import pi
 
+from lautsprecher_konstruktion.presentation import de
+
 SPEED_OF_SOUND_M_S = 343.0
 
 
@@ -44,9 +46,10 @@ def round_port_length(
 
     if physical_length <= 0:
         raise ValueError(
-            f"Port nicht berechenbar: Rohrlänge {physical_length*1000:.0f} mm (effektive Länge "
-            f"{effective_length*1000:.0f} mm minus Endkorrektur). Kleineren Port-Durchmesser, "
-            "niedrigere Abstimmfrequenz oder kleineres Volumen wählen."
+            f"Der Rundport mit Ø {de(port_diameter_m*1000)} mm hat bei Fb = {de(tuning_hz, 1)} Hz in "
+            f"{de(box_volume_m3*1000, 1)} l eine effektive Länge von {de(effective_length*1000)} mm, die "
+            f"Endkorrektur ist größer; die Rohrlänge wäre {de(physical_length*1000)} mm. Einen größeren "
+            "Port-Durchmesser, eine niedrigere Abstimmfrequenz oder ein kleineres Volumen wählen."
         )
 
     return RoundPortResult(

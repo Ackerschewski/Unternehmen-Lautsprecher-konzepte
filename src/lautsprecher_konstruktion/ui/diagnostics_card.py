@@ -4,13 +4,14 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from lautsprecher_konstruktion.presentation import de
 from lautsprecher_konstruktion.services.automatic import AutomaticDesignResult, Diagnostic
 
 FIELD_UNITS = {"mm": 0, "l": 0, "Hz": 0, "dB": 0, "€": 0}
 
 
 def _number(value: float, unit: str) -> str:
-    return f"{value:.0f} {unit}" if unit in FIELD_UNITS else f"{value:g} {unit}"
+    return f"{de(value)} {unit}" if unit in FIELD_UNITS else f"{value:g} {unit}"
 
 
 def describe(item: Diagnostic) -> tuple[str, str]:

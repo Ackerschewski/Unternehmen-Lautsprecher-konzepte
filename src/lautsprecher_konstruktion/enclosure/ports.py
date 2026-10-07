@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from math import pi, sqrt
 
 from lautsprecher_konstruktion.acoustics.bass_reflex import SPEED_OF_SOUND_M_S
+from lautsprecher_konstruktion.presentation import de
 
 
 @dataclass(frozen=True)
@@ -61,11 +62,11 @@ def _port_length_from_area(
             box_volume_m3=box_volume_m3, tuning_hz=tuning_hz,
             end_correction_factor_radius=end_correction_factor_radius)
         raise ValueError(
-            f"Port nicht berechenbar: bei {tuning_hz:g} Hz in {box_volume_m3*1000:.1f} l ist die "
-            f"effektive Länge ({effective*1000:.0f} mm) kleiner als die Endkorrektur "
-            f"({end_correction_factor_radius*equivalent_radius_m*1000:.0f} mm); die Rohrlänge wäre "
-            f"{physical*1000:.0f} mm. Port-Querschnitt vergrößern (gleichwertiger Rund-Ø mindestens "
-            f"{limit*1000:.0f} mm), Abstimmfrequenz senken oder das Kammervolumen verkleinern.")
+            f"Der berechnete Port benötigt bei Fb = {de(tuning_hz, 1)} Hz in {de(box_volume_m3*1000, 1)} l "
+            f"Nettovolumen eine effektive Länge von {de(effective*1000)} mm; die Endkorrektur allein beträgt "
+            f"aber schon {de(end_correction_factor_radius*equivalent_radius_m*1000)} mm "
+            f"(Rohrlänge {de(physical*1000)} mm). Port-Querschnitt vergrößern (gleichwertiger Rund-Ø "
+            f"mindestens {de(limit*1000)} mm), Fb senken oder das Volumen verkleinern.")
     return physical, effective
 
 

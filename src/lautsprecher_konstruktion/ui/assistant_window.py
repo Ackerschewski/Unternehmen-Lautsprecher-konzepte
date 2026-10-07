@@ -93,6 +93,7 @@ from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPr
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.result_hero import KpiGrid, VariantStrip, comparison_sentences
 from lautsprecher_konstruktion.ui.sound_plots import PLOT_KINDS, available_plots, draw_plot
+from lautsprecher_konstruktion.ui.status_banner import banner
 from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import set_area, status_line
@@ -686,7 +687,7 @@ class AssistantWindow(QMainWindow):
                 margins: list[tuple[float, float]] = []
                 rf = np.asarray(response.frequencies_hz, dtype=float)
                 ex = np.asarray(response.excursion_mm, dtype=float)
-                for frequency, target_db in self.target_curve.points():
+                for frequency, target_db in self.target_curve.effective_points():
                     if frequency < rf[0] or frequency > rf[-1] or target_db <= 0:
                         continue
                     excursion = float(np.interp(np.log10(frequency), np.log10(rf), ex))
@@ -711,7 +712,7 @@ class AssistantWindow(QMainWindow):
         if mode in {"overall", "enclosure", "driver", "influence"} and current_curve is not None:
             cf, cv = self._relative_curve(current_curve[0], current_curve[1])
             best: tuple[float, int, float, float] | None = None
-            targets = self.target_curve.points()
+            targets = self.target_curve.effective_points()
             for alt_index, alternative in enumerate(self.designs):
                 if alternative is current:
                     continue
@@ -1358,7 +1359,9 @@ class AssistantWindow(QMainWindow):
             target_curve_points=(self.target_curve.points()
                 if self.design_method.currentData() == "target_curve" else None),
             target_curve_preset=self.target_curve.preset_id(),
-            target_curve_mode=self.target_curve.analysis_mode())
+            target_curve_mode=self.target_curve.analysis_mode(),
+            target_eq_bands=(self.target_curve.bands()
+                if self.design_method.currentData() == "target_curve" else ()))
 
     def create_design(self) -> None:
         if self.worker and self.worker.isRunning():
@@ -1475,7 +1478,6 @@ class AssistantWindow(QMainWindow):
         else:
             self.progress_label.setText("Berechnung abgebrochen")
             self._set_state("warning", "Berechnung abgebrochen")
-        self.statusBar().showMessage(self.state.text())
         self._apply_planner_layout()
 
     def _failed(self, message: str) -> None:
@@ -1612,20 +1614,15 @@ class AssistantWindow(QMainWindow):
             "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
             "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
         self._redraw_simulation()
-        status = (f"{registry.get(design.project.enclosure.enclosure_type).label} · "
-            f"{c.width_m*1000:.0f}×{c.height_m*1000:.0f}×{c.depth_m*1000:.0f} mm · "
-            f"F3 {f3:.1f} Hz · " if f3 else "F3 nicht berechenbar · ")
+        role, status = banner(design)
         geometry_errors = [issue.message for issue in bundle.issues if issue.severity == "error"]
         self.export_button.setEnabled(not geometry_errors and not self._stale)
         self.export_button.setToolTip("; ".join(geometry_errors) if geometry_errors else
                                       "Geprüfte Zeichnungen, DXF, PDF und Stücklisten exportieren")
-        status += f"Hinweise {len(bundle.warnings)} · Geometriefehler {len(geometry_errors)}"
-        if geometry_errors:
-            status += " · Export gesperrt: " + geometry_errors[0]
         if self._stale:
             self._set_state("warning", "Eingaben geändert · Entwurf erneut erstellen.")
         else:
-            self._set_state("danger" if geometry_errors else "warning" if bundle.warnings else "success", status)
+            self._set_state(role, status)
 
     def _plot_selected(self, key: str) -> None:
         self._plot_choice = key
@@ -1707,7 +1704,7 @@ class AssistantWindow(QMainWindow):
         self.variant_cards.set_designs(self.designs)
         self._show_start(False)
         project = bundle.project
-        loaded_method = "target_curve" if project.target_curve_points else "classic"
+        loaded_method = "target_curve" if project.target_curve_points or project.target_eq_bands else "classic"
         self.design_method.blockSignals(True)
         self.design_method.setCurrentIndex(self.design_method.findData(loaded_method))
         self.design_method.blockSignals(False)
@@ -1716,11 +1713,12 @@ class AssistantWindow(QMainWindow):
             "Passenden Entwurf zur Zielkurve berechnen"
             if loaded_method == "target_curve" else "Entwurf erstellen"
         )
-        if project.target_curve_points:
+        if project.target_curve_points or project.target_eq_bands:
             self.target_curve.restore_state(
                 project.target_curve_points,
                 preset=project.target_curve_preset,
                 analysis_mode=project.target_curve_mode,
+                bands=project.target_eq_bands,
             )
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)

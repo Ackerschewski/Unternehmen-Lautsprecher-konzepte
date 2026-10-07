@@ -84,13 +84,13 @@ def test_diameter_for_length_inverts_round_port() -> None:
 
 
 def test_non_positive_port_length_gives_german_error_with_minimum_diameter() -> None:
-    with pytest.raises(ValueError, match=r"Port nicht berechenbar.*mindestens \d+ mm"):
+    with pytest.raises(ValueError, match=r"Der berechnete Port benötigt.*mindestens \d+ mm"):
         _bundle("bass_reflex", target_volume_l=120, tuning_hz=55, port_diameter_mm=75,
                 external_width_mm=400, external_height_mm=1000)
     minimum = round_port_diameter_for_length_m(box_volume_m3=0.12, tuning_hz=55)
     # a larger port is a valid design, and the stated limit is the zero-length boundary
     assert round_port(box_volume_m3=0.12, tuning_hz=55, diameter_m=minimum*1.02).physical_length_m > 0
-    with pytest.raises(ValueError, match="Port nicht berechenbar"):
+    with pytest.raises(ValueError, match="Der (berechnete Port|Rundport)"):
         round_port(box_volume_m3=0.12, tuning_hz=55, diameter_m=minimum*0.98)
     ok = _bundle("bass_reflex", target_volume_l=120, tuning_hz=55, port_diameter_mm=130,
                  external_width_mm=400, external_height_mm=1000)
@@ -98,7 +98,7 @@ def test_non_positive_port_length_gives_german_error_with_minimum_diameter() -> 
 
 
 def test_slot_port_non_positive_length_message_is_german() -> None:
-    with pytest.raises(ValueError, match="Port nicht berechenbar"):
+    with pytest.raises(ValueError, match="Der (berechnete Port|Rundport)"):
         slot_port(box_volume_m3=0.2, tuning_hz=50, width_m=0.05, height_m=0.03)
 
 

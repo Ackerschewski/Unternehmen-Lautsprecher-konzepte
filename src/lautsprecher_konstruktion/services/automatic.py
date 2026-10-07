@@ -24,6 +24,7 @@ from lautsprecher_konstruktion.export.bom import BomItem, build_bom
 from lautsprecher_konstruktion.export.pricing import budget_cost
 from lautsprecher_konstruktion.library.store import ComponentLibrary
 from lautsprecher_konstruktion.optimization.profiles import PROFILES, SoundProfile
+from lautsprecher_konstruktion.presentation import de
 from lautsprecher_konstruktion.project.models import (
     CrossoverConfig,
     EnclosureConfig,
@@ -32,6 +33,8 @@ from lautsprecher_konstruktion.project.models import (
 )
 from lautsprecher_konstruktion.services.design import DesignBundle, calculate_project
 from lautsprecher_konstruktion.services.price_status import cheaper_than, price_info
+from lautsprecher_konstruktion.targets.eq import EQBand
+from lautsprecher_konstruktion.targets.smooth import target_level_db
 
 BAFFLE_FAMILIES = frozenset({"infinite_baffle", "open_baffle", "dipole"})
 
@@ -65,6 +68,7 @@ class AutomaticDesignRequest(BaseModel):
     target_curve_points: tuple[tuple[float, float], ...] | None = None
     target_curve_preset: str = "neutral"
     target_curve_mode: str = "overall"
+    target_eq_bands: tuple[EQBand, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -299,6 +303,7 @@ def _target_curve_fit(
     frequencies_hz: np.ndarray,
     response_db: np.ndarray,
     points: tuple[tuple[float, float], ...],
+    bands: tuple[EQBand, ...] = (),
     *,
     max_hz: float = 20_000.0,
 ) -> tuple[float, float, float] | None:
@@ -326,7 +331,7 @@ def _target_curve_fit(
     if int(np.count_nonzero(mask)) < 8:
         return None
     selected_f = frequencies[mask]
-    target_db = np.interp(np.log10(selected_f), np.log10(data[:, 0]), data[:, 1])
+    target_db = target_level_db(points, bands, selected_f)  # smooth base curve + real EQ band responses
     actual_db = response[mask].copy()
     reference = (selected_f >= 80.0) & (selected_f <= 120.0)
     if not np.any(reference):
@@ -378,6 +383,7 @@ def _score(bundle: DesignBundle, request: AutomaticDesignRequest,
                 fullrange.frequencies_hz,
                 fullrange_db,
                 request.target_curve_points,
+                request.target_eq_bands,
                 max_hz=20_000.0,
             )
             source = "FRD/Weichensumme"
@@ -387,6 +393,7 @@ def _score(bundle: DesignBundle, request: AutomaticDesignRequest,
                 curve_response.frequencies_hz,
                 curve_response.response_db,
                 request.target_curve_points,
+                request.target_eq_bands,
                 max_hz=500.0,
             )
             source = "Gehäuse-/Tieftonsimulation"
@@ -460,7 +467,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                 f"thermischen Obergrenze {max(ceilings):.1f} dB der Bibliothek."
                 if ceilings else "Zielpegel mit vorhandenen Empfindlichkeitsdaten nicht belegbar.")
             return AutomaticDesignResult("impossible", (),
-                (f"Maximales Brutto-Innenvolumen {max_internal_l:.1f} l.", reason),
+                (f"Im Bauraum stehen höchstens {de(max_internal_l, 1)} l Brutto-Innenvolumen zur Verfügung.", reason),
                 ("Zielpegel reduzieren oder einen belastbar dokumentierten Treiber importieren.",
                  "Für mehr Tiefbass Bauraum vergrößern oder das Ziel-F3 erhöhen."), 0)
     designs: list[SpeakerDesign] = []
@@ -608,12 +615,13 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                                 target_curve_points=request.target_curve_points or (),
                                 target_curve_preset=request.target_curve_preset,
                                 target_curve_mode=request.target_curve_mode,
+                                target_eq_bands=request.target_eq_bands,
                                 notes="Automatisch berechnet. " +
                                 ("Synthetische TESTDATEN. " if test_data else "") +
                                 "Maße vor Fertigung prüfen.")
                             bundle = calculate_project(project)
                         except (ValueError, ZeroDivisionError, OverflowError) as exc:
-                            rejected[f"Solver/Geometrie: {str(exc)[:70]}"] += 1
+                            rejected[f"Berechnung nicht möglich: {str(exc)[:240]}"] += 1
                             continue
                         if any(issue.severity == "error" for issue in bundle.issues):
                             rejected["Front, Port oder Kammer mechanisch nicht machbar"] += 1
@@ -695,9 +703,10 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
         progress(100)
     if not designs:
         minimum_l = min(volumes_tested) if volumes_tested else None
-        capacity = (f"Maximales Brutto-Innenvolumen {max_internal_l:.1f} l; "
-            f"kleinste geprüfte Netto-Variante {minimum_l:.1f} l."
-            if minimum_l is not None else f"Maximales Brutto-Innenvolumen {max_internal_l:.1f} l.")
+        capacity = (f"Im Bauraum stehen höchstens {de(max_internal_l, 1)} l Brutto-Innenvolumen zur Verfügung; "
+            f"die kleinste geprüfte Netto-Variante braucht {de(minimum_l, 1)} l."
+            if minimum_l is not None else
+            f"Im Bauraum stehen höchstens {de(max_internal_l, 1)} l Brutto-Innenvolumen zur Verfügung.")
         if request.enclosure_preference in BAFFLE_FAMILIES:
             # A baffle has no enclosure volume: the box-volume capacity line would be meaningless.
             capacity = ("Schallwand ohne Gehäusevolumen: Der Rückraum (Wandeinbau ≥ 10 × Vas) "

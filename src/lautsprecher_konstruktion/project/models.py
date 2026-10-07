@@ -8,6 +8,7 @@ from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
+from lautsprecher_konstruktion.targets.eq import EQBand
 
 
 class EnclosureConfig(BaseModel):
@@ -121,6 +122,7 @@ class SpeakerProject(BaseModel):
     target_curve_points: tuple[tuple[float, float], ...] = ()
     target_curve_preset: str = "neutral"
     target_curve_mode: str = "overall"
+    target_eq_bands: tuple[EQBand, ...] = ()  # parametric EQ bands of the target (real filter responses)
     notes: str = ""
 
     @model_validator(mode="before")

@@ -54,13 +54,11 @@ def test_target_presets_parametric_band_and_modes(app: QApplication) -> None:
     editor.preset.setCurrentIndex(editor.preset.findData("house"))
     assert editor.points()[0][1] > editor.points()[-1][1]
 
-    before = dict(editor.points())
-    editor.band_frequency.setValue(1000)
-    editor.band_gain.setValue(3)
-    editor.band_q.setValue(1)
-    editor.apply_parametric_band()
-    after = dict(editor.points())
-    assert after[1000.0] > before[1000.0]
+    before = dict(editor.effective_points())
+    editor.apply_parametric_band()  # now a real EQ band instead of a baked bump
+    after = dict(editor.effective_points())
+    assert len(editor.bands()) == 1 and after[1000.0] > before[1000.0]
+    assert dict(editor.points())[1000.0] == before[1000.0]  # the base control points stay untouched
     assert editor.preset_id() == "custom"
 
     editor.set_analysis_mode("influence")
