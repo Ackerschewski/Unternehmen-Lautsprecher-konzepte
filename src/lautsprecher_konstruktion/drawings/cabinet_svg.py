@@ -58,8 +58,8 @@ def render_cabinet_svg(spec: CabinetDrawingInput) -> str:
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">',
         ('<style>.obj{fill:none;stroke:%INK%;stroke-width:2}.cut{fill:none;stroke:%MUTED%;stroke-width:1.5}'
-        '.dim{stroke:%MUTED%;stroke-width:1}.txt{font:13px sans-serif;fill:%INK%}'
-        '.title{font:bold 22px sans-serif;fill:%INK%}.label{font:bold 15px sans-serif;fill:%INK%}</style>'),
+        '.dim{stroke:%MUTED%;stroke-width:1}.txt{font:13px %FONT_UI%;fill:%INK%}'
+        '.title{font:bold 22px %FONT_UI%;fill:%INK%}.label{font:bold 15px %FONT_UI%;fill:%INK%}</style>'),
         f'<text x="40" y="35" class="title">{escape(spec.title)}</text>',
         f'<text x="{ox}" y="{oy-20}" class="label">Vorderansicht</text>',
         f'<rect x="{ox}" y="{oy}" width="{fw}" height="{fh}" class="obj"/>',

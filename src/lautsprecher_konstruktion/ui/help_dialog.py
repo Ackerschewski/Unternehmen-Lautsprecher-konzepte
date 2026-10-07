@@ -13,11 +13,27 @@ from lautsprecher_konstruktion.appdata import log_file, user_data_dir
 QUICK_START = """\
 # Kurzanleitung
 
-1. **Vorgaben eingeben:** Typ, größtes Außenmaß, Klangprofil und optional Budget.
-2. **Entwurf erstellen:** Das Programm prüft Chassis und Gehäuse und zeigt bis zu drei Varianten.
-3. **Variante prüfen:** Gesamtzeichnung, Maßblatt, Innenaufbau, Einzelteilplan, Simulation, Stückliste und *Zuschnitt*.
-4. **Exportieren:** Zeichnungen (SVG/DXF), PDF, Stückliste, Zuschnittplan und Bauanleitung liegen im Paket.
-5. **Bauen und messen:** Impedanz und Frequenzgang messen und unter *Werkzeuge → Prototyp vergleichen* gegen die Simulation legen.
+1. **Start wählen:** Klassisch über Bauart/Bauraum/Klangprofil oder direkt **über Zielkurve**.
+2. **Planen:** Maximalmaße festlegen; die proportionale Vorschau zeigt den verfügbaren Bauraum.
+3. **Entwurf erstellen:** Das Programm prüft Chassis, Gehäuse, Geometrie und technische Grenzen.
+4. **Varianten vergleichen:** Bis zu vier entscheidungsorientierte Kandidaten – Empfehlung, kompakter,
+   mehr Tiefbass und, wenn sinnvoll bepreist, günstiger.
+5. **Klang & Simulation:** Zielkurve bearbeiten, Presets oder parametrische Zielbänder verwenden und
+   berechnete Varianten/Einflussgrenzen vergleichen.
+6. **Zeichnungen:** Im **Lesemodus** Front, Seite und Schnitt groß prüfen; der **Druckblattmodus**
+   zeigt das spätere Seitenlayout.
+7. **Fertigung:** Stückliste, Zuschnitt und Export befinden sich gemeinsam im Bereich *Fertigung*.
+8. **Bauen und messen:** Impedanz und Frequenzgang messen und unter
+   *Werkzeuge → Prototyp vergleichen* gegen die Simulation legen.
+
+## Zielkurve und Datenqualität
+
+- Die Zielkurve ist ein **Sollwert**, kein gemessener Frequenzgang.
+- Ohne FRD-/Messdaten werden Mittel- und Hochtonwerte nicht erfunden.
+- Sind FRD/ZMA-Daten vorhanden, kann die vorhandene Weichensimulation den Summenfrequenzgang
+  bis 20 kHz für den Vergleich verwenden.
+- Die Variantenhülle und Einflusskarten basieren auf tatsächlich berechneten Kandidaten.
+- DSP-Hubreserve wird nur dort angegeben, wo Hubdaten und Xmax vorliegen.
 
 ## Wichtige Hinweise
 
@@ -29,7 +45,8 @@ QUICK_START = """\
 
 ## Tastenkürzel
 
-`Strg+O` Projekt laden · `Strg+S` speichern · `Strg+E` exportieren · `Strg+Q` beenden
+`Strg+O` Projekt laden · `Strg+S` speichern · `Strg+E` exportieren ·
+`Strg+D` Zeichnung groß anzeigen · `Strg+Q` beenden
 """
 
 
@@ -43,7 +60,7 @@ Konstruktionsassistent für Lautsprecherentwürfe mit Berechnung, Zeichnungen, Z
 |---|---|
 | Python | {sys.version.split()[0]} ({platform.system()}) |
 | PySide6 | {pyside_version} |
-| Marke | Ackerschewski_code · Design: ACK Studio |
+| Marke | ACK Studio |
 | Datenordner | `{user_data_dir()}` |
 | Protokolldatei | `{log_file()}` |
 

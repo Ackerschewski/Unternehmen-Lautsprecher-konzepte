@@ -8,7 +8,6 @@ from lautsprecher_konstruktion import REVISION
 from lautsprecher_konstruktion.crossover.measurements import FrequencyResponseData, ImpedanceData
 from lautsprecher_konstruktion.drivers.models import Driver
 from lautsprecher_konstruktion.enclosure.layout import FrontElement
-from lautsprecher_konstruktion.targets.curve import TargetCurve
 
 
 class EnclosureConfig(BaseModel):
@@ -118,8 +117,11 @@ class SpeakerProject(BaseModel):
     crossover: CrossoverConfig = CrossoverConfig()
     front_elements: tuple[FrontElement, ...] = ()
     accessories: tuple[ProjectAccessory, ...] = ()
+    target_curve_schema_version: int = Field(default=1, ge=1)
+    target_curve_points: tuple[tuple[float, float], ...] = ()
+    target_curve_preset: str = "neutral"
+    target_curve_mode: str = "overall"
     notes: str = ""
-    target_curve: TargetCurve | None = None  # optional, versioned (targets.curve.TargetCurve.version)
 
     @model_validator(mode="before")
     @classmethod

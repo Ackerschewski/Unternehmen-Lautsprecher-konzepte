@@ -143,7 +143,7 @@ Für die App folgende Rollen vorsehen:
 
 - **Software-Navy** als primäre App-Chrome-/Arbeitsflächenfarbe im Dark Mode;
 - **warme Papierflächen** für Dokumente, Karten, Detailflächen und Light Mode;
-- **Konstruktions-Ocker** als aktiver technischer Akzent und Primäraktion;
+- **Software-Blau** als primäre Interaktions- und Aktionsfarbe; **Konstruktions-Ocker** nur noch sparsam für konstruktive Hinweise;
 - **Waldgrün** für valide/geprüfte Zustände und ausreichend Reserve;
 - **Burgunder** nur gezielt für Marke, kritische Zustände oder besondere Hervorhebung;
 - **Cormorant** nur für große Seitentitel und wenige hochwertige Überschriften;
@@ -343,7 +343,7 @@ Stattdessen:
 **Dark Mode** als bevorzugte visuelle Leitvariante:
 - nicht fast-schwarz, sondern tiefes Software-Navy;
 - warme/helle Dokumentflächen dürfen bewusst als Kontrast erscheinen;
-- Ocker für aktive technische Aktionen;
+- Software-Blau für aktive technische Aktionen; Ocker nur für gezielte konstruktive Hinweise;
 - Grün für valide Zustände.
 
 **Light Mode**:
@@ -401,7 +401,7 @@ Nur dezente funktionale Bewegung:
 - [ ] Varianten A/B/C lassen sich ohne horizontales Scrollen verstehen und vergleichen.
 - [ ] Zeichnungen sind im Lesemodus ohne extremes Zoomen nutzbar.
 - [ ] Dark Mode enthält keine systemfremden hellen Tabellen-/Widgetflächen.
-- [ ] App-Chrome, Zustände und Akzente nutzen nachvollziehbar Navy / Papier / Ocker / Grün / Burgunder.
+- [ ] App-Chrome, Zustände und Akzente nutzen nachvollziehbar Software-Navy / Papier / Software-Blau / Grün / Burgunder; Ocker nur sekundär.
 - [ ] Bibliothek, Expertenmodus und Zeichnungsmodus sind nicht mehr als drei gleichartige Hauptbuttons behandelt.
 - [ ] Laden/Speichern blockieren nicht permanent wertvolle Arbeitsfläche.
 - [ ] Standard-Qt-Elemente wirken visuell konsistent mit dem ACK-Studio-Designsystem.

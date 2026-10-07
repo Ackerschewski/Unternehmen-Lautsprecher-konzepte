@@ -47,14 +47,14 @@ def render_internal_dimensions_svg(bundle: DesignBundle) -> str:
     sheet_height = max(1100, int(row+31+len(bundle.panels)*28+155))
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{sheet_height}" viewBox="0 0 1200 {sheet_height}">',
-        '<style>.title{font:700 27px sans-serif;fill:%INK%}.sub{font:15px sans-serif;fill:%MUTED%}'
-        '.head{font:700 18px sans-serif;fill:%INK%}.text{font:15px sans-serif;fill:%TEXT%}'
-        '.dimtext{font:13px sans-serif;fill:%TEXT%}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
+        '<style>.title{font:700 27px %FONT_UI%;fill:%INK%}.sub{font:15px %FONT_UI%;fill:%MUTED%}'
+        '.head{font:700 18px %FONT_UI%;fill:%INK%}.text{font:15px %FONT_UI%;fill:%TEXT%}'
+        '.dimtext{font:13px %FONT_UI%;fill:%TEXT%}.dim{fill:none;stroke:%MUTED%;stroke-width:1}'
         '.outline{fill:white;stroke:%INK%;stroke-width:2}.panel{fill:%PANEL%;stroke:%PANEL_STROKE%;stroke-width:1.5}'
         '.feature{fill:%ACCENT_FILL%;stroke:%ACCENT%;stroke-width:1.5}.rule{stroke:%RULE%;stroke-width:1}'
         '.lining{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1;stroke-dasharray:4 3}'
         '.damper{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1.5}.hole{fill:%WHITE%;stroke:%MUTED%;stroke-width:1.5}'
-        '.tb{font:600 12px sans-serif;fill:%MUTED%}.tbt{font:700 13px sans-serif;fill:%INK%}'
+        '.tb{font:600 12px %FONT_UI%;fill:%MUTED%}.tbt{font:700 13px %FONT_UI%;fill:%INK%}'
         f'</style><rect width="1200" height="{sheet_height}" fill="white"/>',
         f'<text x="45" y="43" class="title">{escape(bundle.project.name)} · Innenaufbau</text>',
         f'<text x="45" y="70" class="sub">{escape(bundle.project.revision)} · Maße in mm · Tiefe ab Innenseite Front · Querschnitt schematisch · gestrichelt: Schallweg der Linie</text>',

@@ -33,7 +33,8 @@ def test_no_hex_colours_outside_the_central_drawing_tokens() -> None:
 
 def test_roles_are_valid_and_readable_on_paper() -> None:
     for role, value in style.ROLES.items():
-        assert re.fullmatch(r"#[0-9a-f]{6}", value), role
+        if role != "FONT_UI":
+            assert re.fullmatch(r"#[0-9a-f]{6}", value), role
     for text_role in ("INK", "TEXT", "MUTED", "CRITICAL", "OCHRE", "OK", "ACCENT"):
         assert tokens.contrast(style.ROLES[text_role], "#ffffff") >= 4.5, text_role
     assert style.ROLES["INK"] == tokens.AREAS["software"]["accent"]

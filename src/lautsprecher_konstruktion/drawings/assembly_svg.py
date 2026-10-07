@@ -73,16 +73,16 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         '<defs><pattern id="material" width="8" height="8" patternUnits="userSpaceOnUse" '
         'patternTransform="rotate(45)"><rect width="8" height="8" fill="%SURFACE%"/>'
         '<path d="M0 0V8" stroke="%MUTED%" stroke-width="2"/></pattern></defs>',
-        '<style>.title{font:700 27px sans-serif;fill:%INK%}.subtitle{font:14px sans-serif;fill:%MUTED%}'
-        '.label{font:700 19px sans-serif;fill:%INK%}.note{font:15px sans-serif;fill:%INK%}'
-        '.small{font:13px sans-serif;fill:%MUTED%}.panel{fill:url(#material);stroke:%INK%;stroke-width:2}'
+        '<style>.title{font:700 27px %FONT_UI%;fill:%INK%}.subtitle{font:14px %FONT_UI%;fill:%MUTED%}'
+        '.label{font:700 19px %FONT_UI%;fill:%INK%}.note{font:15px %FONT_UI%;fill:%INK%}'
+        '.small{font:13px %FONT_UI%;fill:%MUTED%}.panel{fill:url(#material);stroke:%INK%;stroke-width:2}'
         '.outline{fill:%WHITE%;stroke:%INK%;stroke-width:2}.flange{fill:%SURFACE%;stroke:%TEXT%;stroke-width:2}'
         '.cutout{fill:none;stroke:%ACCENT%;stroke-width:2.2}.drill{fill:%WHITE%;stroke:%CRITICAL%;stroke-width:1.5}'
-        '.id{font:700 13px sans-serif;fill:%INK%}.dimension{fill:none;stroke:%MUTED%;stroke-width:1.2}'
-        '.dimension-text{font:14px sans-serif;fill:%TEXT%}.component{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
+        '.id{font:700 13px %FONT_UI%;fill:%INK%}.dimension{fill:none;stroke:%MUTED%;stroke-width:1.2}'
+        '.dimension-text{font:14px %FONT_UI%;fill:%TEXT%}.component{fill:%SURFACE%;stroke:%ACCENT%;stroke-width:2}'
         '.lining{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1;stroke-dasharray:4 3}'
         '.damper{fill:%OCHRE_FILL%;stroke:%OCHRE%;stroke-width:1.5}.hole{fill:%WHITE%;stroke:%INK%;stroke-width:2}'
-        '.brace{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.6}.warning{font:700 14px sans-serif;fill:%CRITICAL%}'
+        '.brace{fill:%OK_FILL%;stroke:%OK%;stroke-width:1.6}.warning{font:700 14px %FONT_UI%;fill:%CRITICAL%}'
         '</style>',
         f'<rect width="1200" height="{1100 if bundle.folded_line else 1020}" fill="%WHITE%"/>',
         f'<text x="45" y="45" class="title">{escape(bundle.project.name)}</text>',

@@ -6,25 +6,74 @@ die einzige Gestaltungsgrundlage; das frühere Orange-Profil (Ackerschewski_code
 Tokens: `src/lautsprecher_konstruktion/ui/tokens.py`; Abgleich per Test mit `docs/design/ack-studio-tokens.snapshot.json`.
 
 ## Umgesetzt
-- **Bereich:** Das Produkt gehört in der ACK-Studio-Markenlogik zu **Software** (`software`): Akzent tiefes Software-Navy `#172d46`, Fläche `#edf2f7`, Band `#e4edf5`. Konstruktions-Ocker (`#735419`) erscheint nur noch selten als sekundäre Warn-/Materialfarbe (Statuslinie „Warnung“, Dämmzonen in Zeichnungen), nicht für normale Buttons, Tabs oder Fokus. Waldgrün = geprüft/gültig, Burgunder = kritisch. Auswahl über den Schlüssel `area_v2` in den Benutzereinstellungen (`jewelry`, `apparel`, `construction`, `software`); der frühere Schlüssel `area` wird bewusst ignoriert, damit der alte Standard „construction“ den neuen Software-Standard nicht zurücksetzt.
-- **Farben:** warmes Papier `#fbfaf7`, Text `#282723`, Sekundärtext `#65615d`, Linie `#e2ddd5`, Text auf Akzent weiß. Kontrast aller Bereichsfarben per Test ≥ 4,5.
+- **Produktwelt:** Software (`software`): Light-Akzent `#172d46`, helle Softwareflächen `#edf2f7`/`#e4edf5`. Das Programm erzwingt diese Produktwelt auch bei alten gespeicherten `area=construction`-Werten. Konstruktion-Ocker ist nur eine sekundäre technische Farbe, keine normale Interaktionsfarbe.
+- **Farben:** warmes Papier `#fbfaf7`, Text `#282723`, Software-Navy `#172d46`, Software-Linie `#4c6a83`, heller Dark-Mode-Akzent `#adcadb`. Grün kennzeichnet valide Zustände, Burgunder kritische Zustände; Ocker bleibt sekundär für konstruktive Hinweise.
 - **Typografie:** Inter für Text und Bedienung, Cormorant Garamond (Regular, aus der variablen Google-Fonts-Schrift auf Gewicht 400 instanziiert) für große Titel. Schriften in `data/fonts` mit Lizenzen (SIL OFL), im Windows-Build enthalten.
 - **Form:** Steuerelemente 8 px, Karten/Tabellen 14 px Radius, Abzeichen 4 px; feine Trennlinien, Primäraktion gefüllt, Sekundäraktionen mit Akzentkontur; Auswahl mit Akzentlinie; Fokus mit 2–3 px Akzentrahmen.
 - **Status:** Symbol + Text (✓ ⚠ ✕ ℹ), Fehler zusätzlich gestrichelter Rahmen und fett; keine Statusfarben (das Paket definiert keine, Farbe ist Bereichsidentität).
-- **Diagramme:** Papierfläche, feine Linien, Akzent für die Hauptkurve, Grenzwerte gestrichelt und beschriftet.
+- **Diagramme:** Der Bereich „Klang & Simulation“ enthält eine editierbare Fullrange-Zielkurve von 20 Hz bis 20 kHz. Ist-Daten werden nur in belegten Frequenzbereichen gezeigt; fehlende Mittel-/Hochtondaten werden ausdrücklich als unbekannt markiert. Technische Tiefton-/Hubdiagramme bleiben separat verfügbar.
 - **Progressive Offenlegung:** 6 statt 9 Reiter, Standard-Simulation mit 2 Diagrammen, 3-Wege-Felder nur bei 3-Wege.
 - **Zugänglichkeit:** sichtbarer Fokus, Tastenkürzel, Tooltips, Fehlertexte mit nächstem Schritt.
 
 ## Begründete Abweichungen (Desktop)
-- **Dunkelmodus (Projekterweiterung):** Das Paket definiert nur ein helles Theme. Auf ausdrücklichen Wunsch gibt es ein dunkles Projekt-Theme (Ansicht → Erscheinungsbild: System/Hell/Dunkel), abgeleitet aus Paket-Tokens und Website-Softwarepalette: neutral-dunkler Grund mit leichtem Navy-Unterton `#11161d`, Panel `#19212c`, Band `#233044`, Text `#eef2f7`/`#a9b6c6`, Linie `#344459`; Interaktionsakzent ist das helle Software-Blau `#adcadb`. Dokument-/Kartenflächen bleiben warmes Papier (Variantenkarten). Kontraste per Test ≥ 4,5. Sobald das Paket ein Dark-Theme definiert, ersetzt es diese Ableitung.
-- **Bewegung** (`ui/motion.py`): kurze, nicht blockierende Übergänge nach der Tabelle der UI-Review: Einklappen der Eingabespalte 240 ms und Aufklappen von Details 200 ms (OutCubic), Überblenden bei Reiter-/Variantenwechsel und Bestätigung 160 ms. Die jüngste Anforderung gewinnt, konkurrierende Animationen werden gestoppt. Einstellung „Animationen reduzieren“ (Ansicht-Menü) führt alles sofort aus. Zoom-Schaltflächen und Hover-Übergänge der Buttons sind noch nicht animiert.
-- **Zeichnungen:** Alle Blätter beziehen ihre Farben aus `drawings/style.py` (Rollen INK, TEXT, MUTED, RULE, PANEL, ACCENT, OCHRE, CRITICAL, OK) statt aus verstreuten Hexwerten; PDF- und Zuschnitt-Export nutzen dieselben Rollen. Farbe ersetzt nie Geometrie: Unterschiede sind zusätzlich Linienart, Beschriftung und Position. Dezenter ACK-Studio-Titelblock (Projekt, Revision, Blatt, Maßstab/Einheit) auf Maßblatt, Innenaufbau und Einzelteilplan. Der Bildschirmviewer zeigt Papier auch im Dunkelmodus.
-- **Layout V3 (Stand):** Startassistent mit drei Schritten und maßstäblicher Bauraumskizze statt leerem Ergebnisrahmen; Wahl „Klassisch / Über Zielkurve“; Entwurfsansicht mit Variantenkarten, Gehäuse-Frontansicht aus den berechneten Elementen und fünf Kennwertkarten; „Warum empfohlen?“ und „Technische Details“ einklappbar; Teilbewertung ausdrücklich keine Qualitätsfreigabe; unbekannte Preise gelten nie als günstiger; kontextbezogene Aktionsleiste und Bestätigungsmeldung mit Pfad statt permanenter Dateileiste; Bibliothek/Expertenmodus/Zeichnungsmodus als Textaktionen statt gleichrangiger Hauptbuttons; Kompaktmodus unter 820 px Höhe (1280 × 720: Typ, Bauraum und Klangprofil sichtbar); Eingabefehler am Feld markiert; Zeichnungsviewer mit Lesemodus, Seitenbreite, 100 %, editierbarem Zoomwert und Strg+Mausrad sowie Maßzeile in Lesegröße.
-- **Zielkurven-Konfigurator (MVP):** `targets/curve.py` (versioniertes, optionales Datenmodell `TargetCurve` v1, im Projekt als `target_curve`), `ui/target_curve_panel.py`. Start mit gerader Sollkurve, EQ-Bänder (Glocke, Shelves) per Maus und Tabelle, Rückgängig/Wiederholen, Presets; schnelle Vorschau beim Ziehen, Signal erst nach dem Loslassen. Vergleich nur im Bereich 20–500 Hz (T/S-Modell, relativ, bei 120–300 Hz angeglichen); darüber „keine Messdaten – nicht berechnet“. Im Zielkurvenmodus bestimmt der −3-dB-Punkt der Kurve das F3-Ziel des Lösers. Noch nicht umgesetzt: Gewichtung einzelner Bereiche, Sensitivitäts-/Einflussmodus, Machbarkeitshüllen, Architektursuche über Chassis/Weiche/DSP, Alternativen-Overlay (Phasen 2–5 des Plans).
-- **Rückmeldung 2026-10-06 umgesetzt:** Ergebnisse werden bei Start/Fehlschlag/Unmöglich vollständig invalidiert; Fortschrittstext außerhalb des Balkens; Footer „ACK Studio“. Offen: eigene Outline-Icons, Expertenmodus-Umbau (deutsche Begriffe, Kennwerte statt Text), Windows-DPI-Prüfung 100/125/150 %.
+- **Dunkelmodus (Projekterweiterung):** neutral-dunkler Grund `#11161d`, Arbeitsfläche `#151c25`, Panel `#1b2530`, Band `#223141`; primäre Interaktion `#adcadb`. Damit ist die App nicht mehr eine einzige blaue Vollfläche. Zeichnungsblätter bleiben warme Papierflächen.
+- **Bewegung:** `ui/motion.py`, nur kurze, nicht blockierende Übergänge (Zeichnungsmodus 240 ms OutCubic); Einstellung „Animationen reduzieren“ (Ansicht-Menü) führt Änderungen sofort aus.
+- **Rückmeldung 2026-10-06 umgesetzt:** Ergebnisse werden bei Start/Fehlschlag/Unmöglich vollständig invalidiert; Fortschrittstext außerhalb des Balkens (Balken nur während der Berechnung); Zeichnungsmodus (Strg+D), Zoom „Einpassen/Seitenbreite/100 %/Strg+Mausrad“; Kennwertkarten statt Textbalken; Vergleichstabelle mit Kernspalten; Footer „ACK Studio“. Offen: Outline-Icons, Expertenmodus-Umbau, Windows-DPI-Prüfung.
 - **Zielgrößen:** Das Paket verlangt 44 px für Touch. Auf dem Desktop sind Buttons und Felder etwa 40–44 px hoch, dichte Tabellen und Listen kleiner.
-- **Themewechsel** wird nicht animiert.
-- **Fertigungszeichnungen und PDF** sind Druckdokumente auf Papier; Farben stammen aus `drawings/style.py`.
+- **Bewegung:** Es gibt keine animierten Themewechsel; Übergänge entfallen (Reduced-Motion-konform).
+- **Fertigungszeichnungen und PDF:** gemeinsame Drawing-Tokens in `drawings/style.py`; warme Papierfläche, Software-Navy für Hauptlinien/Titel, Software-Blau für technische Highlights, Burgunder für bekannte Bohrungen/kritische Markierungen und Ocker nur für konstruktive Material-/Dämpfungsinformation. Farbe ist nie alleiniger Informationsträger.
 - **Keine Produktbilder, Icons-Sprite und Autoplay:** Für ein Konstruktionswerkzeug nicht vorgesehen; Symbole nur als Textglyphen.
 - **Navigation:** Reiterleiste statt Seitenleiste.
 - Windows-DPI-Skalierung ist nicht auf Windows geprüft (siehe `docs/application/CODEX_TESTUEBERGABE.md`).
+
+
+## V3.2 Planer-Informationsarchitektur
+
+Die geführte Anwendung ist ab V3.2 nicht mehr als dauerhaftes Formular mit technischen
+Ergebnisreitern aufgebaut, sondern als Produktplaner:
+
+- **Planen** – große Gehäusevisualisierung, fünf Kernkennwerte, kurze Empfehlung und
+  aufklappbare technische Herleitung.
+- **Varianten** – Entscheidungskarten für Empfehlung, kompaktere, tiefere und günstigere
+  reale Kandidaten. Die Volltabelle ist sekundär.
+- **Klang & Simulation** – Fullrange-Zielkurve, Presets, parametrische Zielbänder,
+  Komponenten-/Einflussmodi und technische Detailcharts.
+- **Zeichnungen** – getrennter bildschirmoptimierter Lesemodus (Front/Seite/Schnitt)
+  und Druckblattmodus (Gesamt-/Maß-/Innenblatt).
+- **Fertigung** – Stückliste, Zuschnitt und Export an einem Ort.
+
+Der Projektstart verwendet große Auswahlkarten für Entwurfsweg, Bauart und Klangprofil.
+Maximalmaße erhalten eine proportionale Vorschau. Seltene technische Vorgaben bleiben
+unter **Weitere Anforderungen**.
+
+### Klang-Labor
+
+Die Zielkurve bleibt ein Sollwert. Sie darf keine nicht vorhandenen Messdaten vortäuschen.
+
+- Presets: Neutral, Warm, House Curve, Nahfeld.
+- Parametrische Zielbearbeitung: Frequenz, Q und Gain.
+- Modi: Gesamt, Gehäuse, Chassis, Weiche, DSP, Einfluss.
+- Die Variantenhülle und überlagerten Alternativkurven stammen ausschließlich aus
+  tatsächlich berechneten Entwürfen.
+- Die Einflusskarten zeigen die berechnete dB-Spannweite der verfügbaren
+  Gehäuse-/Chassis-/Weichenvarianten an der ausgewählten Frequenz.
+- DSP-Reserve wird im Tiefton nur aus vorhandenem Hubverlauf und Xmax abgeleitet.
+- Liegen FRD/ZMA-Daten vor, wird die vorhandene Weichensimulation für den
+  Summenfrequenzgang bis 20 kHz verwendet. Ohne FRD bleiben Mittel-/Hochtonbereiche
+  ausdrücklich unbekannt.
+- Zielkurve, Preset und Analysemodus werden versioniert im Projekt gespeichert.
+
+### Zeichnungen
+
+Alle SVG-Renderer verwenden die zentrale Palette aus `drawings/style.py`.
+Das gilt auch für Assembly, Schallwand, Front-Horn, Rear-Horn und Tapped-Horn.
+Farben unterstützen technische Rollen, ersetzen aber keine Geometrie-, Linien- oder
+Textinformation.
+
+### Bewegung
+
+Bewegung dient ausschließlich der Orientierung:
+- kurzer Crossfade bei Tab-/Variantenauswahl;
+- kurze Panelanimation beim Zeichnungsfokus;
+- keine dauerhaften Animationen oder künstlichen Fortschrittswerte;
+- Reduced Motion deaktiviert diese Übergänge.

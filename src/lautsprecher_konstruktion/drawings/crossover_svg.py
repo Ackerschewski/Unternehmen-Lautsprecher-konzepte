@@ -39,8 +39,8 @@ def render_crossover_svg(design: CrossoverDesign) -> str:
         (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}">'),
         ('<style>.wire{stroke:%INK%;stroke-width:2;fill:none}.box{fill:%WHITE%;stroke:%INK%;stroke-width:1.5}'
-        '.title{font:bold 22px sans-serif}.label{font:bold 14px sans-serif}'
-        '.txt{font:13px sans-serif}.note{font:12px sans-serif;fill:%MUTED%}</style>'),
+        '.title{font:bold 22px %FONT_UI%}.label{font:bold 14px %FONT_UI%}'
+        '.txt{font:13px %FONT_UI%}.note{font:12px %FONT_UI%;fill:%MUTED%}</style>'),
         f'<text x="30" y="34" class="title">{escape(design.name)} — {split_text}</text>',
         ('<text x="30" y="62" class="note">Elektrischer Startentwurf auf Basis nominaler '
         'resistiver Lasten; finale Abstimmung mit Messdaten.</text>'),

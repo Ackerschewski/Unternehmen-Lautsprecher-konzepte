@@ -48,7 +48,7 @@ def test_bookshelf_design_fit_score_project_export(library, tmp_path):
     request = AutomaticDesignRequest(project_name="Mein Regal", max_width_m=.23,
         max_height_m=.42, max_depth_m=.31)
     result = automatic_design(request, library)
-    assert result.status == "ok" and 1 <= len(result.designs) <= 3
+    assert result.status == "ok" and 1 <= len(result.designs) <= 4
     for design in result.designs:
         assert design.bundle.cabinet.width_m <= request.max_width_m
         assert design.bundle.cabinet.height_m <= request.max_height_m

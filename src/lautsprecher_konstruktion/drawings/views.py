@@ -3,12 +3,11 @@ from __future__ import annotations
 
 from html import escape
 
-from lautsprecher_konstruktion.drawings.style import painted
+from lautsprecher_konstruktion.drawings.style import PAPER, special_css
 from lautsprecher_konstruktion.enclosure.layout import bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
-@painted
 def render_view_svg(bundle: DesignBundle, view: str) -> str:
     if bundle.baffle_mode is not None:
         from lautsprecher_konstruktion.drawings.baffle_svg import render_baffle_svg
@@ -65,11 +64,11 @@ def render_view_svg(bundle: DesignBundle, view: str) -> str:
     body.append(f'<text x="{x}" y="{y+b*scale+32}">{a:.1f} x {b:.1f} mm | Material {t:.1f} mm</text>')
     title={"front":"Frontplatte","back":"Rückwand","partition":"Trennwand",
            "side":"Seitenansicht","section":"Schnitt"}[view]
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 820" width="800" height="820">'
-            '<rect width="800" height="820" fill="%WHITE%"/>'
-            '<style>text{font:14px sans-serif;fill:%INK%}.panel{fill:none;stroke:%INK%;stroke-width:2}'
-            '.cut{fill:none;stroke:%ACCENT%;stroke-width:2}.drill{fill:none;stroke:%CRITICAL%;stroke-width:1}'
-            '.inner{fill:none;stroke:%MUTED%;stroke-dasharray:5 4}.depth{fill:none;stroke:%ACCENT%}'
-            '.brace{fill:%PANEL%;stroke:%MUTED%}</style>'
-            f'<text x="40" y="30" style="font-size:22px;font-weight:bold">{title}</text>'
-            +''.join(body)+'</svg>')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 820" width="800" height="820">'
+        f'<rect width="800" height="820" fill="{PAPER}"/>'
+        + special_css()
+        + f'<text x="40" y="34" class="title">{title}</text>'
+        + ''.join(body)
+        + '</svg>'
+    )

@@ -46,7 +46,7 @@ def test_every_area_has_readable_text_and_accent_contrast() -> None:
         assert tokens.contrast(t["onAccent"], t["accent"]) >= 4.5, name
         assert tokens.contrast(t["onAccent"], t["accentHover"]) >= 4.5, name
         assert tokens.contrast(t["accent"], t["background"]) >= 4.5, name
-    tokens.set_area(tokens.DEFAULT_AREA)
+    tokens.set_area("software")
     with pytest.raises(ValueError):
         tokens.set_area("gold")
 
@@ -100,27 +100,23 @@ def test_default_simulation_shows_two_charts_and_more_on_request(app: QApplicati
 def test_tabs_are_grouped_and_there_is_no_theme_switch(app: QApplication) -> None:
     window = AssistantWindow()
     names = [window.tabs.tabText(i) for i in range(window.tabs.count())]
-    assert names == ["Entwürfe", "Variantenvergleich", "Zeichnungen", "Klang && Simulation", "Stückliste", "Zuschnitt"]
+    assert names == ["Planen", "Varianten", "Klang & Simulation", "Zeichnungen", "Fertigung"]
     assert window.export_button.objectName() == "primary" and window.create_button.objectName() == "primary"
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
     assert titles == ["Datei", "Werkzeuge", "Ansicht", "Hilfe"]
     assert window.mode == "light"
 
 
-def test_area_can_be_chosen_in_settings(app: QApplication) -> None:
+def test_loudspeaker_app_is_always_in_software_world(app: QApplication) -> None:
     from lautsprecher_konstruktion.appdata import Settings
-    Settings().set("area", "construction")  # legacy key of the old default must not override the new default
-    assert "#172d46" in AssistantWindow().styleSheet()
-    Settings().set("area_v2", "construction")
-    try:
-        assert "#735419" in AssistantWindow().styleSheet()
-    finally:
-        Settings().set("area_v2", "bogus")
-        assert "#172d46" in AssistantWindow().styleSheet()  # invalid values fall back to the software default
+    Settings().set("area", "construction")  # legacy value from older builds
+    window = AssistantWindow()
+    assert Settings().get("area") == "software"
+    assert "#172d46" in window.styleSheet()
 
 
 def test_expert_window_uses_the_same_stylesheet_and_hides_three_way_fields(app: QApplication) -> None:
-    tokens.set_area(tokens.DEFAULT_AREA)
+    tokens.set_area("software")
     window = MainWindow()
     assert "#172d46" in window.styleSheet() and window.calculate_button.objectName() == "primary"
     assert window._crossover_form.isRowVisible(window.upper_frequency) is False
