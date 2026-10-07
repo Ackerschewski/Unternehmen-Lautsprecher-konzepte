@@ -75,7 +75,6 @@ from lautsprecher_konstruktion.services.automatic import (
 )
 from lautsprecher_konstruktion.services.design import DesignBundle
 from lautsprecher_konstruktion.ui.assistant_files import FileActionsMixin
-from lautsprecher_konstruktion.ui.cabinet_preview import CabinetPreview
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
@@ -86,6 +85,7 @@ from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPr
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.result_hero import KpiGrid, VariantStrip, comparison_sentences
 from lautsprecher_konstruktion.ui.result_text import bom_html, data_quality, details_html
+from lautsprecher_konstruktion.ui.scene_view import HeroPreview
 from lautsprecher_konstruktion.ui.sound_lab import update_sound_lab
 from lautsprecher_konstruktion.ui.sound_plots import PLOT_KINDS, available_plots, draw_plot
 from lautsprecher_konstruktion.ui.status_banner import banner
@@ -834,7 +834,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(16)
 
-        self.preview = CabinetPreview(self.mode)
+        self.preview = HeroPreview(self.mode)
         self.preview.setMinimumSize(420, 340)
         result_layout.addWidget(self.preview, 7)
 
