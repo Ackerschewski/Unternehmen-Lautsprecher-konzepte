@@ -9,6 +9,12 @@ from lautsprecher_konstruktion.export.summary import grouped
 from lautsprecher_konstruktion.presentation import component_text, de, price_kind
 from lautsprecher_konstruktion.services.automatic import SpeakerDesign
 from lautsprecher_konstruktion.services.price_status import price_info
+from lautsprecher_konstruktion.services.variant_metrics import (
+    METRIC_NAMES_DE,
+    coverage_label,
+    metrics_of,
+    model_status,
+)
 
 
 def details_html(design: SpeakerDesign, budget_eur: float) -> str:
@@ -34,23 +40,20 @@ def details_html(design: SpeakerDesign, budget_eur: float) -> str:
         lines.append(f"<p><b>Budget noch frei:</b> "
                      f"{budget_eur-design.total_price_eur:.2f} €</p>")
     if design.breakdown:
-        lines.append(f"<h3>Teilbewertung · {design.score:.0f}/100 aus {len(design.breakdown)} "
-                     "bewerteten Kriterien</h3><p>Keine Qualitätsfreigabe: nicht belegbare Kriterien "
-                     "fließen nicht ein.</p>")
-        names = {"bass": "Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
-            "port": "Portreserve", "delay": "Gruppenlaufzeit", "flatness": "Linearität",
-            "cost": "Budgetreserve", "target_curve": "Nähe zur Zielkurve"}
+        lines.append(f"<h3>Zielerfüllung {design.score:.0f} % · aus {len(design.breakdown)} belegten Kriterien</h3>"
+                     "<p>Keine Qualitätsfreigabe: nicht belegbare Kriterien fließen nicht ein, es gibt keine ergänzten Werte.</p>")
         for metric in design.breakdown:
-            lines.append(f"<p><b>{names.get(metric.name, metric.name)}</b> "
-                f"{metric.value:.0f}/100 "
-                f"(Gewicht {metric.weight:g})<br>{escape(metric.evidence)}</p>")
-        missing = {"headroom", "port", "delay", "flatness"}-{
-            metric.name for metric in design.breakdown}
+            lines.append(f"<p><b>{METRIC_NAMES_DE.get(metric.name, metric.name)}</b> {metric.value:.0f}/100 "
+                         f"(Gewicht {metric.weight:g})<br>{escape(metric.evidence)}</p>")
+        missing = {"headroom", "port", "delay", "flatness"} - {metric.name for metric in design.breakdown}
         if bundle.port is None:
             missing.discard("port")
         if missing:
-            lines.append("<p><i>Nicht bewertet: "+", ".join(names[key] for key in sorted(missing))+
-                ". Nicht verfügbare Werte werden nicht ergänzt.</i></p>")
+            lines.append("<p><i>Nicht bewertet: " + ", ".join(METRIC_NAMES_DE[key] for key in sorted(missing))
+                         + ". Nicht verfügbare Werte werden nicht ergänzt.</i></p>")
+        m = metrics_of(design)
+        lines.append(f"<p><b>Zusätzlich, nicht im Score:</b> Datenabdeckung {m.coverage_percent} % · "
+                     f"Bauaufwand {m.effort_panels} Platten</p>")
     lines.append("<h3>Warum dieser Entwurf?</h3><ul>"+
         "".join(f"<li>{escape(reason)}</li>" for reason in design.reasons)+"</ul>")
     if design.provisional_crossover:
@@ -108,15 +111,6 @@ def bom_html(design: SpeakerDesign, colors: dict[str, str] | None = None) -> str
 
 
 def data_quality(design: SpeakerDesign) -> tuple[str, str]:
-    """Headline and hint for the data-quality card, derived from what the project really contains."""
-    cross = design.bundle.project.crossover
-    needs_tweeter = design.tweeter is not None
-    has_frd = cross.woofer_frd is not None and (not needs_tweeter or cross.tweeter_frd is not None)
-    has_zma = cross.woofer_zma is not None and (not needs_tweeter or cross.tweeter_zma is not None)
-    if has_frd and has_zma:
-        return "FRD + ZMA vorhanden", "Weiche und Summe stützen sich auf Messdaten der Chassis."
-    if has_frd or has_zma:
-        return "FRD/ZMA unvollständig", "Nur ein Teil der Messdaten liegt vor; Weichenaussagen sind eingeschränkt."
-    if design.provisional_crossover:
-        return "nur T/S-Daten · vorläufige Weiche", "Ohne FRD/ZMA ist keine Aussage über 20 Hz–20 kHz belegt; nur Tiefton und Gehäuse sind berechnet."
-    return "nur T/S-Daten", "Tiefton und Gehäuse sind berechnet; ohne FRD/ZMA bleibt der Frequenzgang oberhalb des Tieftons unbelegt."
+    """Headline = data coverage in words and percent; hint = the model status behind it (kept apart on purpose)."""
+    percent = metrics_of(design).coverage_percent
+    return f"{coverage_label(percent).capitalize()} · {percent} %", f"Datenabdeckung. Modellstatus: {model_status(design)}"

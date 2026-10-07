@@ -72,6 +72,7 @@ from lautsprecher_konstruktion.services.automatic import (
 )
 from lautsprecher_konstruktion.services.design import DesignBundle
 from lautsprecher_konstruktion.services.price_status import price_info
+from lautsprecher_konstruktion.services.variant_metrics import recommendation_note
 from lautsprecher_konstruktion.ui.assistant_files import FileActionsMixin
 from lautsprecher_konstruktion.ui.construction_view import ConstructionView
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
@@ -1289,7 +1290,9 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.compare_bars.select(index)
         self.variant_strip.select(index)
         baseline = self.designs[0]
-        why = (design.reasons if index == 0 else comparison_sentences(design, baseline))
+        why = list(design.reasons if index == 0 else comparison_sentences(design, baseline))
+        if index == 0 and (note := recommendation_note(self.designs)):
+            why.append(note)
         self.variant_why.setText(
             f"<b>{escape(design.label)} – {'Warum empfohlen?' if index == 0 else 'Warum besser oder schlechter als A?'}</b>"
             "<br>" + "<br>".join(f"• {escape(item)}" for item in why))

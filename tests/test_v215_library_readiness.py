@@ -89,7 +89,8 @@ def test_data_quality_text_is_honest_without_frd() -> None:
     result = automatic_design(AutomaticDesignRequest(max_width_m=0.3, max_height_m=0.5, max_depth_m=0.4), ComponentLibrary())
     assert result.designs
     value, hint = data_quality(result.designs[0])
-    assert "T/S" in value and "20 Hz" in hint or "unbelegt" in hint
+    assert "%" in value and "Datenabdeckung" in hint and "Modellstatus" in hint
+    assert "keine FRD" in hint  # the model status names what is missing, kept apart from the coverage headline
 
 
 @pytest.mark.parametrize("kind", list(Readiness))

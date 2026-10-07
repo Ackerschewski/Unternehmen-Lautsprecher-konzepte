@@ -91,3 +91,18 @@ def test_cards_and_bars_render_for_all_variants(app: QApplication, designs: tupl
     bars.set_designs(designs)
     bars.select(1)
     assert bars.grab().width() == 700
+
+
+def test_recommendation_note_explains_a_favourite_with_more_warnings(designs: tuple[SpeakerDesign, ...]) -> None:
+    from lautsprecher_konstruktion.services.variant_metrics import (
+        coverage_label,
+        recommendation_note,
+    )
+    assert coverage_label(95) == "vollständig" and coverage_label(75) == "gut"
+    assert coverage_label(50) == "eingeschränkt" and coverage_label(10) == "unvollständig"
+    first = designs[0]
+    noisy = replace(first, bundle=replace(first.bundle, warnings=("a", "b")))
+    calm = replace(designs[1], bundle=replace(designs[1].bundle, warnings=()))
+    note = recommendation_note((noisy, calm))
+    assert note is not None and "2 Hinweis" in note and noisy.label in note
+    assert recommendation_note((calm, noisy)) is None  # a calmer favourite needs no excuse

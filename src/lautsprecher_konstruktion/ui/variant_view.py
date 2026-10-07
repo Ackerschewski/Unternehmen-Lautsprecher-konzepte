@@ -88,7 +88,7 @@ class VariantCard(QFrame):
             row.addWidget(label)
             if index % 2 == 1 or index == len(chips) - 1:
                 row.addStretch(1)
-        self.score = QLabel(f"Teilbewertung {design.score:.0f}/100 (nur belegte Kriterien)")
+        self.score = QLabel(f"Zielerfüllung {design.score:.0f} % (nur belegte Kriterien)")
         self.score.setObjectName("caption")
         layout.addWidget(self.score)
 

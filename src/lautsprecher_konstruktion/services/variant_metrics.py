@@ -141,3 +141,45 @@ def comparison_rows(designs: tuple[SpeakerDesign, ...]) -> tuple[BarRow, ...]:
         BarRow("effort", "Bauaufwand", _scale([float(m.effort_panels) for m in ms], False), tuple(f"{m.effort_panels} Platten" for m in ms)),
     ]
     return tuple(rows)
+
+
+METRIC_NAMES_DE = {"bass": "Klangziel Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
+                   "port": "Portreserve", "delay": "Gruppenlaufzeit", "flatness": "Linearität",
+                   "cost": "Budgetreserve", "target_curve": "Nähe zur Zielkurve", "spl": "Pegel"}
+
+
+def coverage_label(percent: int) -> str:
+    """Words for the data coverage share: complete, good, limited, incomplete."""
+    return "vollständig" if percent >= 90 else "gut" if percent >= 70 else "eingeschränkt" if percent >= 40 else "unvollständig"
+
+
+def model_status(design: SpeakerDesign) -> str:
+    """What the numbers rest on, kept apart from how complete the data is."""
+    cross = design.bundle.project.crossover
+    parts: list[str] = []
+    if design.tweeter is not None or design.provisional_crossover:
+        parts.append("Weiche vorläufig" if design.provisional_crossover else "Weiche aus Messdaten")
+    parts.append("FRD vorhanden" if cross.woofer_frd is not None else "keine FRD")
+    parts.append("ZMA vorhanden" if cross.woofer_zma is not None else "keine ZMA")
+    return " · ".join(parts)
+
+
+def recommendation_note(designs: tuple[SpeakerDesign, ...]) -> str | None:
+    """Why the favourite wins although an alternative has fewer warnings; None when there is nothing to explain."""
+    if len(designs) < 2:
+        return None
+    first = designs[0]
+    warn = len(first.bundle.warnings)
+    calmer = [d for d in designs[1:] if len(d.bundle.warnings) < warn]
+    if not warn or not calmer:
+        return None
+    rival = max(calmer, key=lambda d: d.score)
+    ours = {m.name: m.value for m in first.breakdown}
+    theirs = {m.name: m.value for m in rival.breakdown}
+    leads = sorted(((ours[k] - theirs[k], k) for k in ours.keys() & theirs.keys() if ours[k] - theirs[k] >= 5), reverse=True)
+    if not leads:
+        return (f"{first.label} hat {warn} Hinweis(e), {rival.label} weniger. {first.label} bleibt vorn, weil die "
+                f"belegten Kriterien insgesamt höher liegen ({first.score:.0f} gegen {rival.score:.0f} %).")
+    named = ", ".join(f"{METRIC_NAMES_DE.get(k, k)} (+{d:.0f})" for d, k in leads[:3])
+    return (f"{first.label} hat {warn} Hinweis(e), {rival.label} weniger – {first.label} gewinnt trotzdem durch bessere "
+            f"Werte bei {named}. Die Hinweise vor dem Bau prüfen.")
