@@ -23,7 +23,7 @@ AREAS: Final[dict[str, dict[str, str]]] = {
     "construction": {"accent": "#735419", "panel": "#f7f1e4", "band": "#f0e7d0"},
     "software": {"accent": "#172d46", "panel": "#edf2f7", "band": "#e4edf5"},
 }
-DEFAULT_AREA: Final = "construction"
+DEFAULT_AREA: Final = "software"
 
 SPACING: Final = (4, 8, 12, 16, 24, 32, 48, 64, 80)
 RADIUS_CONTROL: Final = 8
@@ -58,16 +58,18 @@ def _mix(a: str, b: str, share: float) -> str:
     return "#" + "".join(f"{c:02x}" for c in channels)
 
 
-# Dark theme (project extension, see docs/DESIGN_SYSTEM.md): deep software navy as app chrome, taken from the
-# "software" area accent #172d46 and deepened; warm paper surfaces stay as documents/cards; the construction
-# ochre is the active accent, forest green (apparel accent) marks valid states and burgundy (jewelry accent)
-# only critical states. Light accents are lightened until they reach the contrast on the navy ground.
-DARK_PAPER: Final = "#0f1e32"
-DARK_PANEL: Final = "#162a43"
-DARK_BAND: Final = "#1e3856"
+# Dark theme (project extension, see docs/DESIGN_SYSTEM.md): the product belongs to the ACK Studio area
+# "software". The ground is a neutral dark with only a slight navy undertone (the software tone #172d46 is the
+# light-theme accent, not a full-surface fill), panels are a step lighter, the interactive accent is the light
+# software blue of the website (#adcadb). Warm paper stays for documents/cards; forest green marks valid states,
+# burgundy critical ones, the construction ochre is only a rare secondary (warning/material) colour.
+DARK_PAPER: Final = "#11161d"
+DARK_PANEL: Final = "#19212c"
+DARK_BAND: Final = "#233044"
 DARK_INK: Final = "#eef2f7"
-DARK_MUTED: Final = "#a8b7ca"
-DARK_LINE: Final = "#2b4567"
+DARK_MUTED: Final = "#a9b6c6"
+DARK_LINE: Final = "#344459"
+DARK_ACCENT: Final = {"software": "#adcadb"}
 MODES: Final = ("light", "dark")
 
 
@@ -92,7 +94,7 @@ def theme(mode: str = "light") -> dict[str, str]:
     green, burgundy = AREAS["apparel"]["accent"], AREAS["jewelry"]["accent"]
     if mode == "dark":
         grounds = (DARK_PAPER, DARK_PANEL, DARK_BAND)
-        accent = _lighten(a["accent"], grounds, 4.8)
+        accent = DARK_ACCENT.get(_area) or _lighten(a["accent"], grounds, 4.8)
         return {
             "background": DARK_PAPER, "surface": DARK_PAPER, "surfaceElevated": DARK_PANEL, "panel": DARK_PANEL,
             "band": DARK_BAND, "textPrimary": DARK_INK, "textSecondary": DARK_MUTED, "border": DARK_LINE,
@@ -103,7 +105,7 @@ def theme(mode: str = "light") -> dict[str, str]:
             "success": _lighten(green, grounds, 4.8),
             "danger": _lighten(burgundy, grounds, 4.8),
             "docSurface": PAPER, "docBand": a["band"], "docInk": INK, "docMuted": MUTED, "docLine": LINE,
-            "docAccent": a["accent"],
+            "docAccent": a["accent"], "ochre": _lighten(AREAS["construction"]["accent"], grounds, 4.8),
         }
     return {
         "background": PAPER, "surface": PAPER, "surfaceElevated": a["panel"], "panel": a["panel"], "band": a["band"],
@@ -113,7 +115,7 @@ def theme(mode: str = "light") -> dict[str, str]:
         "accentSubtle": a["band"], "disabledText": _mix(MUTED, PAPER, 0.45), "disabledSurface": a["panel"],
         "paper": PAPER, "success": green, "danger": burgundy,
         "docSurface": PAPER, "docBand": a["band"], "docInk": INK, "docMuted": MUTED, "docLine": LINE,
-        "docAccent": a["accent"],
+        "docAccent": a["accent"], "ochre": AREAS["construction"]["accent"],
     }
 
 

@@ -32,7 +32,8 @@ def test_folded_line_has_solver_baffles_and_manufacturing_package(
     line = bundle.folded_line
     assert line is not None
     assert line.fold_count >= 1
-    assert len(line.baffle_panels) == line.fold_count
+    # horns may split an inclined septum into several straight boards
+    assert len(line.baffle_panels) >= line.fold_count
     assert 0.8 < line.path_length_m < 4.0
     assert bundle.vented_response is not None
     assert np.all(np.isfinite(bundle.vented_response.response_db))

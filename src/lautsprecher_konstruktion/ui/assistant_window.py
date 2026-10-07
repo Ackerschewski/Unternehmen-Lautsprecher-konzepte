@@ -145,7 +145,7 @@ class AssistantWindow(QMainWindow):
         self.autosave = Autosave()
         configure_logging()
         try:
-            set_area(str(self.settings.get("area", DEFAULT_AREA)))  # area accent of the design package
+            set_area(str(self.settings.get("area_v2", DEFAULT_AREA)))  # area accent of the design package
         except ValueError:
             set_area(DEFAULT_AREA)
         self.theme_choice = str(self.settings.get("theme", "system"))

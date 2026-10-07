@@ -73,7 +73,8 @@ def test_tapped_horn_has_internal_driver_and_distinct_response(tmp_path):
     assert not [issue for issue in bundle.issues if issue.severity=='error']
     assert len(bundle.front_elements)==1 and bundle.front_elements[0].id=='BR1'
     assert horn.baffle_length_m>(project.driver.outer_diameter_m or 0)
-    assert horn.quarter_wave_hz==pytest.approx(63.6,rel=.03)
+    assert horn.half_wave_hz==pytest.approx(343/(2*horn.path_length_m))
+    assert horn.tap_spacing_m>0.5*horn.path_length_m*0.4
     assert bundle.vented_response is not None
     assert np.isfinite(bundle.vented_response.response_db).all()
     assert bundle.vented_response.f3_hz is not None
@@ -88,7 +89,14 @@ def test_tapped_horn_has_internal_driver_and_distinct_response(tmp_path):
 def test_tapped_horn_rejects_short_internal_panel():
     project=_horn_project('horn_tapped')
     config=project.enclosure.model_copy(update={'target_volume_l':65})
-    with pytest.raises(ValueError,match='F1 zu kurz'):
+    with pytest.raises(ValueError,match='Tapped-Horn: Tiefe reicht'):
+        calculate_project(project.model_copy(update={'enclosure':config}))
+
+
+def test_tapped_horn_rejects_narrow_internal_panel():
+    project=_horn_project('horn_tapped')
+    config=project.enclosure.model_copy(update={'external_width_mm':260})
+    with pytest.raises(ValueError,match='F1 zu kurz oder schmal'):
         calculate_project(project.model_copy(update={'enclosure':config}))
 
 
