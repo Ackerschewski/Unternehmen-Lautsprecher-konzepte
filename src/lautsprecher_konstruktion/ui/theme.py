@@ -101,7 +101,7 @@ def stylesheet(mode: str = "light") -> str:
         QPushButton#navButton:disabled {{color:{t['disabledText']}; background:transparent; border-color:transparent;}}
         QFrame#paperCard, QFrame#variantCard {{background:{t['docSurface']}; border:1px solid {t['docLine']};
             border-radius:{rk}px;}}
-        QFrame#variantCard[selected="true"] {{border:2px solid {t['docAccent']};}}
+        QFrame#variantCard[selected="true"] {{border:3px solid {t['accent']};}}
         QFrame#paperCard QLabel, QFrame#variantCard QLabel {{color:{t['docInk']};}}
         QFrame#paperCard QLabel#caption, QFrame#variantCard QLabel#caption,
         QFrame#variantCard QLabel#kpiLabel, QFrame#variantCard QLabel#kpiNote {{color:{t['docMuted']};}}

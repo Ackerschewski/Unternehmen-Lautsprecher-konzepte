@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -83,6 +84,8 @@ from lautsprecher_konstruktion.targets.curve import (
     derive_f3_target_hz,
     deviation,
 )
+from lautsprecher_konstruktion.ui.cabinet_preview import CabinetPreview
+from lautsprecher_konstruktion.ui.collapsible import Collapsible
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
@@ -93,6 +96,7 @@ from lautsprecher_konstruktion.ui.target_curve_panel import TargetCurvePanel
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import DEFAULT_AREA, set_area, status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
+from lautsprecher_konstruktion.ui.variant_cards import CardData, VariantCards
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
 
 LOG = get_logger("ui")
@@ -177,12 +181,14 @@ class AssistantWindow(QMainWindow):
         headings.addWidget(subtitle)
         head.addLayout(headings, 1)
         self.focus_button = QPushButton("Zeichnungsmodus")
+        self.focus_button.setObjectName("ghost")
         self.focus_button.setCheckable(True)
         self.focus_button.setToolTip("Eingabespalte einklappen und die Ergebnisfläche vergrößern (Strg+D)")
         self.focus_button.toggled.connect(self.set_focus_mode)
         head.addWidget(self.focus_button)
         for label, method in (("Bibliothek", self._library), ("Expertenmodus", self._expert)):
             button = QPushButton(label)
+            button.setObjectName("ghost")
             button.clicked.connect(method)
             head.addWidget(button)
         outer.addLayout(head)
@@ -196,6 +202,9 @@ class AssistantWindow(QMainWindow):
         split.setStretchFactor(1, 1)
         split.setSizes([470, 950])
         self._connect_inputs()
+        for spin_box in (self.max_width, self.max_height, self.max_depth):
+            spin_box.valueChanged.connect(self._update_start_preview)
+        self._update_start_preview()
         outer.addWidget(split, 1)
         self.setCentralWidget(root)
         self._build_menu()
@@ -230,6 +239,8 @@ class AssistantWindow(QMainWindow):
             self.expert_window.set_mode(mode)
         if hasattr(self, "target_panel"):
             self.target_panel.set_mode(mode)
+            self.preview.set_mode(mode)
+            self.start_preview.set_mode(mode)
         self._redraw_simulation()
 
     def set_reduced_motion(self, reduced: bool) -> None:
@@ -261,10 +272,13 @@ class AssistantWindow(QMainWindow):
         self._stale = False
         self._unsaved = False
         self.variant_list.clear()
-        self.variant_list.setVisible(False)
+        self.variant_cards.clear()
+        self.preview.clear()
         self.comparison.setRowCount(0)
         self.details.clear()
+        self.why.clear()
         self.kpi_row.setVisible(False)
+        self._show_results(False)
         empty = QByteArray(b"<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>")
         for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
             view.load(empty)
@@ -469,6 +483,79 @@ class AssistantWindow(QMainWindow):
         outer.addLayout(footer)
         return panel
 
+    def _build_start_page(self) -> QWidget:
+        """Guided start instead of an empty result frame: three steps and a live sketch of the space."""
+        page = QWidget()
+        layout = QHBoxLayout(page)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(24)
+        guide = QVBoxLayout()
+        guide.setSpacing(14)
+        title = QLabel("In drei Schritten zum ersten Entwurf")
+        title.setObjectName("pageTitle")
+        guide.addWidget(title)
+        for number, head, text in (
+                ("1", "Was möchtest du bauen?", "Wähle den Lautsprechertyp. Das Programm sucht dazu passende Gehäuse und Chassis."),
+                ("2", "Wie viel Platz hast du?", "Gib Breite, Höhe und Tiefe an. Die Skizze rechts zeigt den Bauraum."),
+                ("3", "Wie soll er klingen?", "Wähle ein Klangprofil – oder forme die Zielkurve selbst.")):
+            row = QHBoxLayout()
+            badge = QLabel(number)
+            badge.setObjectName("stepNumber")
+            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            row.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
+            column = QVBoxLayout()
+            column.setSpacing(2)
+            heading = QLabel(f"<b>{head}</b>")
+            body = QLabel(text)
+            body.setObjectName("hint")
+            body.setWordWrap(True)
+            column.addWidget(heading)
+            column.addWidget(body)
+            row.addLayout(column, 1)
+            guide.addLayout(row)
+        example = QPushButton("Beispiel einsetzen: kompakter Regallautsprecher")
+        example.clicked.connect(self._load_example)
+        guide.addWidget(example, 0, Qt.AlignmentFlag.AlignLeft)
+        note = QLabel("Alle Beispiele sind als TESTDATEN gekennzeichnet. Preise und Herstellerdaten werden nie geschätzt.")
+        note.setObjectName("hint")
+        note.setWordWrap(True)
+        guide.addWidget(note)
+        guide.addStretch(1)
+        layout.addLayout(guide, 3)
+        self.start_preview = CabinetPreview()
+        self.start_preview.set_mode(self.mode)
+        layout.addWidget(self.start_preview, 2)
+        return page
+
+    def _load_example(self) -> None:
+        self.demo_choice.setCurrentIndex(1)
+        self._demo()
+
+    def _update_start_preview(self, *_args: object) -> None:
+        if hasattr(self, "start_preview"):
+            self.start_preview.set_limits(self.max_width.value(), self.max_height.value(), self.max_depth.value())
+
+    def _show_results(self, show: bool) -> None:
+        self.result_stack.setCurrentIndex(1 if show else 0)
+        self.actions_bar.setVisible(show)
+
+    def _refresh_cards(self) -> None:
+        cards = []
+        for row, design in enumerate(self.designs):
+            c = design.bundle.cabinet
+            f3 = design.bundle.sealed.f3_hz if design.bundle.sealed else (
+                design.bundle.vented_response.f3_hz if design.bundle.vented_response else None)
+            errors = sum(1 for issue in design.bundle.issues if issue.severity == "error")
+            check = (f"✕ {errors} Geometriefehler" if errors else
+                     f"⚠ {len(design.bundle.warnings)} Hinweise" if design.bundle.warnings else "✓ keine Hinweise")
+            item = self.comparison.item(row, 11)
+            cards.append(CardData(
+                design.label, registry.get(design.project.enclosure.enclosure_type).label,
+                f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f}", f3,
+                design.total_price_eur, check, item.text() if item else "–",
+                design.woofer.model + (f" + {design.tweeter.model}" if design.tweeter else "")))
+        self.variant_cards.set_cards(cards)
+
     def _build_results(self) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -477,29 +564,63 @@ class AssistantWindow(QMainWindow):
         self.state.setWordWrap(True)
         layout.addWidget(self.state)
         self._set_state("info", "Wähle Typ, Bauraum und Klangprofil. Dann klicke auf „Entwurf erstellen“.")
+        self.result_stack = QStackedWidget()
+        layout.addWidget(self.result_stack, 1)
+        self.result_stack.addWidget(self._build_start_page())
         self.tabs = QTabWidget()
 
         overview = QWidget()
         ov = QVBoxLayout(overview)
-        self.kpi_row = QWidget()
-        kpi_layout = QHBoxLayout(self.kpi_row)
+        self.variant_cards = VariantCards()
+        self.variant_cards.selected.connect(lambda i: self.variant_list.setCurrentRow(i))
+        ov.addWidget(self.variant_cards)
+        hero = QHBoxLayout()
+        self.preview = CabinetPreview()
+        self.preview.set_mode(self.mode)
+        hero.addWidget(self.preview, 3)
+        self.kpi_row = QWidget()  # right column: at most five key figures
+        kpi_layout = QVBoxLayout(self.kpi_row)
         kpi_layout.setContentsMargins(0, 0, 0, 0)
-        self.kpis: dict[str, QLabel] = {}
+        kpi_layout.setSpacing(8)
+        self.kpis: dict[str, tuple[QLabel, QLabel]] = {}
         for key in ("Maße", "Tiefbass F3", "Preisstatus", "Datenqualität", "Prüfstatus"):
-            label = QLabel()
-            label.setObjectName("kpi")
-            label.setWordWrap(True)
-            kpi_layout.addWidget(label, 1)
-            self.kpis[key] = label
+            card = QFrame()
+            card.setObjectName("surfaceCard")
+            inner = QVBoxLayout(card)
+            inner.setContentsMargins(12, 6, 12, 6)
+            inner.setSpacing(0)
+            card.setMinimumHeight(54)
+            name = QLabel(key)
+            name.setObjectName("kpiLabel")
+            value = QLabel()
+            value.setObjectName("kpiValue")
+            value.setWordWrap(True)
+            note = QLabel()  # explanation lives in the tooltip to keep the cards compact
+            note.setVisible(False)
+            for widget in (name, value):
+                inner.addWidget(widget)
+            kpi_layout.addWidget(card)
+            self.kpis[key] = (value, note)
+        kpi_layout.addStretch(1)
+        self.kpi_row.setMaximumWidth(340)
         self.kpi_row.setVisible(False)
-        ov.addWidget(self.kpi_row)
-        self.variant_list = QListWidget()
+        hero.addWidget(self.kpi_row, 2)
+        ov.addLayout(hero, 1)
+        self.variant_list = QListWidget()  # model of the selection; the cards are its view
         self.variant_list.setVisible(False)
-        self.variant_list.setMaximumHeight(125)
         self.variant_list.currentRowChanged.connect(self._select_variant)
         ov.addWidget(self.variant_list)
+        self.why = QTextBrowser()
+        self.why.setMinimumHeight(140)
+        self.why_section = Collapsible("Warum empfohlen?", self.why, reduced_motion=lambda: self.reduced_motion)
+        self.why_section.set_full_height(190)
+        ov.addWidget(self.why_section)
         self.details = QTextBrowser()
-        ov.addWidget(self.details, 1)
+        self.details.setMinimumHeight(200)
+        self.details_section = Collapsible("Technische Details", self.details,
+                                           reduced_motion=lambda: self.reduced_motion)
+        self.details_section.set_full_height(260)
+        ov.addWidget(self.details_section)
         self.tabs.addTab(overview, "Entwürfe")
 
         self.comparison = QTableWidget()
@@ -563,7 +684,11 @@ class AssistantWindow(QMainWindow):
         self.tabs.addTab(self.bom_view, "Stückliste")
         self.cutting_panel = CuttingPanel(self.settings)
         self.tabs.addTab(self.cutting_panel, "Zuschnitt")
-        layout.addWidget(self.tabs, 1)
+        results_page = QWidget()
+        results_layout = QVBoxLayout(results_page)
+        results_layout.setContentsMargins(0, 0, 0, 0)
+        results_layout.addWidget(self.tabs, 1)
+        self.result_stack.addWidget(results_page)
         actions = QHBoxLayout()
         self.save_button = QPushButton("Projekt speichern")
         self.save_button.clicked.connect(self._save)
@@ -572,9 +697,16 @@ class AssistantWindow(QMainWindow):
         self.export_button = QPushButton("Fertigungsunterlagen exportieren")
         self.export_button.setObjectName("primary")
         self.export_button.clicked.connect(self._export)
+        self.save_button.setObjectName("ghost")
+        self.load_button.setVisible(False)  # loading lives in the File menu and the recent list
+        actions.addStretch(1)
         for button in (self.save_button, self.load_button, self.export_button):
             actions.addWidget(button)
-        layout.addLayout(actions)
+        self.actions_bar = QWidget()
+        self.actions_bar.setLayout(actions)
+        actions.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.actions_bar)
+        self.actions_bar.setVisible(False)
         self.save_button.setEnabled(False)
         self.export_button.setEnabled(False)
         return container
@@ -694,8 +826,6 @@ class AssistantWindow(QMainWindow):
         if result.status == "ok":
             self.progress_label.setText(f"{result.candidates_tested} Kandidaten geprüft")
             self._set_state("success", f"{len(result.designs)} nachvollziehbare Entwürfe · Datenquelle je Chassis prüfen")
-            self.variant_list.setVisible(True)
-            self.variant_list.setFixedHeight(28 * len(result.designs) + 8)
             self.comparison.setRowCount(len(result.designs))
             for row, design in enumerate(result.designs):
                 c = design.bundle.cabinet
@@ -717,6 +847,8 @@ class AssistantWindow(QMainWindow):
                 for column, value in enumerate(values):
                     self.comparison.setItem(row, column, QTableWidgetItem(value))
             self._update_deviation_column()
+            self._refresh_cards()
+            self._show_results(True)
             self.comparison.resizeColumnsToContents()
             self._apply_column_choice()
             self.save_button.setEnabled(True)
@@ -731,7 +863,9 @@ class AssistantWindow(QMainWindow):
             self.details.setHtml(f"<h2>Nicht machbar</h2><p>Technische Meldungen des Berechnungskerns "
                 f"(Originaltext, daher teils englisch):</p><b>Gründe</b><ul>{reasons}</ul>"
                 f"<b>Mögliche Änderungen</b><ul>{changes}</ul>")
+            self._show_results(True)
             self.tabs.setCurrentIndex(0)
+            self.details_section.button.setChecked(True)  # the reasons are the content here
             self.save_button.setEnabled(False)
             self.export_button.setEnabled(False)
         else:
@@ -760,7 +894,8 @@ class AssistantWindow(QMainWindow):
         c = bundle.cabinet
         f3 = bundle.sealed.f3_hz if bundle.sealed else (
             bundle.vented_response.f3_hz if bundle.vented_response else None)
-        lines = [f"<h2>{escape(design.label)}</h2>",
+        why_lines = [f"<h2>{escape(design.label)} · Warum empfohlen?</h2>"]
+        lines = [
             f"<p><b>Gehäuse:</b> {escape(registry.get(design.project.enclosure.enclosure_type).label)} · "
             f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm<br>"
             f"<b>Netto:</b> {bundle.target_net_volume_m3*1000:.1f} l · "
@@ -778,14 +913,14 @@ class AssistantWindow(QMainWindow):
             lines.append(f"<p><b>Budget noch frei:</b> "
                          f"{self.budget.value()-design.total_price_eur:.2f} €</p>")
         if design.breakdown:
-            lines.append(f"<h3>Teilbewertung · {design.score:.0f}/100 aus {len(design.breakdown)} "
+            why_lines.append(f"<h3>Teilbewertung · {design.score:.0f}/100 aus {len(design.breakdown)} "
                          "bewerteten Kriterien</h3><p>Keine Qualitätsfreigabe: nicht belegbare Kriterien "
                          "fließen nicht ein.</p>")
             names = {"bass": "Tiefbass", "size": "Kompaktheit", "headroom": "Auslenkungsreserve",
                 "port": "Portreserve", "delay": "Gruppenlaufzeit", "flatness": "Linearität",
                 "cost": "Budgetreserve"}
             for metric in design.breakdown:
-                lines.append(f"<p><b>{names.get(metric.name, metric.name)}</b> "
+                why_lines.append(f"<p><b>{names.get(metric.name, metric.name)}</b> "
                     f"{metric.value:.0f}/100 "
                     f"(Gewicht {metric.weight:g})<br>{escape(metric.evidence)}</p>")
             missing = {"headroom", "port", "delay", "flatness"}-{
@@ -793,9 +928,9 @@ class AssistantWindow(QMainWindow):
             if bundle.port is None:
                 missing.discard("port")
             if missing:
-                lines.append("<p><i>Nicht bewertet: "+", ".join(names[key] for key in sorted(missing))+
+                why_lines.append("<p><i>Nicht bewertet: "+", ".join(names[key] for key in sorted(missing))+
                     ". Nicht verfügbare Werte werden nicht ergänzt.</i></p>")
-        lines.append("<h3>Warum dieser Entwurf?</h3><ul>"+
+        why_lines.append("<h3>Gründe</h3><ul>"+
             "".join(f"<li>{escape(reason)}</li>" for reason in design.reasons)+"</ul>")
         if design.provisional_crossover:
             lines.append("<p><b>Vorläufiger Frequenzweichenentwurf:</b> Für eine Endabstimmung "
@@ -803,20 +938,30 @@ class AssistantWindow(QMainWindow):
         if bundle.warnings:
             lines.append("<h3>Hinweise</h3><ul>"+
                 "".join(f"<li>{escape(message)}</li>" for message in bundle.warnings)+"</ul>")
+        if design.total_price_eur is None:
+            why_lines.append("<p><i>Preis unvollständig: Dieser Entwurf wird nicht als günstiger bewertet.</i></p>")
+        self.why.setHtml("".join(why_lines))
         self.details.setHtml("".join(lines))
         geometry_issue_count = sum(1 for issue in bundle.issues if issue.severity == "error")
-        self.kpis["Maße"].setText(f"<b>Maße</b><br>{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × "
-                                  f"{c.depth_m*1000:.0f} mm")
-        self.kpis["Tiefbass F3"].setText(f"<b>Tiefbass F3</b><br>{f'{f3:.0f} Hz' if f3 else 'nicht berechenbar'}")
-        self.kpis["Preisstatus"].setText("<b>Preisstatus</b><br>" + (
-            f"{design.total_price_eur:.0f} € inkl. Reserve" if design.total_price_eur is not None
-            else "unvollständig bepreist"))
-        self.kpis["Datenqualität"].setText("<b>Datenqualität</b><br>" + (
-            "vorläufige Weiche" if design.provisional_crossover else "Herstellerdaten, Quelle je Chassis prüfen"))
-        self.kpis["Prüfstatus"].setText("<b>Prüfstatus</b><br>" + (
-            f"✕ {geometry_issue_count} Geometriefehler" if geometry_issue_count else
-            f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine Hinweise"))
+        values = {
+            "Maße": (f"{c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm",
+                     f"Netto {bundle.target_net_volume_m3*1000:.1f} l"),
+            "Tiefbass F3": (f"{f3:.0f} Hz" if f3 else "nicht berechenbar", "−3 dB, relativ, Kleinsignalmodell"),
+            "Preisstatus": (f"{design.total_price_eur:.0f} € inkl. Reserve" if design.total_price_eur is not None
+                            else "unvollständig bepreist", "Händlerpreise sind Momentaufnahmen"),
+            "Datenqualität": ("vorläufige Weiche" if design.provisional_crossover else "Herstellerdaten",
+                              "Quelle je Chassis prüfen"),
+            "Prüfstatus": (f"✕ {geometry_issue_count} Geometriefehler" if geometry_issue_count else
+                           f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine Hinweise",
+                           "Export nur ohne Geometriefehler")}
+        for key, (value, note) in values.items():
+            self.kpis[key][0].setText(value)
+            self.kpis[key][0].setToolTip(note)
+            self.kpis[key][1].setText(note)
         self.kpi_row.setVisible(True)
+        self.preview.set_design(c.width_m * 1000, c.height_m * 1000, c.depth_m * 1000, bundle.front_elements,
+                                f"{design.label} · {registry.get(design.project.enclosure.enclosure_type).label}")
+        self.variant_cards.select(index)
         self.comparison.selectRow(index)
         self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
         self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
@@ -962,6 +1107,9 @@ class AssistantWindow(QMainWindow):
         self.variant_list.clear()
         self.comparison.setRowCount(0)
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
+        self.comparison.setRowCount(1)
+        self._refresh_cards()
+        self._show_results(True)
         self.save_button.setEnabled(True)
         self.variant_list.setCurrentRow(0)
         self._set_state("info", "Expertenentwurf übernommen")
