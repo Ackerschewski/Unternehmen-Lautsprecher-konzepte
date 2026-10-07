@@ -81,7 +81,7 @@ def bom_html(design: SpeakerDesign) -> str:
         "<h2>Stückliste</h2><table border='1' cellpadding='5'>"
         "<tr><th>Ref.</th><th>Bauteil</th><th>Anzahl</th><th>Einzelpreis</th><th>Position</th><th>Preisart</th></tr>"
         + rows + "</table>"
-        f"<p><b>Bekannte Teilsumme: {money(info.subtotal_eur)}</b> · {escape(info.label_de)}</p>"
+        f"<p><b>Bekannte Teilsumme: {money(info.subtotal_eur)}</b> · {escape(info.label_de())}</p>"
         + budget
         + "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
           "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")

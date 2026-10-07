@@ -60,6 +60,7 @@ class FileActionsMixin:
         self.comparison.setRowCount(0)
         self.variant_list.addItem("Expertenentwurf · aktuelle Berechnung")
         self.variant_cards.set_designs(self.designs)
+        self.compare_bars.set_designs(self.designs)
         self._show_start(False)
         project = bundle.project
         loaded_method = "target_curve" if project.target_curve_points or project.target_eq_bands else "classic"

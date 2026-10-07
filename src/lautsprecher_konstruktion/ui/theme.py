@@ -96,6 +96,17 @@ def stylesheet(mode: str = "light") -> str:
         QPushButton#choiceCard:checked, QPushButton#variantCard:checked {{
             background:{t['accentSubtle']}; border:2px solid {t['accent']}; color:{t['textPrimary']};
         }}
+        QFrame#variantCard {{background:{t['surfaceElevated']}; border:1px solid {t['border']}; border-radius:{rk}px;}}
+        QFrame#variantCard:hover {{background:{t['band']}; border-color:{t['borderStrong']};}}
+        QFrame#variantCard:focus {{border:2px solid {t['textPrimary']};}}
+        QFrame#variantCard[selected="true"] {{background:{t['accentSubtle']}; border:2px solid {t['accent']};}}
+        QLabel#variantTitle {{font-weight:700; font-size:15px; color:{t['textPrimary']};}}
+        QLabel#variantTag {{font-weight:600; color:{t['textSecondary']};}}
+        QLabel#metricChip {{background:{t['band']}; color:{t['textPrimary']}; border:1px solid {t['border']};
+            border-radius:9px; padding:1px 6px; font-size:11px;}}
+        QLabel#metricChip[tone="ok"] {{border-color:{t['success']};}}
+        QLabel#metricChip[tone="warn"] {{border-color:{t['warning']};}}
+        QLabel#metricChip[tone="bad"] {{border-color:{t['danger']}; font-weight:600;}}
         QFrame#resultSidebar {{
             background:{t['surfaceElevated']}; border:1px solid {t['border']};
             border-radius:{rk}px;

@@ -81,7 +81,7 @@ from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.layout_rules import planner_layout, secondary_plot_count
 from lautsprecher_konstruktion.ui.main_window import MainWindow
 from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
-from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
+from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.result_hero import KpiGrid, VariantStrip, comparison_sentences
 from lautsprecher_konstruktion.ui.result_text import bom_html, data_quality, details_html
@@ -93,6 +93,7 @@ from lautsprecher_konstruktion.ui.target_curve import TargetCurveEditor
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
 from lautsprecher_konstruktion.ui.tokens import set_area, status_line
 from lautsprecher_konstruktion.ui.tokens import theme as theme_tokens
+from lautsprecher_konstruktion.ui.variant_view import ComparisonBars, VariantCards
 from lautsprecher_konstruktion.ui.zoom_svg import ZoomableSvgView
 
 LOG = get_logger("ui")
@@ -232,6 +233,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
             self.target_curve.set_mode(mode)
         if hasattr(self, "preview"):
             self.preview.set_mode(mode)
+        if hasattr(self, "compare_bars"):
+            self.compare_bars.set_mode(mode)
         if hasattr(self, "dimension_preview"):
             self.dimension_preview.set_mode(mode)
             self.start_preview.set_mode(mode)
@@ -502,6 +505,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.all_columns.setChecked(False)
         self.all_columns.blockSignals(False)
         self.variant_cards.set_designs(())
+        self.compare_bars.set_designs(())
         self.details.clear()
         self.details_toggle.blockSignals(True)
         self.details_toggle.setChecked(False)
@@ -897,6 +901,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.variant_cards.selected.connect(self._select_variant_from_card)
         self.variant_cards.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         compare_layout.addWidget(self.variant_cards)
+        self.compare_bars = ComparisonBars(self.mode)
+        compare_layout.addWidget(self.compare_bars)
 
         self.variant_why = QLabel()
         self.variant_why.setObjectName("recommendation")
@@ -925,7 +931,11 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.comparison.setVisible(False)
         compare_layout.addWidget(self.comparison, 10)
         compare_layout.addStretch(1)  # keeps the cards at the top instead of spreading the free space
-        self.tabs.addTab(compare, "Varianten")
+        compare_scroll = QScrollArea()  # four cards, six comparison rows and the reasons need room on small windows
+        compare_scroll.setWidgetResizable(True)
+        compare_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        compare_scroll.setWidget(compare)
+        self.tabs.addTab(compare_scroll, "Varianten")
 
         # KLANG – target-first workflow plus detailed technical charts.
         simulation = QWidget()
@@ -1154,6 +1164,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
             self.variant_list.setVisible(False)
             self._show_start(False)
             self.variant_cards.set_designs(result.designs)
+            self.compare_bars.set_designs(result.designs)
             self.variant_strip.set_designs(result.designs)
             self.variant_strip.setVisible(True)
             self.comparison.setRowCount(len(result.designs))
@@ -1228,6 +1239,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         design = self.designs[index]
         bundle = design.bundle
         self.variant_cards.select(index)
+        self.compare_bars.select(index)
         self.variant_strip.select(index)
         baseline = self.designs[0]
         why = (design.reasons if index == 0 else comparison_sentences(design, baseline))

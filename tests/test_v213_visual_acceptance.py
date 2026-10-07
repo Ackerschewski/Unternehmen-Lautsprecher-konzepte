@@ -138,8 +138,7 @@ def test_variant_strip_switches_variant_and_hero(solved: AssistantWindow) -> Non
 def test_variant_cards_show_decision_facts_without_horizontal_scroll(solved: AssistantWindow) -> None:
     w = solved
     texts = [b.text() for b in w.variant_cards._buttons]
-    assert all("Max-SPL" in t and "Bauaufwand" in t and "Hub" in t for t in texts)
-    assert any("vs. A" in t for t in texts[1:])
+    assert all("Max-SPL" in t and "Platten" in t and "Hub" in t and "Datenabdeckung" in t for t in texts)
     assert w.comparison.isHidden()  # the table is the detail mode, not the default
     assert w.variant_cards.width() <= w.tabs.width()
 

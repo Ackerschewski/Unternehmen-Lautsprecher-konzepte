@@ -8,14 +8,10 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
-    QHBoxLayout,
-    QLabel,
     QPushButton,
     QWidget,
 )
 
-from lautsprecher_konstruktion.enclosure.registry import registry
-from lautsprecher_konstruktion.services.automatic import SpeakerDesign
 from lautsprecher_konstruktion.ui.tokens import UI_FONT, theme
 
 
@@ -124,129 +120,3 @@ class DimensionPreview(QWidget):
 def _point(x: float, y: float):
     from PySide6.QtCore import QPointF
     return QPointF(x, y)
-
-
-class VariantCards(QWidget):
-    """Decision-first comparison cards; the technical table remains secondary."""
-
-    selected = Signal(int)
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._buttons: list[QPushButton] = []
-        self._group = QButtonGroup(self)
-        self._group.setExclusive(True)
-        self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(10)
-
-    @staticmethod
-    def _f3(design: SpeakerDesign) -> float | None:
-        bundle = design.bundle
-        return bundle.sealed.f3_hz if bundle.sealed else (
-            bundle.vented_response.f3_hz if bundle.vented_response else None
-        )
-
-    @staticmethod
-    def _facts(design: SpeakerDesign) -> str:
-        """Max-SPL, hub/port status and build effort: facts that decide between variants."""
-        bundle = design.bundle
-        codes = {issue.code for issue in bundle.issues}
-        spl = f"Max-SPL {design.spl_limit_db:.0f} dB" if design.spl_limit_db is not None else "Max-SPL unbekannt"
-        hub = "Hub ⚠" if codes & {"XMAX_EXCEEDED", "RADIATOR_XMAX"} else "Hub ✓"
-        port = ("Port ⚠" if "PORT_VELOCITY_HIGH" in codes else "Port ✓") if bundle.port is not None else "kein Port"
-        folds = bundle.folded_line.fold_count if bundle.folded_line is not None else 0
-        effort = f"{sum(p.quantity for p in bundle.panels)} Platten" + (f" · {folds} Faltungen" if folds else "")
-        return f"{spl} · {hub} · {port}\nBauaufwand {effort}"
-
-    @staticmethod
-    def _tag(index: int, design: SpeakerDesign, baseline: SpeakerDesign) -> str:
-        if index == 0:
-            return "Empfehlung"
-        f3 = VariantCards._f3(design)
-        base_f3 = VariantCards._f3(baseline)
-        cab = design.bundle.cabinet
-        base = baseline.bundle.cabinet
-        volume = cab.width_m*cab.height_m*cab.depth_m
-        base_volume = base.width_m*base.height_m*base.depth_m
-        if f3 is not None and base_f3 is not None and f3 < base_f3-3:
-            return "Mehr Tiefbass"
-        if volume < base_volume*0.92:
-            return "Kompakter"
-        if (
-            design.total_price_eur is not None
-            and baseline.total_price_eur is not None
-            and design.total_price_eur < baseline.total_price_eur*0.92
-        ):
-            return "Günstiger"
-        return "Alternative"
-
-    def set_designs(self, designs: tuple[SpeakerDesign, ...]) -> None:
-        while self._layout.count():
-            item = self._layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-        self._buttons.clear()
-        self._group = QButtonGroup(self)
-        self._group.setExclusive(True)
-        if not designs:
-            label = QLabel("Noch keine Varianten berechnet.")
-            label.setObjectName("caption")
-            self._layout.addWidget(label)
-            return
-        baseline = designs[0]
-        for index, design in enumerate(designs):
-            cab = design.bundle.cabinet
-            f3 = self._f3(design)
-            enclosure = registry.get(design.project.enclosure.enclosure_type).label
-            price = (
-                f"{design.total_price_eur:.0f} €"
-                if design.total_price_eur is not None else "Preis unvollständig"
-            )
-            tag = self._tag(index, design, baseline)
-            text = (
-                f"{design.label}\n"
-                f"{tag} · {enclosure}\n"
-                f"{cab.width_m*1000:.0f} × {cab.height_m*1000:.0f} × {cab.depth_m*1000:.0f} mm"
-                f" · F3 {f3:.0f} Hz\n" if f3 is not None else
-                f"{design.label}\n{tag} · {enclosure}\n"
-                f"{cab.width_m*1000:.0f} × {cab.height_m*1000:.0f} × {cab.depth_m*1000:.0f} mm"
-                f" · F3 n/a\n"
-            )
-            text += f"{price} · Teilbew. {design.score:.0f}/100"
-            text += "\n" + self._facts(design)
-            if index:
-                base_cab = baseline.bundle.cabinet
-                deltas: list[str] = []
-                if f3 is not None:
-                    base_f3 = self._f3(baseline)
-                    if base_f3 is not None and abs(f3-base_f3) >= 0.5:
-                        deltas.append(f"F3 {f3-base_f3:+.0f} Hz")
-                volume = cab.width_m*cab.height_m*cab.depth_m
-                base_volume = base_cab.width_m*base_cab.height_m*base_cab.depth_m
-                if base_volume > 0 and abs(volume/base_volume-1) >= 0.03:
-                    deltas.append(f"Volumen {(volume/base_volume-1)*100:+.0f} %")
-                if (
-                    design.total_price_eur is not None
-                    and baseline.total_price_eur is not None
-                    and abs(design.total_price_eur-baseline.total_price_eur) >= 1
-                ):
-                    deltas.append(
-                        f"Kosten {design.total_price_eur-baseline.total_price_eur:+.0f} €"
-                    )
-                if deltas:
-                    text += "\nvs. A · " + " · ".join(deltas)
-            button = QPushButton(text)
-            button.setObjectName("variantCard")
-            button.setCheckable(True)
-            button.setMinimumHeight(150)
-            button.clicked.connect(lambda _checked=False, i=index: self.selected.emit(i))
-            self._group.addButton(button)
-            self._layout.addWidget(button, 1)
-            self._buttons.append(button)
-        self.select(0)
-
-    def select(self, index: int) -> None:
-        if 0 <= index < len(self._buttons):
-            self._buttons[index].setChecked(True)
