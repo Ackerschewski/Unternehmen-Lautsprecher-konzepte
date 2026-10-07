@@ -85,7 +85,7 @@ from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
 from lautsprecher_konstruktion.ui.planner_widgets import ChoiceGrid, DimensionPreview, VariantCards
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.result_hero import KpiGrid, VariantStrip, comparison_sentences
-from lautsprecher_konstruktion.ui.result_text import bom_html, details_html
+from lautsprecher_konstruktion.ui.result_text import bom_html, data_quality, details_html
 from lautsprecher_konstruktion.ui.sound_lab import update_sound_lab
 from lautsprecher_konstruktion.ui.sound_plots import PLOT_KINDS, available_plots, draw_plot
 from lautsprecher_konstruktion.ui.status_banner import banner
@@ -1261,8 +1261,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         self.kpi_row.set_value("Preis", f"{design.total_price_eur:.0f} € inkl. Reserve"
                                if design.total_price_eur is not None else "unvollständig",
                                "Händlerpreise sind Momentaufnahmen; unbekannte Preise gelten nie als günstiger")
-        self.kpi_row.set_value("Datenqualität", "vorläufige Weiche" if design.provisional_crossover
-                               else "Herstellerdaten", "Quelle je Chassis prüfen; ohne FRD/ZMA keine Mittel-/Hochtonaussage")
+        self.kpi_row.set_value("Datenqualität", *data_quality(design))
         self.kpi_row.set_value("Warnungen", f"✕ {geometry_issue_count} Fehler" if geometry_issue_count else
                                f"⚠ {len(bundle.warnings)} Hinweise" if bundle.warnings else "✓ keine",
                                "Export nur ohne Geometriefehler")

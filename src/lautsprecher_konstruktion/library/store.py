@@ -37,6 +37,8 @@ class LibraryEntry(BaseModel):
     product_url: HttpUrl | None = None
     is_test_data: bool = False
     active: bool = True
+    frd_file: str | None = None  # measured/manufacturer FRD reference; readiness is derived from it, never typed in
+    zma_file: str | None = None
 
     @model_validator(mode="after")
     def check_driver(self) -> LibraryEntry:

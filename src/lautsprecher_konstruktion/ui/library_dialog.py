@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from pydantic import ValidationError
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lautsprecher_konstruktion.library.readiness import READINESS_LABELS_DE, Readiness, assess
 from lautsprecher_konstruktion.library.store import CATEGORIES, ComponentLibrary, LibraryEntry
 
 LABELS = ("Treiber", "Passivmembranen", "Ports", "Weichenbauteile", "Hardware", "Materialien")
@@ -60,6 +61,10 @@ class LibraryDialog(QDialog):
         row = QHBoxLayout()
         row.addWidget(self.tabs, 3)
         right = QVBoxLayout()
+        self.readiness = QLabel("Komponente auswählen, um Datenabdeckung und Eignung zu sehen.")
+        self.readiness.setWordWrap(True)
+        self.readiness.setTextFormat(Qt.TextFormat.RichText)
+        right.addWidget(self.readiness)
         right.addWidget(QLabel("Datensatz (JSON)"))
         self.details = QPlainTextEdit()
         self.details.setPlaceholderText("Komponente auswählen oder neuen Datensatz als JSON eingeben")
@@ -119,6 +124,7 @@ class LibraryDialog(QDialog):
             if entry:
                 self.details.setPlainText(json.dumps(entry.model_dump(mode="json"),
                     indent=2, ensure_ascii=False))
+                self.readiness.setText(readiness_html(entry))
 
     def _new(self) -> None:
         self.details.setPlainText(json.dumps({"id": "eigene:neue_komponente",
@@ -161,3 +167,12 @@ class LibraryDialog(QDialog):
             QMessageBox.information(self, "Preisquelle", "Für diesen Eintrag ist keine Preisquelle hinterlegt.")
             return
         QDesktopServices.openUrl(QUrl(str(entry.product_url)))
+
+
+def readiness_html(entry: LibraryEntry) -> str:
+    """Coverage percentage, derived readiness flags and what is missing for one entry."""
+    report = assess(entry)
+    flags = " · ".join(f"{'✓' if report.ready(kind) else '✕'} {READINESS_LABELS_DE[kind]}" for kind in Readiness)
+    test = " <b>(TESTDATEN)</b>" if entry.is_test_data else ""
+    missing = ("<br>Fehlt: " + ", ".join(report.missing)) if report.missing else ""
+    return f"<b>Datenabdeckung {report.coverage_percent} %</b>{test}<br>{flags}{missing}"

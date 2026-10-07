@@ -85,3 +85,18 @@ def bom_html(design: SpeakerDesign) -> str:
         + budget
         + "<p>Händlerpreise und Planpreise sind getrennt gekennzeichnet. Versand und Arbeitszeit "
           "sind nicht kalkuliert. Preisquellen stehen im CSV-Export.</p>")
+
+
+def data_quality(design: SpeakerDesign) -> tuple[str, str]:
+    """Headline and hint for the data-quality card, derived from what the project really contains."""
+    cross = design.bundle.project.crossover
+    needs_tweeter = design.tweeter is not None
+    has_frd = cross.woofer_frd is not None and (not needs_tweeter or cross.tweeter_frd is not None)
+    has_zma = cross.woofer_zma is not None and (not needs_tweeter or cross.tweeter_zma is not None)
+    if has_frd and has_zma:
+        return "FRD + ZMA vorhanden", "Weiche und Summe stützen sich auf Messdaten der Chassis."
+    if has_frd or has_zma:
+        return "FRD/ZMA unvollständig", "Nur ein Teil der Messdaten liegt vor; Weichenaussagen sind eingeschränkt."
+    if design.provisional_crossover:
+        return "nur T/S-Daten · vorläufige Weiche", "Ohne FRD/ZMA ist keine Aussage über 20 Hz–20 kHz belegt; nur Tiefton und Gehäuse sind berechnet."
+    return "nur T/S-Daten", "Tiefton und Gehäuse sind berechnet; ohne FRD/ZMA bleibt der Frequenzgang oberhalb des Tieftons unbelegt."
