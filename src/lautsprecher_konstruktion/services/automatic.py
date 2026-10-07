@@ -126,6 +126,7 @@ class AutomaticDesignResult:
     suggested_constraint_changes: tuple[str, ...]
     candidates_tested: int
     diagnostics: tuple[Diagnostic, ...] = ()
+    soft_misses: tuple[dict[str, float], ...] = ()  # candidates that only miss adjustable limits, for the relaxation search
 
 
 def _diagnostics(request: AutomaticDesignRequest, reach: dict[str, float],
@@ -177,6 +178,9 @@ def _diagnostics(request: AutomaticDesignRequest, reach: dict[str, float],
     # largest relative miss first: it is the main reason
     items.sort(key=lambda item: -abs(item.delta) / max(item.available, 1e-9))
     return tuple(items)
+
+
+MAX_SOFT_MISSES = 4000
 
 
 def _clamp(value: float) -> float:
@@ -475,6 +479,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
     tested = 0
     volumes_tested: list[float] = []
     reach: dict[str, float] = {}  # best value reached per violated constraint (smallest miss)
+    soft_misses: list[dict[str, float]] = []
     two_way = request.way_count == 2 or (request.way_count is None and
         "subwoofer" not in request.speaker_type.casefold() and
         "breitband" not in request.speaker_type.casefold())
@@ -683,6 +688,8 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                             rejected[reason_] += 1
                             if len(violations) == 1 and key_ is not None and value_ is not None:
                                 reach[key_] = min(reach.get(key_, 9e9), value_)
+                            if len(soft_misses) < MAX_SOFT_MISSES and all(k is not None and v is not None for k, _r, v in violations):
+                                soft_misses.append({str(k): float(v) for k, _r, v in violations if k is not None and v is not None})
                             continue
                         score, breakdown = _score(bundle, request, profile, total_price)
                         why = [f"{woofer.model}: Geometrie passt und F3 {f3:.1f} Hz.",
@@ -724,7 +731,7 @@ def automatic_design(request: AutomaticDesignRequest, library: ComponentLibrary,
                        "Klangprofil oder Ziel-F3 lockern.",
                        "Verstärkerleistung bzw. SPL-Ziel reduzieren oder weitere Komponenten importieren."]
         return AutomaticDesignResult("impossible", (), reasons, tuple(suggestions), tested,
-                                     _diagnostics(request, reach, needed_depth))
+                                     _diagnostics(request, reach, needed_depth), tuple(soft_misses))
     designs.sort(key=lambda item: (-item.score,
         item.bundle.cabinet.width_m*item.bundle.cabinet.height_m*item.bundle.cabinet.depth_m,
         item.woofer.model, item.project.enclosure.enclosure_type))

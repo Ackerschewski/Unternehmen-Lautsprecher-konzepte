@@ -1,11 +1,17 @@
 """First-class "not feasible" state: main reason with numbers and one-click changes that were verified."""
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from lautsprecher_konstruktion.library.store import ComponentLibrary
 from lautsprecher_konstruktion.presentation import de
-from lautsprecher_konstruktion.services.automatic import AutomaticDesignResult, Diagnostic
+from lautsprecher_konstruktion.services.automatic import (
+    AutomaticDesignRequest,
+    AutomaticDesignResult,
+    Diagnostic,
+)
+from lautsprecher_konstruktion.services.relaxation import Relaxation, find_relaxations
 
 FIELD_UNITS = {"mm": 0, "l": 0, "Hz": 0, "dB": 0, "€": 0}
 
@@ -26,6 +32,23 @@ def describe(item: Diagnostic) -> tuple[str, str]:
     }.get(item.key, (f"verfügbar {available}", f"benötigt {needed}"))
 
 
+class RelaxationWorker(QThread):
+    """Runs the verified combined-change search off the UI thread (each proposal is a full design run)."""
+
+    found = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, request: AutomaticDesignRequest, library: ComponentLibrary, result: AutomaticDesignResult) -> None:
+        super().__init__()
+        self.request, self.library, self.result = request, library, result
+
+    def run(self) -> None:
+        try:
+            self.found.emit(find_relaxations(self.request, self.library, self.result))
+        except Exception as exc:  # noqa: BLE001 - report worker failure through Qt signal
+            self.failed.emit(str(exc))
+
+
 class DiagnosticCard(QFrame):
     """Shows why no design exists and offers changes of the request inputs.
 
@@ -33,6 +56,8 @@ class DiagnosticCard(QFrame):
     """
 
     apply = Signal(str, float)
+    applyMany = Signal(object)  # list[(field, value)] of one verified combined proposal
+    searchRequested = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -56,6 +81,16 @@ class DiagnosticCard(QFrame):
         self._buttons.setContentsMargins(0, 0, 0, 0)
         self._buttons.setSpacing(6)
         layout.addWidget(self._buttons_box)
+        self.search_button = QPushButton("Kombinierte Änderungen prüfen")
+        self.search_button.setObjectName("suggestion")
+        self.search_button.setToolTip("Sucht kleine Änderungen mehrerer Vorgaben und prüft jede mit dem echten Entwurfsrechner.")
+        self.search_button.clicked.connect(self.searchRequested.emit)
+        layout.addWidget(self.search_button)
+        self.search_note = QLabel()
+        self.search_note.setObjectName("hint")
+        self.search_note.setWordWrap(True)
+        layout.addWidget(self.search_note)
+        self.relax_buttons: list[QPushButton] = []
         self.more_heading = QLabel("Weitere Gründe")
         self.more_heading.setObjectName("eyebrow")
         layout.addWidget(self.more_heading)
@@ -73,6 +108,10 @@ class DiagnosticCard(QFrame):
             widget.deleteLater()
         self.action_buttons = []
         self._plain = []
+        self._clear_relaxations()
+        self.search_button.setVisible(bool(result.soft_misses))
+        self.search_button.setEnabled(True)
+        self.search_note.setText("")
         diagnostics = result.diagnostics
         if diagnostics:
             first = diagnostics[0]
@@ -103,6 +142,33 @@ class DiagnosticCard(QFrame):
         self.more.setText("\n".join("• " + reason for reason in reasons) or "–")
         self.more_heading.setVisible(bool(reasons))
         self.more.setVisible(bool(reasons))
+
+    def _clear_relaxations(self) -> None:
+        for button in self.relax_buttons:
+            button.setParent(None)
+            button.deleteLater()
+        self.relax_buttons = []
+
+    def searching(self) -> None:
+        self.search_button.setEnabled(False)
+        self.search_note.setText("Kombinierte Änderungen werden mit dem Entwurfsrechner geprüft …")
+
+    def show_relaxations(self, items: tuple[Relaxation, ...]) -> None:
+        self._clear_relaxations()
+        self.search_button.setEnabled(True)
+        if not items:
+            self.search_note.setText("Auch kombinierte kleine Änderungen machen keinen Entwurf möglich. "
+                                     "Bauraum, Klangprofil oder Komponenten müssten sich deutlich ändern.")
+            return
+        self.search_note.setText("Geprüfte Kombinationen (kleinste Änderung zuerst):")
+        for item in items:
+            button = QPushButton("+ " + item.text())
+            button.setObjectName("suggestion")
+            button.setToolTip("Alle genannten Änderungen werden eingetragen und neu berechnet.")
+            pairs = [(c.field, c.new) for c in item.changes]
+            button.clicked.connect(lambda _c=False, p=pairs: self.applyMany.emit(p))
+            self._buttons.addWidget(button)
+            self.relax_buttons.append(button)
 
     def buttons_text(self) -> list[str]:
         return [b.text() for b in self.action_buttons]

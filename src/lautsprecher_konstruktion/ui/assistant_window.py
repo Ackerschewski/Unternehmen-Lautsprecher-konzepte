@@ -76,7 +76,7 @@ from lautsprecher_konstruktion.services.automatic import (
 from lautsprecher_konstruktion.services.design import DesignBundle
 from lautsprecher_konstruktion.ui.assistant_files import FileActionsMixin
 from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
-from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard
+from lautsprecher_konstruktion.ui.diagnostics_card import DiagnosticCard, RelaxationWorker
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.layout_rules import planner_layout, secondary_plot_count
 from lautsprecher_konstruktion.ui.main_window import MainWindow
@@ -142,6 +142,9 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
                     min(920, available.height() - 60) if available else 920)
         self.library = ComponentLibrary()
         self.designs: tuple[SpeakerDesign, ...] = ()
+        self._last_request: AutomaticDesignRequest | None = None
+        self._last_result: AutomaticDesignResult | None = None
+        self.relax_worker: RelaxationWorker | None = None
         self.worker: DesignWorker | None = None
         self.expert_window: MainWindow | None = None
         self._stale = False
@@ -373,13 +376,28 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
 
     def _apply_suggestion(self, field: str, value: float) -> None:
         """Enter a verified suggestion into its input and calculate again."""
-        if field not in ("max_depth", "max_volume", "target_f3", "budget", "target_spl"):
-            return
-        if field in ("target_f3", "target_spl"):
-            self.options.setChecked(True)  # these inputs live in the optional requirements
-        getattr(self, field).setValue(value)
+        self._apply_suggestions([(field, value)])
+
+    def _apply_suggestions(self, pairs: list[tuple[str, float]]) -> None:
+        """Enter one or several verified changes and calculate again."""
+        for field, value in pairs:
+            if field not in ("max_depth", "max_volume", "target_f3", "budget", "target_spl"):
+                return
+        for field, value in pairs:
+            if field in ("target_f3", "target_spl"):
+                self.options.setChecked(True)  # these inputs live in the optional requirements
+            getattr(self, field).setValue(value)
         self._planner_user = None
         self.create_design()
+
+    def _search_relaxations(self) -> None:
+        if self._last_request is None or self._last_result is None:
+            return
+        self.diagnostic.searching()
+        self.relax_worker = RelaxationWorker(self._last_request, self.library, self._last_result)
+        self.relax_worker.found.connect(self.diagnostic.show_relaxations)
+        self.relax_worker.failed.connect(lambda message: self.diagnostic.search_note.setText(f"Suche fehlgeschlagen: {message}"))
+        self.relax_worker.start()
 
     def _toggle_details(self, on: bool) -> None:
         self.details.setVisible(on)
@@ -881,6 +899,8 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         ov.addWidget(result_body, 1)
         self.diagnostic = DiagnosticCard()
         self.diagnostic.apply.connect(self._apply_suggestion)
+        self.diagnostic.applyMany.connect(self._apply_suggestions)
+        self.diagnostic.searchRequested.connect(self._search_relaxations)
         self.diagnostic.setVisible(False)
         ov.addWidget(self.diagnostic, 1)
         self.tabs.addTab(overview, "Planen")
@@ -1103,6 +1123,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         except ValidationError as exc:
             QMessageBox.warning(self, "Vorgaben ungültig", str(exc))
             return
+        self._last_request = request
         self.worker = DesignWorker(request, self.library)
         self.worker.progress.connect(self._progress)
         self.worker.completed.connect(self._completed)
@@ -1202,6 +1223,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
             self._stale = True
             self._show_start(False)
             self.result_body.setVisible(False)
+            self._last_result = result
             self.diagnostic.show_result(result)
             self.diagnostic.setVisible(True)
             self._set_result_tabs_enabled(False)
