@@ -90,7 +90,7 @@ from lautsprecher_konstruktion.ui.cutting_panel import CuttingPanel
 from lautsprecher_konstruktion.ui.help_dialog import HelpDialog
 from lautsprecher_konstruktion.ui.library_dialog import LibraryDialog
 from lautsprecher_konstruktion.ui.main_window import MainWindow
-from lautsprecher_konstruktion.ui.motion import animate_value
+from lautsprecher_konstruktion.ui.motion import animate_value, fade_in
 from lautsprecher_konstruktion.ui.prototype_dialog import PrototypeDialog
 from lautsprecher_konstruktion.ui.target_curve_panel import TargetCurvePanel
 from lautsprecher_konstruktion.ui.theme import chart_rc, stylesheet
@@ -176,9 +176,9 @@ class AssistantWindow(QMainWindow):
         title_font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 97)  # tight display tracking
         title.setFont(title_font)
         headings.addWidget(title)
-        subtitle = QLabel("Aus Wunschmaßen wird ein nachvollziehbarer Lautsprecherentwurf.")
-        subtitle.setObjectName("subtitle")
-        headings.addWidget(subtitle)
+        self.subtitle = QLabel("Aus Wunschmaßen wird ein nachvollziehbarer Lautsprecherentwurf.")
+        self.subtitle.setObjectName("subtitle")
+        headings.addWidget(self.subtitle)
         head.addLayout(headings, 1)
         self.focus_button = QPushButton("Zeichnungsmodus")
         self.focus_button.setObjectName("ghost")
@@ -216,6 +216,22 @@ class AssistantWindow(QMainWindow):
         brand = QLabel("ACK Studio")  # subtle branding in the footer, no logo
         brand.setObjectName("brand")
         self.statusBar().addPermanentWidget(brand)
+
+    def resizeEvent(self, event: object) -> None:
+        super().resizeEvent(event)  # type: ignore[arg-type]
+        self._apply_compact(self.height() < 820)
+
+    def _apply_compact(self, compact: bool) -> None:
+        """Small windows: tighter controls and no subtitle so the three core inputs stay in view."""
+        if bool(self.property("compact")) == compact:
+            return
+        self.setProperty("compact", compact)
+        self.subtitle.setVisible(not compact)
+        self.space_hint.setVisible(not compact)
+        self.project_heading.setVisible(not compact)
+        for widget in (self, *self.findChildren(QWidget)):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
 
     def _resolve_mode(self) -> str:
         """light/dark from the setting; "system" follows the operating-system colour scheme."""
@@ -258,6 +274,8 @@ class AssistantWindow(QMainWindow):
                         self.preferred_size, self.thickness):
             control.valueChanged.connect(self._mark_stale)
         self.options.toggled.connect(self._mark_stale)
+        for _key, _label, attr in self._FIELD_LABELS:
+            getattr(self, attr).valueChanged.connect(lambda *_a: self._clear_input_errors())
 
     def _set_state(self, role: str, text: str) -> None:
         """Status line with glyph and text (colour is never the only signal) and a role-coloured edge."""
@@ -283,6 +301,7 @@ class AssistantWindow(QMainWindow):
         for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
             view.load(empty)
         self.panel_choice.clear()
+        self.dimension_strip.setText("Maße erscheinen hier, sobald ein Entwurf berechnet ist.")
         self.bom_view.clear()
         self.cutting_panel.set_bundle(None)
         self.figure.clear()
@@ -299,10 +318,10 @@ class AssistantWindow(QMainWindow):
             self._set_state("warning", "Eingaben geändert · Entwurf erneut erstellen, um aktuelle Ergebnisse zu erhalten.")
 
     @staticmethod
-    def _form(parent: QWidget) -> QFormLayout:
-        """Form that wraps labels above fields when narrow and never forces a wide minimum."""
+    def _form(parent: QWidget, *, wrap: bool = True) -> QFormLayout:
+        """Form that wraps labels above fields when narrow (short-label forms keep them beside the field)."""
         form = QFormLayout(parent)
-        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows if wrap else QFormLayout.RowWrapPolicy.DontWrapRows)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
         form.setVerticalSpacing(6)
@@ -319,9 +338,9 @@ class AssistantWindow(QMainWindow):
         layout.setContentsMargins(20, 12, 20, 16)
         layout.setSpacing(8)
 
-        section = QLabel("Dein Projekt")
-        section.setObjectName("section")
-        layout.addWidget(section)
+        self.project_heading = QLabel("Dein Projekt")
+        self.project_heading.setObjectName("section")
+        layout.addWidget(self.project_heading)
         way = QHBoxLayout()
         self.classic_mode = QPushButton("Klassisch")
         self.target_mode = QPushButton("Über Zielkurve")
@@ -380,22 +399,23 @@ class AssistantWindow(QMainWindow):
         layout.addWidget(step1)
 
         step2 = QGroupBox("2 · Maximaler Bauraum")
-        form2 = self._form(step2)
+        form2 = self._form(step2, wrap=False)
         self.max_width = _spin(300, 120, 2000, " mm")
         self.max_height = _spin(500, 120, 2500, " mm")
         self.max_depth = _spin(400, 120, 2000, " mm")
         self.max_volume = _spin(0, 0, 2000, " l", 1)
         for label, widget in (("Breite bis", self.max_width), ("Höhe bis", self.max_height),
                               ("Tiefe bis", self.max_depth),
-                              ("Außenvolumen (optional)", self.max_volume)):
+                              ("Volumen (optional)", self.max_volume)):
             form2.addRow(label, widget)
-        hint = QLabel("Die tatsächlichen Maße werden innerhalb dieser Grenzen gewählt. 0 l = ohne Volumengrenze.")
-        hint.setWordWrap(True)
-        form2.addRow(hint)
+        self.space_hint = QLabel("Die tatsächlichen Maße werden innerhalb dieser Grenzen gewählt. 0 l = ohne Volumengrenze.")
+        self.space_hint.setWordWrap(True)
+        self.space_hint.setObjectName("hint")
+        form2.addRow(self.space_hint)
         layout.addWidget(step2)
 
         step3 = QGroupBox("3 · Gewünschter Klang")
-        form3 = self._form(step3)
+        form3 = self._form(step3, wrap=False)
         self.profile = QComboBox()
         for item in PROFILES.values():
             self.profile.addItem(item.label, item.id)
@@ -531,6 +551,23 @@ class AssistantWindow(QMainWindow):
         self.demo_choice.setCurrentIndex(1)
         self._demo()
 
+    def _show_toast(self, text: str, path: Path | None = None) -> None:
+        """Short confirmation with the file location; it stays until the next action (errors use dialogs)."""
+        self._toast_path = path
+        self.toast_label.setText("✓ " + text)
+        self.toast_open.setVisible(path is not None)
+        self.toast.setVisible(True)
+        fade_in(self.toast, reduced=self.reduced_motion)
+
+    def _open_toast_folder(self) -> None:
+        if self._toast_path is not None:
+            folder = self._toast_path if self._toast_path.is_dir() else self._toast_path.parent
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def _set_reading(self, reading: bool) -> None:
+        for view in (self.svg, self.dimension_svg, self.internal_svg, self.panel_svg):
+            view.set_reading(reading)
+
     def _update_start_preview(self, *_args: object) -> None:
         if hasattr(self, "start_preview"):
             self.start_preview.set_limits(self.max_width.value(), self.max_height.value(), self.max_depth.value())
@@ -577,6 +614,7 @@ class AssistantWindow(QMainWindow):
         hero = QHBoxLayout()
         self.preview = CabinetPreview()
         self.preview.set_mode(self.mode)
+        self.preview.setMinimumHeight(300)
         hero.addWidget(self.preview, 3)
         self.kpi_row = QWidget()  # right column: at most five key figures
         kpi_layout = QVBoxLayout(self.kpi_row)
@@ -621,7 +659,11 @@ class AssistantWindow(QMainWindow):
                                            reduced_motion=lambda: self.reduced_motion)
         self.details_section.set_full_height(260)
         ov.addWidget(self.details_section)
-        self.tabs.addTab(overview, "Entwürfe")
+        overview_scroll = QScrollArea()
+        overview_scroll.setWidgetResizable(True)
+        overview_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        overview_scroll.setWidget(overview)
+        self.tabs.addTab(overview_scroll, "Entwürfe")
 
         self.comparison = QTableWidget()
         self.comparison.setColumnCount(12)
@@ -657,7 +699,22 @@ class AssistantWindow(QMainWindow):
         self.panel_svg = ZoomableSvgView()
         panel_layout.addWidget(self.panel_svg, 1)
         self.drawing_tabs.addTab(panel, "Einzelteilplan")
-        self.tabs.addTab(self.drawing_tabs, "Zeichnungen")
+        drawings_page = QWidget()
+        drawings_layout = QVBoxLayout(drawings_page)
+        drawings_layout.setContentsMargins(0, 0, 0, 0)
+        strip_row = QHBoxLayout()
+        self.reading_button = QPushButton("Lesemodus")
+        self.reading_button.setCheckable(True)
+        self.reading_button.setToolTip("Blätter in Seitenbreite öffnen: Beschriftungen erscheinen in lesbarer Größe")
+        self.reading_button.toggled.connect(self._set_reading)
+        strip_row.addWidget(self.reading_button)
+        self.dimension_strip = QLabel("Maße erscheinen hier, sobald ein Entwurf berechnet ist.")
+        self.dimension_strip.setObjectName("kpiValue")
+        self.dimension_strip.setWordWrap(True)
+        strip_row.addWidget(self.dimension_strip, 1)
+        drawings_layout.addLayout(strip_row)
+        drawings_layout.addWidget(self.drawing_tabs, 1)
+        self.tabs.addTab(drawings_page, "Zeichnungen")
 
         sound = QSplitter(Qt.Orientation.Vertical)
         sound.setChildrenCollapsible(False)
@@ -688,6 +745,7 @@ class AssistantWindow(QMainWindow):
         results_layout = QVBoxLayout(results_page)
         results_layout.setContentsMargins(0, 0, 0, 0)
         results_layout.addWidget(self.tabs, 1)
+        self.tabs.currentChanged.connect(lambda _i: fade_in(self.tabs.currentWidget(), reduced=self.reduced_motion))
         self.result_stack.addWidget(results_page)
         actions = QHBoxLayout()
         self.save_button = QPushButton("Projekt speichern")
@@ -702,6 +760,21 @@ class AssistantWindow(QMainWindow):
         actions.addStretch(1)
         for button in (self.save_button, self.load_button, self.export_button):
             actions.addWidget(button)
+        self.toast = QFrame()
+        self.toast.setObjectName("surfaceCard")
+        toast_row = QHBoxLayout(self.toast)
+        toast_row.setContentsMargins(14, 8, 14, 8)
+        self.toast_label = QLabel()
+        self.toast_label.setObjectName("valid")
+        self.toast_label.setWordWrap(True)
+        toast_row.addWidget(self.toast_label, 1)
+        self.toast_open = QPushButton("Ordner öffnen")
+        self.toast_open.setObjectName("ghost")
+        self.toast_open.clicked.connect(self._open_toast_folder)
+        toast_row.addWidget(self.toast_open)
+        self.toast.setVisible(False)
+        self._toast_path: Path | None = None
+        layout.addWidget(self.toast)
         self.actions_bar = QWidget()
         self.actions_bar.setLayout(actions)
         actions.setContentsMargins(0, 0, 0, 0)
@@ -781,8 +854,10 @@ class AssistantWindow(QMainWindow):
         try:
             request = self._request()
         except ValidationError as exc:
-            QMessageBox.warning(self, "Vorgaben ungültig", str(exc))
+            self._show_input_errors(exc)
             return
+        self._clear_input_errors()
+        self.toast.setVisible(False)
         self.worker = DesignWorker(request, self.library)
         self.worker.progress.connect(self._progress)
         self.worker.completed.connect(self._completed)
@@ -803,6 +878,40 @@ class AssistantWindow(QMainWindow):
         show_all = self.all_columns.isChecked()
         for column in range(self.comparison.columnCount()):
             self.comparison.setColumnHidden(column, not (show_all or column in self._CORE_COLUMNS))
+
+    _FIELD_LABELS = (("max_width_m", "Breite", "max_width"), ("max_height_m", "Höhe", "max_height"),
+                     ("max_depth_m", "Tiefe", "max_depth"), ("max_outer_volume_l", "Außenvolumen", "max_volume"),
+                     ("budget", "Gesamtbudget", "budget"), ("target_f3_hz", "Ziel-F3", "target_f3"),
+                     ("amplifier_power_w", "Verstärkerleistung", "power"),
+                     ("panel_thickness_m", "Materialstärke", "thickness"),
+                     ("preferred_size_m", "Chassisgröße", "preferred_size"))
+
+    def _show_input_errors(self, exc: ValidationError) -> None:
+        """Tie validation messages to the input fields instead of a technical dialog."""
+        names = {key: (label, getattr(self, attr)) for key, label, attr in self._FIELD_LABELS}
+        parts: list[str] = []
+        first: QWidget | None = None
+        for error in exc.errors():
+            key = str(error["loc"][0]) if error["loc"] else ""
+            label, widget = names.get(key, (key or "Eingabe", None))
+            parts.append(f"{label}: muss größer als 0 sein" if error["type"] in ("greater_than", "greater_than_equal")
+                         else f"{label}: ungültiger Wert")
+            if widget is not None:
+                widget.setProperty("invalid", True)
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
+                first = first or widget
+        self._set_state("danger", "Bitte Eingaben prüfen – " + "; ".join(parts))
+        if first is not None:
+            first.setFocus()
+
+    def _clear_input_errors(self) -> None:
+        for _key, _label, attr in self._FIELD_LABELS:
+            widget = getattr(self, attr)
+            if widget.property("invalid"):
+                widget.setProperty("invalid", False)
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
 
     def _progress(self, value: int) -> None:
         self.progress.setValue(value)
@@ -962,6 +1071,13 @@ class AssistantWindow(QMainWindow):
         self.preview.set_design(c.width_m * 1000, c.height_m * 1000, c.depth_m * 1000, bundle.front_elements,
                                 f"{design.label} · {registry.get(design.project.enclosure.enclosure_type).label}")
         self.variant_cards.select(index)
+        fade_in(self.preview, reduced=self.reduced_motion)
+        fade_in(self.kpi_row, reduced=self.reduced_motion)
+        t = c.panel_thickness_m * 1000
+        self.dimension_strip.setText(
+            f"Außen {c.width_m*1000:.0f} × {c.height_m*1000:.0f} × {c.depth_m*1000:.0f} mm · "
+            f"Innen {c.internal_width_m*1000:.0f} × {c.internal_height_m*1000:.0f} × {c.internal_depth_m*1000:.0f} mm · "
+            f"Platten {t:.0f} mm")
         self.comparison.selectRow(index)
         self.svg.load(QByteArray(render_master_sheet_svg(bundle).encode("utf-8")))
         self.dimension_svg.load(QByteArray(render_dimension_svg(bundle).encode("utf-8")))
@@ -1083,6 +1199,7 @@ class AssistantWindow(QMainWindow):
         self.focus_button.setText("Eingaben zeigen" if on else "Zeichnungsmodus")
         if on:
             self.tabs.setCurrentIndex(2)
+            self.reading_button.setChecked(True)
 
     def _expert(self) -> None:
         if self.expert_window is None:
@@ -1160,6 +1277,7 @@ class AssistantWindow(QMainWindow):
             self.recent.add(filename)
             self._refresh_recent_menu()
             self.statusBar().showMessage(f"Projekt gespeichert: {filename}")
+            self._show_toast(f"Projekt gespeichert: {filename}", Path(filename))
 
     def _project_json(self, design: SpeakerDesign) -> str:
         """Project file; the target curve is stored only when it was actually shaped (optional, versioned)."""
@@ -1206,6 +1324,7 @@ class AssistantWindow(QMainWindow):
                 package = export_project_package(design.bundle, folder,
                     self.cutting_panel.settings(design.project.material))
                 self.statusBar().showMessage(f"Fertigungsunterlagen: {package}")
+                self._show_toast(f"Fertigungsunterlagen exportiert: {package}", Path(package))
             except (OSError, ValueError) as exc:
                 LOG.warning("Export fehlgeschlagen: %s", exc)
                 QMessageBox.warning(self, "Export fehlgeschlagen", str(exc))

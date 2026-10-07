@@ -151,6 +151,14 @@ def stylesheet(mode: str = "light") -> str:
         QPlainTextEdit:focus, QListWidget:focus {{border:2px solid {t['accent']}; padding:4px 9px;}}
         QLineEdit[error="true"], QComboBox[error="true"], QDoubleSpinBox[error="true"], QSpinBox[error="true"] {{
             border:2px solid {t['danger']}; padding:4px 9px;}}
+        QMainWindow[compact="true"] QLineEdit, QMainWindow[compact="true"] QComboBox,
+        QMainWindow[compact="true"] QDoubleSpinBox, QMainWindow[compact="true"] QSpinBox {{min-height:20px; padding:3px 10px;}}
+        QMainWindow[compact="true"] QPushButton {{min-height:18px; padding:5px 14px;}}
+        QMainWindow[compact="true"] QPushButton#primary {{padding:7px 14px;}}
+        QMainWindow[compact="true"] QLabel#title {{font-size:26px;}}
+        QMainWindow[compact="true"] QGroupBox {{margin-top:10px; padding-top:6px;}}
+        QLineEdit[invalid="true"], QComboBox[invalid="true"], QDoubleSpinBox[invalid="true"],
+        QSpinBox[invalid="true"] {{border:2px solid {t['danger']};}}
         QLineEdit:disabled, QComboBox:disabled, QDoubleSpinBox:disabled, QSpinBox:disabled {{
             background:{t['disabledSurface']}; color:{t['disabledText']}; border-color:{t['border']};}}
         QDoubleSpinBox, QSpinBox {{padding-right:26px;}}

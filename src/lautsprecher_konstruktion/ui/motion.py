@@ -74,3 +74,4 @@ def fade_in(widget: QWidget, *, reduced: bool, duration_ms: int = DURATION_FADE_
     animation.finished.connect(done)
     widget._fade = animation  # type: ignore[attr-defined]
     animation.start()
+
