@@ -77,3 +77,12 @@ Bewegung dient ausschließlich der Orientierung:
 - kurze Panelanimation beim Zeichnungsfokus;
 - keine dauerhaften Animationen oder künstlichen Fortschrittswerte;
 - Reduced Motion deaktiviert diese Übergänge.
+
+## V3.4 Ergänzungen
+
+- **Metrik-Chips** (`QLabel#metricChip`, Eigenschaft `tone` = ok/warn/bad/muted): Rand in Erfolgs-, Warn- oder Fehlerfarbe, der Text sagt immer dasselbe wie die Farbe.
+- **Variantenkarte** (`QFrame#variantCard`, `selected`): Titel, Tag, Chips; ausgewählt = Akzentrand.
+- **Preis-Badges** in der Stückliste: Punkt in Rollenfarbe (success = Händlerpreis, accent = Materialreferenz, warning = Planpreis, danger = Preis fehlt) plus Wort.
+- **Auswahlkarten** (`ChoiceCard`): Titel und umbrechende Beschreibung für zwei Zeilen; `min-height` steht im Stylesheet (QSS überschreibt `setMinimumHeight`).
+- **3D-Ansicht:** Plattenfarbe `borderStrong`, Chassis `accent`, Port `docAccent`, Dämmung `constructionAccent`; Außenwände im Durchsicht-Modus mit 16 % Deckkraft. Keine festen Hex-Farben im UI-Code (Test).
+

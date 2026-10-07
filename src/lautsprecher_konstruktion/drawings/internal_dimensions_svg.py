@@ -6,6 +6,7 @@ import re
 from html import escape
 
 from lautsprecher_konstruktion.drawings.style import painted, title_block
+from lautsprecher_konstruktion.drawings.treatment_svg import treatment_notes, treatment_section_svg
 from lautsprecher_konstruktion.enclosure.folded_line import STUFFING_LABELS
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -72,6 +73,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle, *, screen: bool = False
         parts.append(f'<text x="{back-lt/2+4:.1f}" y="{y+sh/2:.1f}" text-anchor="middle" class="dimtext" '
                      f'transform="rotate(-90 {back-lt/2+4:.1f} {y+sh/2:.1f})">'
                      f'Dämmung {_mm(bundle.damping.thickness_m):.0f}</text>')
+    parts.extend(treatment_section_svg(bundle, x, y+sh, scale, 'dimtext'))
     if bundle.folded_line is not None:
         line = bundle.folded_line
         wall = _mm(c.panel_thickness_m)*scale
@@ -258,6 +260,7 @@ def render_internal_dimensions_svg(bundle: DesignBundle, *, screen: bool = False
         dm = bundle.damping
         info.extend((f'Dämmung Rückwand {_mm(dm.thickness_m):.0f} mm + Seiten hinter dem Chassis',
                      f'≈ {dm.area_m2:.2f} m² Wolle/Schaum; {_mm(dm.clearance_to_driver_m):.0f} mm Abstand zum Magneten'))
+    info.extend(treatment_notes(bundle))
     if bundle.brace:
         b = bundle.brace
         info.extend((f'{b.quantity} Fensterstrebe(n) B1…B{b.quantity}',

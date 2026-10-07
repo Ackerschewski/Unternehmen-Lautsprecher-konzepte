@@ -19,6 +19,7 @@ from lautsprecher_konstruktion.services.automatic import (
 
 MAX_PROPOSALS = 3
 MAX_VERIFICATIONS = 6
+MAX_RATIO = 3.0  # a proposal that triples a limit is not a relaxation, it is a different product
 
 # key -> (request attribute, UI field name, unit, label, scale to request unit, direction)
 _FIELDS: dict[str, tuple[str, str, str, str, float]] = {
@@ -76,6 +77,8 @@ def _proposal(request: AutomaticDesignRequest, miss: dict[str, float]) -> tuple[
             new = float(ceil(value / 5) * 5) if key == "depth" else float(ceil(value))
             if new <= current:
                 continue
+        if new > current * MAX_RATIO or (key == "spl" and new < current / MAX_RATIO):
+            return None
         changes.append(Change(field, label, current, new, unit))
         cost += ((new - current) / current) ** 2
     if not changes:

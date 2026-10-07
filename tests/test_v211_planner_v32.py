@@ -26,7 +26,7 @@ def app() -> QApplication:
 
 def test_planner_has_decision_first_navigation(app: QApplication) -> None:
     window = AssistantWindow()
-    assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == [
+    assert [window.tabs.tabText(i).replace("&&", "&") for i in range(window.tabs.count())] == [
         "Planen", "Varianten", "Klang", "Zeichnungen", "Fertigung", "3D & Konstruktion"
     ]
     assert window.save_button.isHidden() and window.load_button.isHidden()

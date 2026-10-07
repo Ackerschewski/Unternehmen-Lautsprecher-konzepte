@@ -6,24 +6,12 @@
 - Wurzelursache der unlesbaren Zeichnungen gefunden und behoben: Qt-SVG ignoriert die CSS-Kurzschreibweise `font:`.
 - Evidence: `coordination/feedback/evidence/2026-10-07-v3-3/`; Report: `docs/application/BUILD_REPORT_TASK_0028.md`. Windows/DPI: NOT_RUN.
 
-## IN ARBEIT: TASK-0029 · Product Truth & Depth Sprint
+## TASK-0029 · Product Truth & Depth Sprint – umgesetzt (USER_TEST_REQUIRED)
 
-- Verbindlich: `coordination/tasks/TASK-0029.md`; Reihenfolge Korrektheit → EQ → Library → Dämmung → 3D → Varianten/Diagnosen → Fertigung → Polish.
-
-## NEXT: TASK-0029 · Product Truth & Depth Sprint
-
-- **Priorität: CRITICAL · Owner: Claude Code · Status: READY.**
-- Verbindliches Paket: `coordination/tasks/TASK-0029.md`.
-- Review-Grundlage: `coordination/feedback/2026-10-07-V3-3-REVIEW.md`.
-- Arbeitsbasis ist der aktuelle Stand auf `claude/modest-bell-guqoxu`, nicht `main`.
-- TASK-0028/V3.3 ist umgesetzt und visuell geprüft; Buildreport: `docs/application/BUILD_REPORT_TASK_0028.md`.
-- TASK-0027 wurde im TASK-0028-Buildreport ausdrücklich als **nicht umgesetzt** dokumentiert. Die offenen TASK-0027-Inhalte sind deshalb verbindlicher Bestandteil von TASK-0029; nicht separat überspringen.
-- Reihenfolge: **Korrektheit → Smooth/parametrischer EQ → Library Readiness → Dämmung → 3D → Varianten/Diagnostik → Fertigung → UI-Polish → Evidence**.
-- Kritischer Korrektheitsfehler: Varianten dürfen nicht als `Günstiger` bezeichnet werden, wenn Vergleichspreise unvollständig/nicht vergleichbar sind.
-- Weitere Pflichtpunkte: Null-Zähler aus Status, saubere deutsche User-Texte, vollständige Diagnosemeldungen mit Einheiten, Multi-Constraint-Relaxation, gruppierte Fertigung.
-- Neue Evidence-Serie: `coordination/feedback/evidence/2026-10-07-v3-4/`.
-- Autonomous execution: nach Teilpaketen nicht auf ein neues "mach weiter" warten; funktionsfähigen grünen Stand hinterlassen.
-- Windows/DPI bleibt `NOT_RUN`, solange kein echter Windows-Test ausgeführt wurde.
+- Alle 15 Definition-of-Done-Punkte erfüllt und getestet: Preiswahrheit, erklärbare Zielerfüllung, glatte Zielkurve, echte EQ-Bänder, Bibliotheks-Readiness und Coverage-Report, Dämmung als Projektobjekt (Stückliste/Zeichnung/3D), 3D-MVP, Variantenchips, Kombinations-Relaxation, gruppierte Fertigung, deutsche Stückliste, Evidence `coordination/feedback/evidence/2026-10-07-v3-4/`.
+- Report: `docs/application/BUILD_REPORT_TASK_0029.md` (457 Pytest-Fälle, Ruff, mypy). **Offene Punkte dort ehrlich aufgeführt** (B4 DSP-Kurve, FRD/ZMA-Daten im Bestand, STEP, 3D nur für rechteckige Gehäuse, teilweise Deutsch).
+- Windows/DPI bleibt `NOT_RUN`.
+- Nächste Pakete laut Roadmap: TASK-0030 (Solver-Validierung), 0031 (Bibliothek/Provenienz), 0032 (Geometriekern).
 
 ## LONG-RANGE ROADMAP: TASK-0030 → TASK-0050
 

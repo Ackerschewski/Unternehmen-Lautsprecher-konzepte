@@ -1,30 +1,29 @@
 {
   "version": "V-02.07.00",
-  "task_id": "TASK-0025",
+  "task_id": "TASK-0029",
   "status": "USER_TEST_REQUIRED",
-  "owner": "local integration",
+  "owner": "Claude Code",
   "acceptance": [
-    "cutting plan with kerf, sheet count and waste for all 29 enclosure types",
-    "cabinet weight range and build instructions in the export",
-    "prototype comparison tool (UI and CLI) with port correction",
-    "baffle step compensation option",
-    "reference tests against literature relations",
-    "recent files, autosave recovery, settings, log, help",
-    "single version source",
-    "three-way passive crossover with exact ladder simulation",
-    "interactive front layout with undo/redo",
-    "mypy --strict green for all non-UI packages",
-    "mitre joint option and DXF per cutting sheet",
-    "sealed-box simulation (excursion, impedance, group delay)"
+    "no 'Günstiger' label without complete comparable prices",
+    "explainable Zielerfüllung breakdown",
+    "smooth target curve with real EQ bands (RBJ biquads)",
+    "library readiness and coverage report derived from data",
+    "acoustic treatment as project object in BOM, drawing, guide and 3D",
+    "interactive 3D preview with honest accuracy labels",
+    "variant chips and mini comparison",
+    "verified multi-constraint relaxation proposals",
+    "grouped manufacturing view with price badges",
+    "new evidence series 2026-10-07-v3-4"
   ],
-  "tests": "352 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen smoke; see BUILD_REPORT_V-02.07.00.md",
+  "tests": "457 pytest cases, Ruff, mypy --strict (non-UI), Linux offscreen; see BUILD_REPORT_TASK_0029.md",
   "remaining": [
-    "prototype measurement validation (K3)",
-    "Windows build and smoke of V-02.07.00 (R1)",
-    "interactive user test (R2)",
-    "owner approval (R3)",
-    "3D collision and mitre check",
-    "automatic 3-way selection in the assistant",
-    "extend chassis data from sourced manufacturer data"
-  ]
+    "Windows/DPI 100/125/150 % (NOT_RUN)",
+    "DSP response curve and sum in sound lab (TASK-0034)",
+    "FRD/ZMA data in the library and preference in the selection (TASK-0031/0039)",
+    "STEP export",
+    "3D for baffles, horns, folded lines; collision check (TASK-0032)",
+    "full German coverage of cutting plan part names and older solver notes",
+    "owner approval"
+  ],
+  "ui_generation": "V3.4"
 }

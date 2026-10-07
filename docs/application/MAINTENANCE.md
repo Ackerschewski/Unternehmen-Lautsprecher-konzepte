@@ -101,3 +101,14 @@ Andere Typen: Näherung Leff·((Fsim/Fmess)²−1). Schwellen stehen als Konstan
 
 `LK_USER_DIR` verlegt alle Benutzerdaten; `tests/conftest.py` setzt es pro Test auf ein temporäres Verzeichnis, damit Tests nie echte Einstellungen berühren.
 UI-Tests laufen mit `QT_QPA_PLATFORM=offscreen` (Linux: `libegl1`, `libgl1`).
+
+## V3.4: Wartungshinweise (TASK-0029)
+
+- **Coverage-Report:** nach jeder Änderung der Bibliotheksdaten `python -m lautsprecher_konstruktion.library.coverage` ausführen; ein Test schlägt fehl, wenn `LIBRARY_COVERAGE.md` veraltet ist. Readiness-Regeln stehen in `library/readiness.py` (Pflichtfelder je Eignung).
+- **Preisregel:** Schwelle `MIN_CHEAPER_SHARE` (3 %) und `ESTIMATE_KINDS` in `services/price_status.py`. Jede neue Preisart muss dort und in `presentation.PRICE_KINDS` eingetragen werden.
+- **Dämmungsregeln:** pro Gehäusefamilie in `enclosure/treatment.check_treatments`. Keine Wirkung für Familien erfinden, deren Solver sie nicht modelliert.
+- **3D:** Neue Gehäuseformen brauchen erst Szenen-Geometrie in `enclosure/scene.build_scene` (und `supports`), sonst bleibt die 2D-Vorschau. Z-Buffer-Rasterizer: Dreieckszahl bleibt klein (Boxen = 12, Zylinder = 112).
+- **Relaxation:** höchstens `MAX_VERIFICATIONS` volle Entwurfsläufe; `MAX_SOFT_MISSES` begrenzt den Speicher in `automatic.py`.
+- **Tests:** `tests/conftest.py` lässt jeden Test fehlschlagen, in dem ein Qt-Slot eine Ausnahme wirft (PySide6 würde sie sonst nur ausgeben). Tab-Namen mit `&&` für ein sichtbares `&` (`3D && Konstruktion`).
+- **Qt-SVG:** nur Längsform der Schriftangaben (`font-size` usw.), nur der erste `<style>`-Block wird gelesen.
+

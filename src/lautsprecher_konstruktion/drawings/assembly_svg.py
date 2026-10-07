@@ -6,6 +6,7 @@ from html import escape
 from textwrap import wrap
 
 from lautsprecher_konstruktion.drawings.style import painted
+from lautsprecher_konstruktion.drawings.treatment_svg import treatment_section_svg
 from lautsprecher_konstruktion.enclosure.layout import FrontElement, bolt_holes
 from lautsprecher_konstruktion.services.design import DesignBundle
 
@@ -113,6 +114,7 @@ def render_assembly_svg(bundle: DesignBundle) -> str:
         parts.append(f'<text x="{rear_x-lt/2+4:.1f}" y="{inner_y+inner_h/2:.1f}" text-anchor="middle" class="small" '
                      f'transform="rotate(-90 {rear_x-lt/2+4:.1f} {inner_y+inner_h/2:.1f})">'
                      f'Dämmung {_mm(bundle.damping.thickness_m):.0f} mm</text>')
+    parts.extend(treatment_section_svg(bundle, section_x, top_y+fh, scale, 'small'))
     partition_x = None
     if bundle.folded_line is not None:
         line = bundle.folded_line

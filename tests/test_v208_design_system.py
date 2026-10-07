@@ -102,7 +102,7 @@ def test_default_simulation_shows_two_charts_and_more_on_request(app: QApplicati
 
 def test_tabs_are_grouped_and_there_is_no_theme_switch(app: QApplication) -> None:
     window = AssistantWindow()
-    names = [window.tabs.tabText(i) for i in range(window.tabs.count())]
+    names = [window.tabs.tabText(i).replace("&&", "&") for i in range(window.tabs.count())]
     assert names == ["Planen", "Varianten", "Klang", "Zeichnungen", "Fertigung", "3D & Konstruktion"]
     assert window.export_button.objectName() == "primary" and window.create_button.objectName() == "primary"
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]

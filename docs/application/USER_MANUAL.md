@@ -1,3 +1,16 @@
+# Nutzerhandbuch — V3.4 (TASK-0029)
+
+## Neu in V3.4
+
+- **Zielkurve mit EQ-Bändern:** Im Reiter „Klang“ lässt sich die Zielkurve glatt formen. „Band hinzufügen“ legt ein parametrisches Band (Glocke, Low-/High-Shelf, Low-/High-Pass, Notch) an; Frequenz und Gain per Ziehen, alle Werte im Band-Inspector, Rückgängig/Wiederholen. Die Kurve ist die **Zielvorgabe**, keine simulierte DSP-Kette.
+- **3D-Vorschau:** Das Ergebnis zeigt das Gehäuse in 3D (Maus ziehen = drehen, Rad = zoomen, ISO/Front/Seite/Oben, „Außenwände durchsichtig“). Chassis, Port und Verstärkungen sind vereinfachte Hüllen, die Platten haben die Nennmaße. Im Reiter „3D & Konstruktion“ steht die Objektliste mit Genauigkeitsangabe.
+- **Dämmung** ist ein Projektobjekt: Wandbelag, Füllung, lokaler Absorber, Vent-Füllung. Sie erscheint in Stückliste, Bauanleitung, Schnittzeichnung und 3D. Für Transmission-Line und Horn berechnet das Programm bewusst keine Wirkung.
+- **Preise:** „Günstiger“ erscheint nur, wenn beide Varianten vollständig bepreist sind und mindestens 3 % Unterschied besteht. Sonst steht „18/20 Positionen bepreist“ und das Preisranking ist deaktiviert.
+- **Varianten:** Karten mit Kennzahlen-Chips und ein Balkenvergleich. „Zielerfüllung“ rechnet nur belegte Kriterien; die Aufschlüsselung steht in den Details.
+- **Nicht machbar:** Außer einzelnen Änderungen gibt es „Kombinierte Änderungen prüfen“: bis zu drei Kombinationen, jede mit dem echten Entwurfsrechner geprüft.
+- **Bibliothek:** Jeder Eintrag zeigt Datenabdeckung in Prozent und für welche Aufgaben die Daten reichen (Gehäuse, Weiche, Fertigung, Breitband, Preis, 3D-Hülle). Eine Zusammenfassung steht in `docs/application/LIBRARY_COVERAGE.md`.
+- **Fertigung:** Zusammenfassung oben, Stückliste nach Gruppen mit Preisart je Position, Export-Liste. STEP ist noch nicht verfügbar.
+
 # Nutzerhandbuch — V-02.07.00
 
 ## Neu in V-02.07.00

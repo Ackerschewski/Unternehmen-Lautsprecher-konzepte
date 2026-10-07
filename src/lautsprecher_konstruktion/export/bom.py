@@ -9,6 +9,7 @@ from lautsprecher_konstruktion.enclosure.treatment import (
     POSITION_LABELS_DE,
     AcousticTreatment,
 )
+from lautsprecher_konstruktion.presentation import component_text, panel_name
 from lautsprecher_konstruktion.services.design import DesignBundle
 
 
@@ -44,7 +45,7 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
             BomItem(
                 category="Gehäuseplatten",
                 reference=panel.name,
-                description=project.material,
+                description=f"{panel_name(panel.name)} · {project.material}",
                 quantity=panel.quantity,
                 specification=(
                     f"{panel.width_m*1000:.1f} x {panel.height_m*1000:.1f} x "
@@ -151,10 +152,10 @@ def build_bom(bundle: DesignBundle) -> tuple[BomItem, ...]:
                 BomItem(
                     category="Frequenzweichenkomponenten",
                     reference=component.reference,
-                    description=component.kind,
+                    description=component_text(component.kind),
                     quantity=1,
                     specification=component.display_value,
-                    notes=f"{component.branch}; {component.connection}; Soll {component.target_display_value}",
+                    notes=f"{component_text(component.branch)}; {component_text(component.connection)}; Soll {component.target_display_value}",
                 )
             )
 
@@ -258,8 +259,8 @@ def write_crossover_bom_csv(path: str | Path, bundle: DesignBundle) -> None:
         writer.writerow(["Referenz", "Typ", "Sollwert", "Gewählter Wert", "Zweig", "Anschluss", "Anzahl", "Leistung", "Hinweis"])
         if bundle.crossover:
             for c in bundle.crossover.components:
-                writer.writerow([c.reference, c.kind, c.target_display_value, c.display_value, c.branch,
-                                 c.connection, 1, "", "Startentwurf - Bauteiltoleranz und Belastbarkeit prüfen"])
+                writer.writerow([c.reference, component_text(c.kind), c.target_display_value, c.display_value,
+                                 component_text(c.branch), component_text(c.connection), 1, "", "Startentwurf - Bauteiltoleranz und Belastbarkeit prüfen"])
 
 
 def treatment_bom_item(t: AcousticTreatment) -> BomItem:

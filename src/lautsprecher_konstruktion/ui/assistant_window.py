@@ -589,7 +589,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
     def _set_result_tabs_enabled(self, enabled: bool) -> None:
         """Without a design the tabs that only show design data are disabled instead of showing empty areas."""
         for index in range(self.tabs.count()):
-            if self.tabs.tabText(index) in ("Varianten", "Zeichnungen", "Fertigung", "3D & Konstruktion"):
+            if self.tabs.tabText(index).replace("&&", "&") in ("Varianten", "Zeichnungen", "Fertigung", "3D & Konstruktion"):
                 self.tabs.setTabEnabled(index, enabled)
 
     def _mark_stale(self, *_args: object) -> None:
@@ -1097,7 +1097,7 @@ class AssistantWindow(FileActionsMixin, QMainWindow):
         manufacturing_layout.addWidget(self.manufacturing_tabs, 1)
         self.tabs.addTab(manufacturing, "Fertigung")
         self.construction = ConstructionView(self.mode)
-        self.tabs.addTab(self.construction, "3D & Konstruktion")  # only shown with data: disabled until a design exists
+        self.tabs.addTab(self.construction, "3D && Konstruktion")  # && shows as a literal & (a single one is a mnemonic)  # only shown with data: disabled until a design exists
 
         self.tabs.currentChanged.connect(self._result_tab_changed)
         layout.addWidget(self.tabs, 1)

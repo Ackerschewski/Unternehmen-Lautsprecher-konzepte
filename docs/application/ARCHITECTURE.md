@@ -30,6 +30,16 @@ DriverCatalog/FRD/ZMA -> SpeakerProject (Schema 3)
 
 Erweiterungspunkte: weitere Treibertypen sind im Modell vorbereitet; zusätzliche Filterzweige sollten als echte Netlist statt weiterer fester 2-Wege-Topologien implementiert werden. Materialkatalog und Messdatenmodelle sind UI-unabhängig.
 
+## Ergänzungen V3.4 (TASK-0029)
+
+- `services/price_status.py` (Preiswahrheit), `services/variant_metrics.py` (Chips, Balken, Datenabdeckung, Empfehlungshinweis), `services/relaxation.py` (verifizierte Kombinationsvorschläge) sind UI-unabhängig und mypy-strikt.
+- `targets/` (`smooth.py`, `eq.py`, `state.py`): PCHIP-Zielkurve und EQ-Bänder aus RBJ-Biquads; `SpeakerProject.target_eq_bands`.
+- `library/readiness.py`, `library/coverage.py`: Readiness und Abdeckung werden aus dem Datensatz berechnet, nie gespeichert.
+- `enclosure/treatment.py`: `AcousticTreatment` im Projekt (`treatments`); `DesignBundle.treatments` enthält abgeleitete und eigene Behandlungen. Stückliste, Anleitung, Zeichnungen (`drawings/treatment_svg.py`) und Szene lesen dieselbe Quelle.
+- `enclosure/scene.py`: 3D-Szene aus Gehäuse, Frontelementen, Verstärkung und Behandlungen (keine eigene Geometrie). `ui/raster.py` (Z-Buffer) und `ui/scene_view.py` zeichnen sie; `HeroPreview` fällt auf 2D zurück, wo keine Szene existiert.
+- `export/summary.py`: Gruppierung und Fertigungs-Zusammenfassung. `presentation.py`: deutsche Anzeigenamen (nur Präsentation).
+- `ui/assistant_window.py` wurde in `sound_lab.py`, `result_text.py`, `assistant_files.py` aufgeteilt (Grenze 1500 Zeilen).
+
 ## Ergänzungen V-02.07.00
 
 ```text

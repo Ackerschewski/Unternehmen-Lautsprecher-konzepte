@@ -238,7 +238,7 @@ def test_impossible_state_shows_diagnosis_and_disables_result_tabs(app: QApplica
     window.worker.wait(240000)
     app.processEvents()
     assert window.diagnostic.isVisible() and not window.result_body.isVisible()
-    enabled = {window.tabs.tabText(i): window.tabs.isTabEnabled(i) for i in range(window.tabs.count())}
+    enabled = {window.tabs.tabText(i).replace("&&", "&"): window.tabs.isTabEnabled(i) for i in range(window.tabs.count())}
     assert enabled["Varianten"] is False and enabled["Zeichnungen"] is False and enabled["Fertigung"] is False
     assert enabled["Planen"] is True
     assert window.wizard_panel.isVisible()  # inputs stay reachable to fix the cause

@@ -82,3 +82,17 @@ def test_treatments_round_trip_in_project_file() -> None:
     project = _project("sealed", (_t(density_kg_m3=25.0, note="Rückwand"),))
     restored = SpeakerProject.model_validate_json(project.model_dump_json())
     assert restored.treatments == project.treatments
+
+
+def test_user_treatment_is_drawn_in_both_section_drawings_and_listed() -> None:
+    from lautsprecher_konstruktion.drawings.assembly_svg import render_assembly_svg
+    from lautsprecher_konstruktion.drawings.internal_dimensions_svg import (
+        render_internal_dimensions_svg,
+    )
+    bundle = calculate_project(_project("sealed", (_t(id="T9", kind=TreatmentKind.LOCAL_ABSORBER, position="top", area_m2=0.05),)))
+    plain = calculate_project(_project("sealed", ()))
+    for render in (render_internal_dimensions_svg, render_assembly_svg):
+        with_t, without = render(bundle), render(plain)
+        assert with_t.count('class="lining"') == without.count('class="lining"') + 1
+        assert ">T9<" in with_t
+    assert "T9 Lokaler Absorber" in render_internal_dimensions_svg(bundle)

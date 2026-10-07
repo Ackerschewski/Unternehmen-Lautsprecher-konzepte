@@ -92,3 +92,9 @@ def test_ui_search_shows_buttons_and_applies_all_changes(
     window._apply_suggestions([("max_depth", 145.0), ("target_f3", 72.0)])
     assert window.max_depth.value() == 145.0 and window.target_f3.value() == 72.0
     window.worker.wait(240000)
+
+
+def test_absurd_ratios_are_not_proposed() -> None:
+    request = AutomaticDesignRequest(max_depth_m=0.20)
+    assert _proposal(request, {"depth": 1.635}) is None  # more than three times the limit: a different product
+    assert _proposal(request, {"depth": 0.50}) is not None

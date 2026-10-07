@@ -91,6 +91,11 @@ class DiagnosticCard(QFrame):
         self.search_note.setWordWrap(True)
         layout.addWidget(self.search_note)
         self.relax_buttons: list[QPushButton] = []
+        self._relax_box = QWidget()
+        self._relax_layout = QVBoxLayout(self._relax_box)
+        self._relax_layout.setContentsMargins(0, 0, 0, 0)
+        self._relax_layout.setSpacing(6)
+        layout.addWidget(self._relax_box)
         self.more_heading = QLabel("Weitere Gründe")
         self.more_heading.setObjectName("eyebrow")
         layout.addWidget(self.more_heading)
@@ -167,7 +172,7 @@ class DiagnosticCard(QFrame):
             button.setToolTip("Alle genannten Änderungen werden eingetragen und neu berechnet.")
             pairs = [(c.field, c.new) for c in item.changes]
             button.clicked.connect(lambda _c=False, p=pairs: self.applyMany.emit(p))
-            self._buttons.addWidget(button)
+            self._relax_layout.addWidget(button)
             self.relax_buttons.append(button)
 
     def buttons_text(self) -> list[str]:

@@ -162,7 +162,7 @@ def test_construction_area_lists_objects_with_accuracy_and_is_enabled_only_with_
     from lautsprecher_konstruktion.ui.construction_view import scene_overview_html
 
     window = AssistantWindow()
-    index = next(i for i in range(window.tabs.count()) if window.tabs.tabText(i) == "3D & Konstruktion")
+    index = next(i for i in range(window.tabs.count()) if window.tabs.tabText(i).replace("&&", "&") == "3D & Konstruktion")
     window._set_result_tabs_enabled(False)
     assert not window.tabs.isTabEnabled(index)
     html = scene_overview_html(build_scene(_bundle()))
